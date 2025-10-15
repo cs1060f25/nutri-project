@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ThemeProvider, PartialTheme } from '@fluentui/react';
+import { ThemeProvider } from '@fluentui/react';
 import ChatOnboarding from './components/ChatOnboarding';
 import ConfirmationPage from './components/ConfirmationPage';
 import './App.css';
