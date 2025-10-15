@@ -28,8 +28,8 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', message: 'Server is running' });
 });
 
-// Only start server if not in Vercel
-if (process.env.NODE_ENV !== 'production') {
+// Only start server if not in Vercel/serverless environment
+if (require.main === module) {
   app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
   });
