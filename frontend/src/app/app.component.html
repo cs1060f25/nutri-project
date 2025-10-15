@@ -1,0 +1,10 @@
+<div class="app">
+  <app-sidebar 
+    [isCollapsed]="isSidebarCollapsed"
+    (toggle)="toggleSidebar()">
+  </app-sidebar>
+  <div [class.sidebar-collapsed]="isSidebarCollapsed" class="main-content">
+    <app-home></app-home>
+  </div>
+</div>
+
