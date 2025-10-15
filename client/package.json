@@ -1,11 +1,9 @@
 {
-  "name": "crimsonfuel-chat",
+  "name": "crimsonfuel-wellness-client",
   "version": "0.1.0",
   "private": true,
-  "proxy": "http://localhost:8000",
+  "proxy": "http://localhost:5002",
   "dependencies": {
-    "@fluentui/react": "^8.110.0",
-    "@fluentui/react-icons": "^2.0.220",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-scripts": "5.0.1",

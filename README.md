@@ -1,45 +1,40 @@
-# CrimsonFuel - Prototype 3 (Conversational UI)
+# CrimsonFuel - Prototype 4 (Wellness & Mindfulness)
 
-A conversational chat-style onboarding experience for students with severe allergies.
+A calming, minimalist onboarding experience for low-activity students focused on building healthy habits.
 
 ## Overview
 
-This prototype uses a unique chat interface with Microsoft Fluent Design to create an engaging, friendly onboarding experience focused on allergy safety.
+This prototype uses soft colors, large interactive elements, and an encouraging tone to help students with low activity levels take small steps toward better nutrition and wellness.
 
 ## Tech Stack
 
-- **Frontend**: React 18, Fluent UI (Microsoft)
-- **Backend**: Django 4.2, Django REST Framework
-- **Database**: PostgreSQL (mocked with SQLite)
-- **Design**: Microsoft Fluent Design System
+- **Frontend**: React 18
+- **Backend**: Node.js + Express
+- **Database**: PostgreSQL (mocked with localStorage)
+- **Design**: Minimalist hybrid (Apple HIG + Material touches)
 
 ## Features
 
-- **Conversational UI**: Chat-style onboarding instead of forms
-- **Allergy-Focused**: Multi-select allergy management
-- **Fluent Design**: Acrylic effects, reveal animations, modern aesthetics
-- **Safety Badge**: Verified profile indicator
-- **Real-time Chat**: Typing indicators and smooth animations
-- **Unique Design**: Completely different from card-based prototypes
+- **Calming Design**: Soft green gradients, gentle animations
+- **Interactive Sliders**: Visual feedback for activity, stress, sleep
+- **Wellness Focus**: Goals like "eat cleaner," "more energy," "reduce stress"
+- **Motivational Messaging**: Personalized encouragement based on profile
+- **Low-Friction UX**: Large inputs, friendly tone, approachable
+- **Mobile-Friendly**: Responsive layout for all devices
 
 ## Installation
 
-### Backend (Django)
+### Backend (Express)
 
 ```bash
-# Install Python dependencies
-pip install -r requirements.txt
+# Install dependencies
+npm install
 
-# Run migrations
-cd server
-python manage.py makemigrations
-python manage.py migrate
-
-# Run Django server
-python manage.py runserver
+# Run server
+npm start
 ```
 
-Server runs on http://localhost:8000
+Server runs on http://localhost:5002
 
 ### Frontend (React)
 
@@ -56,39 +51,60 @@ App runs on http://localhost:3000
 
 ## User Flow
 
-1. **Welcome**: Bot greets user and asks for name
-2. **Allergies**: Multi-select chips for severe allergies
-3. **Diet Goal**: Choose nutrition objective
-4. **Activity Level**: Select typical activity
-5. **Confirmation**: Profile summary with safety badge
+1. **Sign Up**: Harvard email + password
+2. **Personal Info**: Name, gender, activity level (slider)
+3. **Wellness Goals**: Multi-select goals (eat cleaner, more energy, etc.)
+4. **Lifestyle**: Stress level and sleep quality (sliders)
+5. **Confirmation**: Motivational message + profile summary + tips
 
 ## Design Principles
 
-### Microsoft Fluent Design
-- Acrylic material (frosted glass effect)
-- Reveal effects on hover
-- Depth and layering
-- Smooth animations
-- Modern gradient backgrounds
+### Calming Minimalism
+- Soft green color palette (#8BC34A, #E8F5E9)
+- Gentle gradients and shadows
+- Rounded corners (16-24px)
+- Spacious padding and margins
+- Large, easy-to-tap elements
 
-### Conversational UX
-- Chat bubbles instead of forms
-- Typing indicators
-- Friendly bot personality
-- Progressive disclosure
-- Natural conversation flow
+### Wellness-Focused
+- Encouraging language ("small steps," "you've got this")
+- Personalized motivational messages
+- Tips for low-activity users
+- Progress over perfection mindset
+- Non-judgmental tone
+
+### Interactive Elements
+- Sliders for nuanced input (activity, stress, sleep)
+- Visual feedback on all interactions
+- Smooth animations and transitions
+- Clear progress indicators
 
 ## What Makes This Different
 
 **vs. Prototype 1 (Material Design)**:
-- Chat UI vs. stepper forms
-- Conversational vs. structured
-- Fluent vs. Material Design
+- Wellness focus vs. athlete focus
+- Soft colors vs. bold crimson
+- Sliders vs. dropdowns
+- Encouraging vs. professional
 
-**vs. Prototype 2 (Apple HIG)**:
-- Desktop-first vs. mobile-first
-- Chat interface vs. card forms
-- Gradient backgrounds vs. minimal design
+**vs. Prototype 2 (Apple HIG PWA)**:
+- Desktop-friendly vs. mobile-first
+- Wellness vs. allergy safety
+- Calming vs. clinical
+
+**vs. Prototype 3 (Fluent Chat)**:
+- Traditional forms vs. chat interface
+- Faster completion vs. conversational
+- Green theme vs. purple/blue
+
+## Target User
+
+Low-activity Harvard students who:
+- Want to eat healthier but don't know where to start
+- Feel overwhelmed by complex nutrition apps
+- Need encouragement and small, achievable goals
+- Value mindfulness and stress reduction
+- Prefer simple, calming interfaces
 
 ## Team
 
@@ -98,4 +114,4 @@ Hewan Kidanemariam, Katherine Harvey, Waseem Ahmad, Maria Priebe Rocha, Nico Fid
 
 ---
 
-**Note**: This is Prototype 3 of multiple design iterations. See branches `hewan-p1` and `hewan-p2` for other prototypes.
+**Note**: This is Prototype 4 of multiple design iterations. See branches `hewan-p1`, `hewan-p2`, and `hewan-p3` for other prototypes.

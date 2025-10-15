@@ -1,53 +1,38 @@
 import React, { useState } from 'react';
-import { ThemeProvider } from '@fluentui/react';
-import ChatOnboarding from './components/ChatOnboarding';
-import ConfirmationPage from './components/ConfirmationPage';
 import './App.css';
-
-// Microsoft Fluent Design theme
-const fluentTheme = {
-  palette: {
-    themePrimary: '#0078d4',
-    themeLighterAlt: '#eff6fc',
-    themeLighter: '#deecf9',
-    themeLight: '#c7e0f4',
-    themeTertiary: '#71afe5',
-    themeSecondary: '#2b88d8',
-    themeDarkAlt: '#106ebe',
-    themeDark: '#005a9e',
-    themeDarker: '#004578',
-    neutralLighterAlt: '#faf9f8',
-    neutralLighter: '#f3f2f1',
-    neutralLight: '#edebe9',
-    neutralQuaternaryAlt: '#e1dfdd',
-    neutralQuaternary: '#d0d0d0',
-    neutralTertiaryAlt: '#c8c6c4',
-    neutralTertiary: '#a19f9d',
-    neutralSecondary: '#605e5c',
-    neutralPrimaryAlt: '#3b3a39',
-    neutralPrimary: '#323130',
-    neutralDark: '#201f1e',
-    black: '#000000',
-    white: '#ffffff',
-  }
-};
+import SignUp from './components/SignUp';
+import Questionnaire from './components/Questionnaire';
+import Confirmation from './components/Confirmation';
 
 function App() {
-  const [step, setStep] = useState('chat'); // 'chat' or 'confirmation'
+  const [step, setStep] = useState(1); // 1: Sign up, 2: Questionnaire, 3: Confirmation
+  const [userId, setUserId] = useState(null);
+  const [userEmail, setUserEmail] = useState('');
   const [userData, setUserData] = useState(null);
 
-  const handleOnboardingComplete = (data) => {
+  const handleSignUpComplete = (id, email) => {
+    setUserId(id);
+    setUserEmail(email);
+    setStep(2);
+  };
+
+  const handleQuestionnaireComplete = (data) => {
     setUserData(data);
-    setStep('confirmation');
+    setStep(3);
   };
 
   return (
-    <ThemeProvider theme={fluentTheme}>
-      <div className="App">
-        {step === 'chat' && <ChatOnboarding onComplete={handleOnboardingComplete} />}
-        {step === 'confirmation' && <ConfirmationPage userData={userData} />}
-      </div>
-    </ThemeProvider>
+    <div className="App">
+      {step === 1 && <SignUp onComplete={handleSignUpComplete} />}
+      {step === 2 && (
+        <Questionnaire
+          userId={userId}
+          userEmail={userEmail}
+          onComplete={handleQuestionnaireComplete}
+        />
+      )}
+      {step === 3 && <Confirmation userData={userData} />}
+    </div>
   );
 }
 
