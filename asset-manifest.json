@@ -1,0 +1,13 @@
+{
+  "files": {
+    "main.css": "/nutri-project/static/css/main.90354eba.css",
+    "main.js": "/nutri-project/static/js/main.f700a3f9.js",
+    "index.html": "/nutri-project/index.html",
+    "main.90354eba.css.map": "/nutri-project/static/css/main.90354eba.css.map",
+    "main.f700a3f9.js.map": "/nutri-project/static/js/main.f700a3f9.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.90354eba.css",
+    "static/js/main.f700a3f9.js"
+  ]
+}
