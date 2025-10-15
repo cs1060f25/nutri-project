@@ -1,0 +1,223 @@
+/* Apple HIG inspired design system */
+:root {
+  --ios-blue: #007AFF;
+  --ios-green: #34C759;
+  --ios-red: #FF3B30;
+  --ios-orange: #FF9500;
+  --ios-gray: #8E8E93;
+  --ios-gray-light: #C7C7CC;
+  --ios-gray-bg: #F2F2F7;
+  --ios-white: #FFFFFF;
+  --ios-black: #000000;
+  --card-radius: 16px;
+  --spacing-xs: 8px;
+  --spacing-sm: 12px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+}
+
+.App {
+  min-height: 100vh;
+  background: var(--ios-gray-bg);
+}
+
+/* iOS-style card */
+.card {
+  background: var(--ios-white);
+  border-radius: var(--card-radius);
+  padding: var(--spacing-lg);
+  margin: var(--spacing-md);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+/* iOS-style button */
+.button {
+  background: var(--ios-blue);
+  color: var(--ios-white);
+  border-radius: 12px;
+  padding: 14px 24px;
+  font-size: 17px;
+  font-weight: 600;
+  min-height: 50px;
+  width: 100%;
+  cursor: pointer;
+  transition: opacity 0.2s;
+  border: none;
+}
+
+.button:hover {
+  opacity: 0.8;
+}
+
+.button:active {
+  opacity: 0.6;
+}
+
+.button:disabled {
+  background: var(--ios-gray-light);
+  color: var(--ios-gray);
+  cursor: not-allowed;
+}
+
+.button-secondary {
+  background: var(--ios-gray-bg);
+  color: var(--ios-blue);
+}
+
+/* iOS-style input */
+.input-group {
+  margin-bottom: var(--spacing-md);
+}
+
+.input-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ios-gray);
+  margin-bottom: var(--spacing-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.input {
+  width: 100%;
+  padding: 14px 16px;
+  font-size: 17px;
+  border: 1px solid var(--ios-gray-light);
+  border-radius: 10px;
+  background: var(--ios-white);
+  min-height: 50px;
+  transition: border-color 0.2s;
+}
+
+.input:focus {
+  border-color: var(--ios-blue);
+  outline: 2px solid var(--ios-blue);
+  outline-offset: 2px;
+}
+
+.input::placeholder {
+  color: var(--ios-gray-light);
+}
+
+/* iOS-style select */
+.select {
+  width: 100%;
+  padding: 14px 16px;
+  font-size: 17px;
+  border: 1px solid var(--ios-gray-light);
+  border-radius: 10px;
+  background: var(--ios-white);
+  min-height: 50px;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L6 6L11 1' stroke='%238E8E93' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 16px center;
+  padding-right: 40px;
+}
+
+/* iOS-style checkbox/radio */
+.checkbox-group,
+.radio-group {
+  margin-bottom: var(--spacing-md);
+}
+
+.checkbox-option,
+.radio-option {
+  display: flex;
+  align-items: center;
+  padding: var(--spacing-md);
+  background: var(--ios-white);
+  border: 1px solid var(--ios-gray-light);
+  border-radius: 12px;
+  margin-bottom: var(--spacing-sm);
+  cursor: pointer;
+  min-height: 56px;
+  transition: all 0.2s;
+}
+
+.checkbox-option:hover,
+.radio-option:hover {
+  background: var(--ios-gray-bg);
+}
+
+.checkbox-option.selected,
+.radio-option.selected {
+  border-color: var(--ios-blue);
+  background: rgba(0, 122, 255, 0.05);
+}
+
+.checkbox-input,
+.radio-input {
+  width: 24px;
+  height: 24px;
+  margin-right: var(--spacing-md);
+  cursor: pointer;
+  accent-color: var(--ios-blue);
+}
+
+/* Alert/Error message */
+.alert {
+  padding: var(--spacing-md);
+  border-radius: 10px;
+  margin-bottom: var(--spacing-md);
+  font-size: 15px;
+}
+
+.alert-error {
+  background: rgba(255, 59, 48, 0.1);
+  color: var(--ios-red);
+  border: 1px solid rgba(255, 59, 48, 0.3);
+}
+
+.alert-success {
+  background: rgba(52, 199, 89, 0.1);
+  color: var(--ios-green);
+  border: 1px solid rgba(52, 199, 89, 0.3);
+}
+
+/* Progress indicator */
+.progress-bar {
+  height: 4px;
+  background: var(--ios-gray-light);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: var(--spacing-lg);
+}
+
+.progress-fill {
+  height: 100%;
+  background: var(--ios-blue);
+  transition: width 0.3s ease;
+}
+
+/* Typography */
+.title {
+  font-size: 34px;
+  font-weight: 700;
+  margin-bottom: var(--spacing-sm);
+  color: var(--ios-black);
+}
+
+.subtitle {
+  font-size: 17px;
+  color: var(--ios-gray);
+  margin-bottom: var(--spacing-lg);
+}
+
+.section-title {
+  font-size: 22px;
+  font-weight: 600;
+  margin-bottom: var(--spacing-md);
+  color: var(--ios-black);
+}
+
+/* Responsive */
+@media (min-width: 768px) {
+  .card {
+    max-width: 600px;
+    margin: var(--spacing-xl) auto;
+  }
+}
