@@ -2,6 +2,8 @@
   "buildCommand": "cd frontend && npm install && npm run build",
   "outputDirectory": "frontend/build",
   "rewrites": [
-    { "source": "/home", "destination": "/api/home" }
+    { "source": "/home", "destination": "/api/home" },
+    { "source": "/diet-plan", "destination": "/api/diet-plan" },
+    { "source": "/diet-plan/:id", "destination": "/api/diet-plan" }
   ]
 }

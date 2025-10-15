@@ -10,6 +10,9 @@ module.exports = {
       'Create and track personalized diet goals',
       'Monitor your progress over time'
     ]
-  }
+  },
+  
+  // Store diet plans (in production, this would be a real database)
+  dietPlans: []
 };
 

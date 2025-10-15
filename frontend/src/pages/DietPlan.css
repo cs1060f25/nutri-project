@@ -1,0 +1,505 @@
+.diet-plan-page {
+  min-height: 100vh;
+  padding: 2rem;
+  background: linear-gradient(135deg, #f8fcfa 0%, #ffffff 100%);
+}
+
+.diet-plan-container {
+  max-width: 900px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 2rem 0;
+}
+
+.hero-section {
+  text-align: center;
+  margin-bottom: 3rem;
+}
+
+.hero-title {
+  font-size: 3rem;
+  font-weight: 600;
+  color: #1a5f3f;
+  margin: 0 0 1rem 0;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.hero-subtitle {
+  font-size: 1.25rem;
+  color: #4a7c5f;
+  margin: 0;
+  line-height: 1.6;
+  font-weight: 400;
+  max-width: 700px;
+  margin: 0 auto;
+}
+
+.form-section {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 2.5rem;
+  box-shadow: 0 2px 8px rgba(26, 95, 63, 0.06);
+  border: 1px solid #d1e7dd;
+}
+
+.form-title {
+  font-size: 1.75rem;
+  font-weight: 600;
+  color: #1a5f3f;
+  margin: 0 0 0.75rem 0;
+}
+
+.form-description {
+  font-size: 1rem;
+  color: #4a7c5f;
+  margin: 0 0 2rem 0;
+  line-height: 1.5;
+}
+
+.metrics-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.metric-item {
+  padding: 1.5rem;
+  background: #f8fcfa;
+  border-radius: 12px;
+  border: 1px solid #d1e7dd;
+  transition: all 0.2s ease;
+}
+
+.metric-item:hover {
+  border-color: #a8d5ba;
+  box-shadow: 0 2px 6px rgba(26, 95, 63, 0.08);
+}
+
+.metric-header {
+  margin-bottom: 1rem;
+}
+
+.metric-checkbox {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+  position: relative;
+}
+
+.metric-checkbox input[type="checkbox"] {
+  position: absolute;
+  opacity: 0;
+  cursor: pointer;
+  height: 0;
+  width: 0;
+}
+
+.checkbox-custom {
+  position: relative;
+  height: 22px;
+  width: 22px;
+  background-color: #ffffff;
+  border: 2px solid #2d6a4f;
+  border-radius: 6px;
+  margin-right: 0.75rem;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.metric-checkbox input[type="checkbox"]:checked ~ .checkbox-custom {
+  background-color: #2d6a4f;
+}
+
+.checkbox-custom::after {
+  content: "";
+  position: absolute;
+  display: none;
+  left: 6px;
+  top: 2px;
+  width: 5px;
+  height: 10px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.metric-checkbox input[type="checkbox"]:checked ~ .checkbox-custom::after {
+  display: block;
+}
+
+.metric-label {
+  font-size: 1.125rem;
+  font-weight: 500;
+  color: #1a5f3f;
+}
+
+.metric-input-group {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-left: 2.25rem;
+  flex-wrap: wrap;
+}
+
+.metric-select {
+  flex: 1;
+  min-width: 200px;
+  padding: 0.75rem 1rem;
+  font-size: 1rem;
+  border: 2px solid #d1e7dd;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #1a5f3f;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%232d6a4f' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
+  padding-right: 2.5rem;
+}
+
+.metric-select:focus {
+  outline: none;
+  border-color: #2d6a4f;
+  box-shadow: 0 0 0 3px rgba(45, 106, 79, 0.1);
+}
+
+.metric-select option {
+  padding: 0.5rem;
+}
+
+.metric-custom-input {
+  flex: 1;
+  min-width: 150px;
+  padding: 0.75rem 1rem;
+  font-size: 1rem;
+  border: 2px solid #2d6a4f;
+  border-radius: 8px;
+  background: #f8fcfa;
+  color: #1a5f3f;
+  transition: all 0.2s ease;
+}
+
+.metric-custom-input:focus {
+  outline: none;
+  border-color: #1a5f3f;
+  box-shadow: 0 0 0 3px rgba(45, 106, 79, 0.15);
+  background: #ffffff;
+}
+
+.metric-custom-input::placeholder {
+  color: #a8d5ba;
+}
+
+.metric-unit-display {
+  font-size: 0.9375rem;
+  color: #4a7c5f;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* Legacy support - keeping for backward compatibility */
+.metric-input {
+  flex: 1;
+  max-width: 200px;
+  padding: 0.75rem 1rem;
+  font-size: 1rem;
+  border: 2px solid #d1e7dd;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #1a5f3f;
+  transition: all 0.2s ease;
+}
+
+.metric-input:focus {
+  outline: none;
+  border-color: #2d6a4f;
+  box-shadow: 0 0 0 3px rgba(45, 106, 79, 0.1);
+}
+
+.metric-input::placeholder {
+  color: #a8d5ba;
+}
+
+.metric-unit {
+  font-size: 0.9375rem;
+  color: #4a7c5f;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.submit-button {
+  width: 100%;
+  padding: 1rem 2rem;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #ffffff;
+  background: linear-gradient(135deg, #2d6a4f 0%, #1a5f3f 100%);
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(45, 106, 79, 0.2);
+}
+
+.submit-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(45, 106, 79, 0.3);
+}
+
+.submit-button:active {
+  transform: translateY(0);
+}
+
+.submit-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.error-banner {
+  background-color: #f8d7da;
+  border: 1px solid #f5c2c7;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.error-banner p {
+  color: #842029;
+  margin: 0;
+  font-size: 0.9375rem;
+}
+
+.summary-section {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 3rem 2.5rem;
+  box-shadow: 0 2px 8px rgba(26, 95, 63, 0.06);
+  border: 1px solid #d1e7dd;
+  text-align: center;
+}
+
+.success-icon {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 2rem;
+  animation: scaleIn 0.5s ease;
+}
+
+@keyframes scaleIn {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.summary-title {
+  font-size: 1.75rem;
+  font-weight: 600;
+  color: #1a5f3f;
+  margin: 0 0 2rem 0;
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.25rem;
+  margin-bottom: 2.5rem;
+}
+
+.summary-card {
+  background: linear-gradient(135deg, #f8fcfa 0%, #ffffff 100%);
+  border: 2px solid #d1e7dd;
+  border-radius: 12px;
+  padding: 1.5rem;
+  transition: all 0.2s ease;
+}
+
+.summary-card:hover {
+  border-color: #2d6a4f;
+  box-shadow: 0 4px 12px rgba(45, 106, 79, 0.15);
+  transform: translateY(-2px);
+}
+
+.summary-label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #4a7c5f;
+  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.summary-value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1a5f3f;
+  line-height: 1;
+}
+
+.summary-unit {
+  font-size: 1rem;
+  font-weight: 500;
+  color: #4a7c5f;
+}
+
+.summary-meta {
+  background: #f8fcfa;
+  border-radius: 10px;
+  padding: 1.25rem;
+  margin-bottom: 2rem;
+  border: 1px solid #d1e7dd;
+}
+
+.summary-meta p {
+  margin: 0.5rem 0;
+  color: #4a7c5f;
+  font-size: 0.9375rem;
+}
+
+.summary-meta strong {
+  color: #1a5f3f;
+}
+
+.summary-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.edit-button {
+  padding: 1rem 2.5rem;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #ffffff;
+  background: linear-gradient(135deg, #2d6a4f 0%, #1a5f3f 100%);
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(45, 106, 79, 0.2);
+}
+
+.edit-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(45, 106, 79, 0.3);
+}
+
+.edit-button:active {
+  transform: translateY(0);
+}
+
+.create-new-button {
+  padding: 1rem 2.5rem;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #2d6a4f;
+  background: #ffffff;
+  border: 2px solid #2d6a4f;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.create-new-button:hover {
+  background: #2d6a4f;
+  color: #ffffff;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(45, 106, 79, 0.2);
+}
+
+.create-new-button:active {
+  transform: translateY(0);
+}
+
+.cancel-edit-button {
+  width: 100%;
+  padding: 1rem 2rem;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #4a7c5f;
+  background: #f8fcfa;
+  border: 2px solid #d1e7dd;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-top: 1rem;
+}
+
+.cancel-edit-button:hover {
+  background: #d1e7dd;
+  border-color: #a8d5ba;
+}
+
+.cancel-edit-button:active {
+  transform: scale(0.98);
+}
+
+@media (max-width: 768px) {
+  .hero-title {
+    font-size: 2rem;
+  }
+
+  .hero-subtitle {
+    font-size: 1.125rem;
+  }
+
+  .diet-plan-page {
+    padding: 1rem;
+  }
+
+  .form-section {
+    padding: 1.5rem;
+  }
+
+  .form-title {
+    font-size: 1.5rem;
+  }
+
+  .metric-item {
+    padding: 1rem;
+  }
+
+  .metric-input-group {
+    margin-left: 0;
+    margin-top: 0.75rem;
+  }
+
+  .metric-select {
+    min-width: 100%;
+  }
+
+  .metric-custom-input {
+    min-width: 100%;
+  }
+
+  .metric-input {
+    max-width: 100%;
+  }
+
+  .summary-section {
+    padding: 2rem 1.5rem;
+  }
+
+  .summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .summary-value {
+    font-size: 1.75rem;
+  }
+}
+
