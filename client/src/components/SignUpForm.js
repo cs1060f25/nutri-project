@@ -17,7 +17,6 @@ import {
   Lock,
   FitnessCenter,
 } from '@mui/icons-material';
-import axios from 'axios';
 
 function SignUpForm({ onComplete }) {
   const [email, setEmail] = useState('');
@@ -58,20 +57,38 @@ function SignUpForm({ onComplete }) {
 
     setLoading(true);
 
-    try {
-      const response = await axios.post('/api/auth/signup', {
-        email,
-        password,
-      });
-
-      if (response.data.success) {
-        onComplete(response.data.userId, email);
+    // Simulate API call with setTimeout (mock backend)
+    setTimeout(() => {
+      try {
+        // Check if user already exists in localStorage
+        const existingUsers = JSON.parse(localStorage.getItem('users') || '[]');
+        const userExists = existingUsers.find(u => u.email === email);
+        
+        if (userExists) {
+          setError('An account with this email already exists');
+          setLoading(false);
+          return;
+        }
+        
+        // Create new user
+        const newUser = {
+          id: Date.now().toString(),
+          email,
+          password, // In production, never store passwords like this!
+          createdAt: new Date().toISOString()
+        };
+        
+        existingUsers.push(newUser);
+        localStorage.setItem('users', JSON.stringify(existingUsers));
+        
+        // Success - move to next step
+        onComplete(newUser.id, email);
+      } catch (err) {
+        setError('An error occurred. Please try again.');
+      } finally {
+        setLoading(false);
       }
-    } catch (err) {
-      setError(err.response?.data?.message || 'An error occurred. Please try again.');
-    } finally {
-      setLoading(false);
-    }
+    }, 500); // Simulate network delay
   };
 
   return (

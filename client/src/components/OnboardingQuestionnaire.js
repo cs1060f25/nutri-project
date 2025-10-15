@@ -21,7 +21,6 @@ import {
   StepLabel,
 } from '@mui/material';
 import { Person, FitnessCenter } from '@mui/icons-material';
-import axios from 'axios';
 
 const steps = ['Personal Info', 'Athletic Profile', 'Nutrition Goals'];
 
@@ -78,20 +77,43 @@ function OnboardingQuestionnaire({ userId, userEmail, onComplete }) {
 
     setLoading(true);
 
-    try {
-      const response = await axios.post('/api/onboarding/complete', {
-        userId,
-        ...formData,
-      });
-
-      if (response.data.success) {
-        onComplete(response.data.user);
+    // Simulate API call with setTimeout (mock backend)
+    setTimeout(() => {
+      try {
+        // Get users from localStorage
+        const users = JSON.parse(localStorage.getItem('users') || '[]');
+        const userIndex = users.findIndex(u => u.id === userId);
+        
+        if (userIndex === -1) {
+          setError('User not found');
+          setLoading(false);
+          return;
+        }
+        
+        // Update user with profile data
+        users[userIndex].profile = {
+          name: formData.name,
+          gender: formData.gender,
+          sportType: formData.sportType,
+          trainingFrequency: formData.trainingFrequency,
+          dietGoal: formData.dietGoal,
+          completedAt: new Date().toISOString()
+        };
+        
+        localStorage.setItem('users', JSON.stringify(users));
+        
+        // Success - move to confirmation screen
+        onComplete({
+          id: userId,
+          email: userEmail,
+          profile: users[userIndex].profile
+        });
+      } catch (err) {
+        setError('An error occurred. Please try again.');
+      } finally {
+        setLoading(false);
       }
-    } catch (err) {
-      setError(err.response?.data?.message || 'An error occurred. Please try again.');
-    } finally {
-      setLoading(false);
-    }
+    }, 500); // Simulate network delay
   };
 
   const renderStepContent = () => {
