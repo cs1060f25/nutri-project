@@ -4,4 +4,6 @@ We are building a web app where Harvard students can create diet goals and then 
 
 **[Google Drive Link](https://drive.google.com/drive/folders/1dKW0DE_A_zDPKRCA3VlAjAYWQKWR3-yu?usp=drive_link)**
 
+## Team
+
 Hewan Kidanemariam, Katherine Harvey, Waseem Ahmad, Maria Priebe Rocha, Nico Fidalgo
