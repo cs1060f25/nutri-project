@@ -1,0 +1,151 @@
+/* static/css/accessibility.css */
+
+/* Reduced Motion Support */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  
+  .voice-toggle-btn.speaking {
+    animation: none;
+  }
+  
+  .loading-spinner {
+    animation: none;
+    border-top-color: var(--color-gray-4);
+  }
+  
+  .skeleton {
+    animation: none;
+    background: var(--color-gray-5);
+  }
+}
+
+/* Focus Indicators */
+*:focus-visible {
+  outline: 3px solid var(--color-blue);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Skip Link */
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  background: var(--color-blue);
+  color: white;
+  padding: var(--spacing-sm) var(--spacing-md);
+  text-decoration: none;
+  border-radius: 0 0 var(--radius-sm) 0;
+  z-index: 10000;
+  font-weight: var(--font-weight-semibold);
+}
+
+.skip-link:focus {
+  top: 0;
+}
+
+/* Screen Reader Only Content */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* High Contrast Mode Support */
+@media (prefers-contrast: high) {
+  .btn {
+    border: 2px solid currentColor;
+  }
+  
+  .card {
+    border: 1px solid var(--color-label);
+  }
+  
+  .metric-toggle-btn.active {
+    border: 2px solid white;
+  }
+}
+
+/* Touch Target Sizes (Minimum 44x44px) */
+.btn,
+.metric-toggle-btn,
+.voice-toggle-btn,
+.date-input {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* ARIA Live Regions */
+.aria-live-polite {
+  position: absolute;
+  left: -10000px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
+[aria-live="polite"],
+[aria-live="assertive"] {
+  /* These will be announced but not visible */
+}
+
+/* Color Blind Friendly Patterns */
+.status-indicator {
+  position: relative;
+}
+
+.status-indicator::before {
+  content: '';
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: var(--spacing-xs);
+}
+
+.status-positive::before {
+  background-color: var(--color-green);
+}
+
+.status-negative::before {
+  background-color: var(--color-red);
+}
+
+.status-neutral::before {
+  background-color: var(--color-gray);
+}
+
+/* Print Styles */
+@media print {
+  .voice-controls,
+  .metric-toggle-container,
+  .quick-select-buttons {
+    display: none;
+  }
+  
+  .chart-wrapper {
+    page-break-inside: avoid;
+  }
+  
+  body {
+    background: white;
+    color: black;
+  }
+  
+  .card {
+    border: 1px solid #ccc;
+  }
+}

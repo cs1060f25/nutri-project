@@ -1,0 +1,237 @@
+/* static/css/apple-hig-base.css */
+
+/* Apple HIG Color System */
+:root {
+  /* System Colors - Light Mode */
+  --color-label: #000000;
+  --color-secondary-label: rgba(60, 60, 67, 0.6);
+  --color-tertiary-label: rgba(60, 60, 67, 0.3);
+  --color-quaternary-label: rgba(60, 60, 67, 0.18);
+  
+  --color-fill: rgba(120, 120, 128, 0.2);
+  --color-secondary-fill: rgba(120, 120, 128, 0.16);
+  --color-tertiary-fill: rgba(118, 118, 128, 0.12);
+  
+  --color-background: #ffffff;
+  --color-secondary-background: #f2f2f7;
+  --color-tertiary-background: #ffffff;
+  
+  --color-grouped-background: #f2f2f7;
+  --color-secondary-grouped-background: #ffffff;
+  --color-tertiary-grouped-background: #f2f2f7;
+  
+  /* System Blue (Primary Action Color) */
+  --color-blue: #007AFF;
+  --color-blue-light: #5AC8FA;
+  
+  /* System Green (Success) */
+  --color-green: #34C759;
+  --color-green-light: #30D158;
+  
+  /* System Orange (Warning) */
+  --color-orange: #FF9500;
+  
+  /* System Red (Error) */
+  --color-red: #FF3B30;
+  
+  /* System Gray */
+  --color-gray: #8E8E93;
+  --color-gray-2: #AEAEB2;
+  --color-gray-3: #C7C7CC;
+  --color-gray-4: #D1D1D6;
+  --color-gray-5: #E5E5EA;
+  --color-gray-6: #F2F2F7;
+  
+  /* Typography - San Francisco */
+  --font-family-system: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, 
+                        "Helvetica Neue", Arial, sans-serif;
+  
+  /* Font Sizes (iOS Standard) */
+  --font-size-large-title: 34px;
+  --font-size-title-1: 28px;
+  --font-size-title-2: 22px;
+  --font-size-title-3: 20px;
+  --font-size-headline: 17px;
+  --font-size-body: 17px;
+  --font-size-callout: 16px;
+  --font-size-subheadline: 15px;
+  --font-size-footnote: 13px;
+  --font-size-caption-1: 12px;
+  --font-size-caption-2: 11px;
+  
+  /* Font Weights */
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  
+  /* Spacing (8pt grid) */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  --spacing-2xl: 48px;
+  
+  /* Border Radius */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  
+  /* Shadows */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+  
+  /* Transitions */
+  --transition-fast: 0.15s ease-in-out;
+  --transition-base: 0.25s ease-in-out;
+  --transition-slow: 0.35s ease-in-out;
+}
+
+/* Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-label: #ffffff;
+    --color-secondary-label: rgba(235, 235, 245, 0.6);
+    --color-tertiary-label: rgba(235, 235, 245, 0.3);
+    --color-quaternary-label: rgba(235, 235, 245, 0.18);
+    
+    --color-fill: rgba(120, 120, 128, 0.36);
+    --color-secondary-fill: rgba(120, 120, 128, 0.32);
+    --color-tertiary-fill: rgba(118, 118, 128, 0.24);
+    
+    --color-background: #000000;
+    --color-secondary-background: #1c1c1e;
+    --color-tertiary-background: #2c2c2e;
+    
+    --color-grouped-background: #000000;
+    --color-secondary-grouped-background: #1c1c1e;
+    --color-tertiary-grouped-background: #2c2c2e;
+    
+    --color-blue: #0A84FF;
+    --color-green: #30D158;
+    --color-orange: #FF9F0A;
+    --color-red: #FF453A;
+  }
+}
+
+/* Base Styles */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: var(--font-family-system);
+  font-size: var(--font-size-body);
+  color: var(--color-label);
+  background-color: var(--color-grouped-background);
+  line-height: 1.5;
+}
+
+/* Typography */
+h1, h2, h3, h4, h5, h6 {
+  font-weight: var(--font-weight-bold);
+  line-height: 1.2;
+  margin-bottom: var(--spacing-md);
+}
+
+h1 {
+  font-size: var(--font-size-large-title);
+  letter-spacing: -0.5px;
+}
+
+h2 {
+  font-size: var(--font-size-title-1);
+  letter-spacing: -0.3px;
+}
+
+h3 {
+  font-size: var(--font-size-title-2);
+}
+
+h4 {
+  font-size: var(--font-size-title-3);
+}
+
+p {
+  margin-bottom: var(--spacing-md);
+  color: var(--color-label);
+}
+
+.text-secondary {
+  color: var(--color-secondary-label);
+}
+
+.text-tertiary {
+  color: var(--color-tertiary-label);
+}
+
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-sm) var(--spacing-md);
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-semibold);
+  text-decoration: none;
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  outline: none;
+}
+
+.btn:focus-visible {
+  outline: 3px solid var(--color-blue);
+  outline-offset: 2px;
+}
+
+.btn-primary {
+  background-color: var(--color-blue);
+  color: white;
+}
+
+.btn-primary:hover {
+  opacity: 0.85;
+}
+
+.btn-primary:active {
+  opacity: 0.7;
+}
+
+.btn-secondary {
+  background-color: var(--color-secondary-fill);
+  color: var(--color-label);
+}
+
+/* Cards */
+.card {
+  background-color: var(--color-secondary-grouped-background);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Container */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--spacing-md);
+}
+
+@media (min-width: 768px) {
+  .container {
+    padding: var(--spacing-lg);
+  }
+}
