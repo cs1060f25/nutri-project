@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Harvard Eats</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      transition: background-color 0.4s ease, color 0.4s ease;
+      background-color: #ffffff;
+      color: #1a1a1a;
+      padding: 2rem;
+      position: relative;
+    }
+    
+    body.dark {
+      background-color: #0f0f0f;
+      color: #f5f5f5;
+    }
+    
+    .toggle-container {
+      position: absolute;
+      top: 2rem;
+      right: 2rem;
+    }
+    
+    #themeToggle {
+      padding: 0.75rem 1.5rem;
+      font-size: 1rem;
+      border: 2px solid rgba(0, 0, 0, 0.1);
+      border-radius: 12px;
+      background-color: rgba(0, 0, 0, 0.03);
+      color: inherit;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    }
+    
+    body.dark #themeToggle {
+      border-color: rgba(255, 255, 255, 0.2);
+      background-color: rgba(255, 255, 255, 0.05);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    }
+    
+    #themeToggle:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+    
+    body.dark #themeToggle:hover {
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    }
+    
+    #themeToggle:active {
+      transform: translateY(0);
+    }
+    
+    .content {
+      text-align: center;
+      max-width: 800px;
+    }
+    
+    h1 {
+      font-size: 5rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, #A51C30 0%, #C41E3A 50%, #8B0000 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 1.5rem;
+      letter-spacing: -0.02em;
+      line-height: 1.1;
+    }
+    
+    body.dark h1 {
+      background: linear-gradient(135deg, #FF6B7A 0%, #FF4757 50%, #EE5A6F 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    
+    .description {
+      font-size: 1.25rem;
+      line-height: 1.6;
+      color: #666;
+      font-weight: 400;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+    
+    body.dark .description {
+      color: #b0b0b0;
+    }
+    
+    @media (max-width: 768px) {
+      h1 {
+        font-size: 3rem;
+      }
+      
+      .description {
+        font-size: 1.1rem;
+      }
+      
+      .toggle-container {
+        top: 1rem;
+        right: 1rem;
+      }
+      
+      #themeToggle {
+        padding: 0.6rem 1.2rem;
+        font-size: 0.9rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="toggle-container">
+    <button id="themeToggle">
+      <span id="themeIcon">✨</span>
+      <span id="themeLabel">Auto</span>
+    </button>
+  </div>
+
+  <div class="content">
+    <h1>Harvard Eats</h1>
+    <p class="description">Track your dining hall consumption, create diet goals, and monitor your nutritional intake.</p>
+  </div>
+
+  <script>
+    const body = document.body;
+    const themeToggle = document.getElementById('themeToggle');
+    const themeIcon = document.getElementById('themeIcon');
+    const themeLabel = document.getElementById('themeLabel');
+    
+    // Get system preference
+    const systemPrefersDark = () => window.matchMedia('(prefers-color-scheme: dark)').matches;
+    
+    // Theme modes: 'auto', 'dark', 'light'
+    let currentMode = 'auto';
+    
+    function applyTheme(mode) {
+      currentMode = mode;
+      
+      if (mode === 'auto') {
+        // Follow system preference
+        if (systemPrefersDark()) {
+          body.classList.add('dark');
+        } else {
+          body.classList.remove('dark');
+        }
+        themeIcon.textContent = '✨';
+        themeLabel.textContent = 'Auto';
+      } else if (mode === 'dark') {
+        body.classList.add('dark');
+        themeIcon.textContent = '🌙';
+        themeLabel.textContent = 'Dark';
+      } else if (mode === 'light') {
+        body.classList.remove('dark');
+        themeIcon.textContent = '🌞';
+        themeLabel.textContent = 'Light';
+      }
+    }
+    
+    // Initialize theme - this version uses in-memory storage instead of localStorage
+    // since localStorage is not available in this environment
+    applyTheme(currentMode);
+    
+    // Toggle between modes: auto → dark → light → auto
+    themeToggle.addEventListener('click', () => {
+      if (currentMode === 'auto') {
+        applyTheme('dark');
+      } else if (currentMode === 'dark') {
+        applyTheme('light');
+      } else {
+        applyTheme('auto');
+      }
+    });
+    
+    // Listen for system theme changes when in auto mode
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+      if (currentMode === 'auto') {
+        applyTheme('auto');
+      }
+    });
+  </script>
+</body>
+</html>
