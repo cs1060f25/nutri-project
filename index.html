@@ -1,72 +1,13 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Dark Mode Toggle</title>
-  <style>
-    :root {
-      --bg-color: white;
-      --text-color: black;
-      --button-bg: #222;
-      --button-text: #fff;
-    }
-    [data-theme="dark"] {
-      --bg-color: #121212;
-      --text-color: #ffffff;
-      --button-bg: #ddd;
-      --button-text: #000;
-    }
-
-    body {
-      background-color: var(--bg-color);
-      color: var(--text-color);
-      font-family: Arial, sans-serif;
-      text-align: center;
-      padding: 60px;
-      transition: background 0.3s, color 0.3s;
-    }
-
-    h1 {
-      font-size: 2.2rem;
-      margin-bottom: 20px;
-    }
-
-    button {
-      background: var(--button-bg);
-      color: var(--button-text);
-      border: none;
-      padding: 12px 24px;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 1rem;
-      transition: background 0.3s, color 0.3s;
-    }
-
-    button:hover {
-      opacity: 0.85;
-    }
-  </style>
-</head>
-<body>
-  <h1>Dark Mode Toggle</h1>
-  <p>Click the button below to switch between light and dark mode</p>
-  <button id="toggle">Switch Theme</button>
-
-  <script>
-    const toggleBtn = document.getElementById("toggle");
-
-    // Apply saved theme immediately
-    const savedTheme = localStorage.getItem("theme") || "light";
-    document.body.dataset.theme = savedTheme;
-
-    // Change and save theme on click
-    toggleBtn.addEventListener("click", () => {
-      const newTheme =
-        document.body.dataset.theme === "dark" ? "light" : "dark";
-      document.body.dataset.theme = newTheme;
-      localStorage.setItem("theme", newTheme);
-    });
-  </script>
-</body>
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>React MUI Dark Mode Toggle</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
 </html>
