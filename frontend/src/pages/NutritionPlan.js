@@ -9,6 +9,7 @@ const NutritionPlan = () => {
   const [newMetric, setNewMetric] = useState({ name: '', unit: 'g', target: '', frequency: 'daily' });
   const [showSummary, setShowSummary] = useState(false);
   const [savedPlan, setSavedPlan] = useState(null);
+  const [hasEverSaved, setHasEverSaved] = useState(false);
 
   // Debug: Log when metrics state changes
   useEffect(() => {
@@ -198,24 +199,27 @@ const NutritionPlan = () => {
       presetName: selectedPreset ? presets[selectedPreset]?.name : 'Custom Plan',
       metrics: enabledMetrics,
       customMetrics,
-      createdAt: new Date().toISOString()
+      createdAt: savedPlan?.createdAt || new Date().toISOString(),
+      updatedAt: savedPlan ? new Date().toISOString() : undefined
     };
     
     console.log('Submitting nutrition plan:', planData);
     setSavedPlan(planData);
     setShowSummary(true);
+    setHasEverSaved(true);
+    
+    // Scroll to top to see summary
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleCreateNew = () => {
-    setShowSummary(false);
+    // Keep summary visible but clear all metrics
     setSavedPlan(null);
     setSelectedPreset('');
     setMetrics({});
     setCustomMetrics([]);
-  };
-
-  const handleEditPlan = () => {
-    setShowSummary(false);
+    // Scroll to top
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   // Helper function to get metric label from ID
@@ -227,105 +231,103 @@ const NutritionPlan = () => {
     return metricId;
   };
 
-  // Show summary view
-  if (showSummary && savedPlan) {
-    const enabledMetricsCount = Object.keys(savedPlan.metrics).length;
-    const customMetricsCount = savedPlan.customMetrics.length;
-
-    return (
-      <div className="nutrition-plan-page">
-        <div className="nutrition-plan-container">
-          <div className="hero-section">
-            <h1 className="hero-title">Plan Summary</h1>
-            <p className="hero-subtitle">Your nutrition tracking goals have been saved</p>
-          </div>
-
-          <div className="summary-container">
-            <div className="success-banner">
-              <div className="success-icon">✓</div>
-              <h2>Nutrition Plan Created Successfully!</h2>
-              <p>You're tracking {enabledMetricsCount + customMetricsCount} metrics</p>
-            </div>
-
-            {savedPlan.presetName && (
-              <div className="summary-preset">
-                <h3>Selected Preset</h3>
-                <div className="preset-badge">{savedPlan.presetName}</div>
-              </div>
-            )}
-
-            <div className="summary-metrics">
-              <h3>Your Tracking Goals</h3>
-              
-              {Object.entries(savedPlan.metrics).length > 0 && (
-                <div className="metrics-summary-grid">
-                  {Object.entries(savedPlan.metrics).map(([metricId, metricData]) => (
-                    <div key={metricId} className="summary-metric-card">
-                      <div className="summary-metric-label">{getMetricLabel(metricId)}</div>
-                      <div className="summary-metric-value">
-                        {metricData.target ? (
-                          <>
-                            <span className="target-value">{metricData.target}</span>
-                            <span className="target-unit">{metricData.unit}</span>
-                          </>
-                        ) : (
-                          <span className="no-target">No target set</span>
-                        )}
-                      </div>
-                      {metricData.threshold && (
-                        <div className="summary-threshold">
-                          Alert at: {metricData.threshold} {metricData.unit}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {savedPlan.customMetrics.length > 0 && (
-                <div className="custom-metrics-summary">
-                  <h4>Custom Metrics</h4>
-                  <div className="metrics-summary-grid">
-                    {savedPlan.customMetrics.map(metric => (
-                      <div key={metric.id} className="summary-metric-card custom">
-                        <div className="summary-metric-label">{metric.name}</div>
-                        <div className="summary-metric-value">
-                          <span className="target-value">{metric.target}</span>
-                          <span className="target-unit">{metric.unit}</span>
-                        </div>
-                        <div className="summary-frequency">{metric.frequency}</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div className="summary-meta">
-              <p>Created: {new Date(savedPlan.createdAt).toLocaleString()}</p>
-            </div>
-
-            <div className="summary-actions">
-              <button onClick={handleEditPlan} className="edit-plan-button">
-                Edit Plan
-              </button>
-              <button onClick={handleCreateNew} className="create-new-plan-button">
-                Create New Plan
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="nutrition-plan-page">
       <div className="nutrition-plan-container">
         <div className="hero-section">
           <h1 className="hero-title">Nutrition Plan</h1>
-          <p className="hero-subtitle">Build your personalized expert nutrition tracking plan</p>
+          <p className="hero-subtitle">
+            {showSummary ? 'Your nutrition tracking goals' : 'Build your personalized expert nutrition tracking plan'}
+          </p>
         </div>
+
+        {/* Show summary at the top if ever saved */}
+        {hasEverSaved && (
+          <div className="summary-container">
+            {savedPlan ? (
+              <>
+                <div className="success-banner">
+                  <div className="success-icon">✓</div>
+                  <h2>Nutrition Plan Saved!</h2>
+                  <p>You're tracking {Object.keys(savedPlan.metrics).length + savedPlan.customMetrics.length} metrics</p>
+                </div>
+
+                {savedPlan.presetName && (
+                  <div className="summary-preset">
+                    <h3>Selected Preset</h3>
+                    <div className="preset-badge">{savedPlan.presetName}</div>
+                  </div>
+                )}
+
+                <div className="summary-metrics">
+                  <h3>Your Tracking Goals</h3>
+                  
+                  {Object.entries(savedPlan.metrics).length > 0 && (
+                    <div className="metrics-summary-grid">
+                      {Object.entries(savedPlan.metrics).map(([metricId, metricData]) => (
+                        <div key={metricId} className="summary-metric-card">
+                          <div className="summary-metric-label">{getMetricLabel(metricId)}</div>
+                          <div className="summary-metric-value">
+                            {metricData.target ? (
+                              <>
+                                <span className="target-value">{metricData.target}</span>
+                                <span className="target-unit">{metricData.unit}</span>
+                              </>
+                            ) : (
+                              <span className="no-target">No target set</span>
+                            )}
+                          </div>
+                          {metricData.threshold && (
+                            <div className="summary-threshold">
+                              Alert at: {metricData.threshold} {metricData.unit}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {savedPlan.customMetrics.length > 0 && (
+                    <div className="custom-metrics-summary">
+                      <h4>Custom Metrics</h4>
+                      <div className="metrics-summary-grid">
+                        {savedPlan.customMetrics.map(metric => (
+                          <div key={metric.id} className="summary-metric-card custom">
+                            <div className="summary-metric-label">{metric.name}</div>
+                            <div className="summary-metric-value">
+                              <span className="target-value">{metric.target}</span>
+                              <span className="target-unit">{metric.unit}</span>
+                            </div>
+                            <div className="summary-frequency">{metric.frequency}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="summary-meta">
+                  <p>Created: {new Date(savedPlan.createdAt).toLocaleString()}</p>
+                  {savedPlan.updatedAt && (
+                    <p>Last Updated: {new Date(savedPlan.updatedAt).toLocaleString()}</p>
+                  )}
+                </div>
+
+                <div className="summary-actions">
+                  <button onClick={handleCreateNew} className="create-new-plan-button">
+                    Create New Plan
+                  </button>
+                </div>
+              </>
+            ) : (
+              <div className="empty-summary">
+                <div className="empty-icon">📝</div>
+                <h3>No Plan Yet</h3>
+                <p>Fill out the form below to create your nutrition plan</p>
+              </div>
+            )}
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="nutrition-form">
           {/* Preset Selection */}
