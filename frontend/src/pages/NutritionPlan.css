@@ -1,0 +1,697 @@
+.nutrition-plan-page {
+  min-height: 100vh;
+  padding: 2rem;
+  background: linear-gradient(135deg, #f8fcfa 0%, #ffffff 100%);
+}
+
+.nutrition-plan-container {
+  max-width: 1200px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 2rem 0;
+}
+
+.hero-section {
+  text-align: center;
+  margin-bottom: 3rem;
+}
+
+.hero-title {
+  font-size: 3rem;
+  font-weight: 600;
+  color: #1a5f3f;
+  margin: 0 0 1rem 0;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.hero-subtitle {
+  font-size: 1.25rem;
+  color: #4a7c5f;
+  margin: 0;
+  line-height: 1.6;
+  font-weight: 400;
+  max-width: 700px;
+  margin: 0 auto;
+}
+
+/* Form Sections */
+.nutrition-form {
+  display: flex;
+  flex-direction: column;
+  gap: 3rem;
+}
+
+.section-title {
+  font-size: 1.75rem;
+  font-weight: 600;
+  color: #1a5f3f;
+  margin: 0 0 0.5rem 0;
+}
+
+.section-description {
+  font-size: 1rem;
+  color: #4a7c5f;
+  margin: 0 0 1.5rem 0;
+}
+
+/* Preset Section */
+.preset-section {
+  background: #ffffff;
+  padding: 2rem;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(26, 95, 63, 0.06);
+  border: 1px solid #d1e7dd;
+}
+
+.preset-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.25rem;
+}
+
+.preset-card {
+  background: #f8fcfa;
+  border: 2px solid #d1e7dd;
+  border-radius: 12px;
+  padding: 1.5rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center;
+}
+
+.preset-card:hover {
+  border-color: #2d6a4f;
+  box-shadow: 0 4px 12px rgba(45, 106, 79, 0.15);
+  transform: translateY(-2px);
+}
+
+.preset-card.selected {
+  background: linear-gradient(135deg, #2d6a4f 0%, #1a5f3f 100%);
+  border-color: #1a5f3f;
+  color: #ffffff;
+}
+
+.preset-card.selected h3,
+.preset-card.selected p {
+  color: #ffffff;
+}
+
+.preset-icon {
+  font-size: 2.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.preset-card h3 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #1a5f3f;
+  margin: 0 0 0.5rem 0;
+}
+
+.preset-card p {
+  font-size: 0.875rem;
+  color: #4a7c5f;
+  margin: 0;
+  line-height: 1.4;
+}
+
+/* Metrics Section */
+.metrics-section {
+  background: #ffffff;
+  padding: 2rem;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(26, 95, 63, 0.06);
+  border: 1px solid #d1e7dd;
+}
+
+.metric-category {
+  margin-bottom: 2.5rem;
+}
+
+.metric-category:last-child {
+  margin-bottom: 0;
+}
+
+.category-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #2d6a4f;
+  margin: 0 0 1rem 0;
+}
+
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.metric-card {
+  background: #f8fcfa;
+  border: 1px solid #d1e7dd;
+  border-radius: 10px;
+  padding: 1rem;
+  transition: all 0.2s ease;
+}
+
+.metric-card:hover {
+  border-color: #a8d5ba;
+  box-shadow: 0 2px 6px rgba(26, 95, 63, 0.08);
+}
+
+.metric-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  margin-bottom: 0.75rem;
+}
+
+.metric-checkbox-label input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: #2d6a4f;
+}
+
+.metric-name {
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: #1a5f3f;
+}
+
+.metric-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.control-row {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.metric-input {
+  flex: 1;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  border: 1px solid #d1e7dd;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #1a5f3f;
+  transition: all 0.2s ease;
+}
+
+.metric-input:focus {
+  outline: none;
+  border-color: #2d6a4f;
+  box-shadow: 0 0 0 3px rgba(45, 106, 79, 0.1);
+}
+
+.unit-select {
+  padding: 0.5rem;
+  font-size: 0.875rem;
+  border: 1px solid #d1e7dd;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #1a5f3f;
+  cursor: pointer;
+  min-width: 80px;
+}
+
+.unit-select:focus {
+  outline: none;
+  border-color: #2d6a4f;
+}
+
+.threshold-input {
+  font-size: 0.8125rem;
+  font-style: italic;
+}
+
+/* Custom Metrics Section */
+.custom-metrics-section {
+  background: #ffffff;
+  padding: 2rem;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(26, 95, 63, 0.06);
+  border: 1px solid #d1e7dd;
+}
+
+.add-custom-button {
+  background: #f8fcfa;
+  border: 2px dashed #2d6a4f;
+  color: #2d6a4f;
+  padding: 1rem 2rem;
+  font-size: 1rem;
+  font-weight: 600;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: 100%;
+}
+
+.add-custom-button:hover {
+  background: #2d6a4f;
+  border-style: solid;
+  color: #ffffff;
+}
+
+.custom-form {
+  background: #f8fcfa;
+  padding: 1.5rem;
+  border-radius: 10px;
+  border: 1px solid #d1e7dd;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.custom-input,
+.custom-select {
+  padding: 0.75rem;
+  font-size: 1rem;
+  border: 1px solid #d1e7dd;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #1a5f3f;
+  transition: all 0.2s ease;
+}
+
+.custom-input:focus,
+.custom-select:focus {
+  outline: none;
+  border-color: #2d6a4f;
+  box-shadow: 0 0 0 3px rgba(45, 106, 79, 0.1);
+}
+
+.custom-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+}
+
+.save-custom-btn,
+.cancel-custom-btn {
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+}
+
+.save-custom-btn {
+  background: linear-gradient(135deg, #2d6a4f 0%, #1a5f3f 100%);
+  color: #ffffff;
+}
+
+.save-custom-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(45, 106, 79, 0.3);
+}
+
+.cancel-custom-btn {
+  background: #f0f9f4;
+  color: #4a7c5f;
+  border: 1px solid #d1e7dd;
+}
+
+.cancel-custom-btn:hover {
+  background: #d1e7dd;
+}
+
+.custom-metrics-list {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  background: #f8fcfa;
+  border-radius: 10px;
+  border: 1px solid #d1e7dd;
+}
+
+.custom-metrics-list h4 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1a5f3f;
+  margin: 0 0 1rem 0;
+}
+
+.custom-metric-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem;
+  background: #ffffff;
+  border-radius: 6px;
+  margin-bottom: 0.5rem;
+  border: 1px solid #d1e7dd;
+}
+
+.custom-metric-item:last-child {
+  margin-bottom: 0;
+}
+
+.metric-detail {
+  font-size: 0.875rem;
+  color: #4a7c5f;
+}
+
+/* Submit Button */
+.submit-plan-button {
+  width: 100%;
+  padding: 1.25rem 2rem;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #ffffff;
+  background: linear-gradient(135deg, #2d6a4f 0%, #1a5f3f 100%);
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(45, 106, 79, 0.2);
+}
+
+.submit-plan-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(45, 106, 79, 0.3);
+}
+
+.submit-plan-button:active {
+  transform: translateY(0);
+}
+
+/* Summary View */
+.summary-container {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.success-banner {
+  background: linear-gradient(135deg, #52b788 0%, #2d6a4f 100%);
+  color: #ffffff;
+  padding: 2.5rem;
+  border-radius: 16px;
+  text-align: center;
+  box-shadow: 0 4px 16px rgba(45, 106, 79, 0.2);
+}
+
+.success-icon {
+  font-size: 4rem;
+  font-weight: bold;
+  margin-bottom: 1rem;
+  animation: scaleIn 0.5s ease;
+}
+
+@keyframes scaleIn {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.success-banner h2 {
+  font-size: 2rem;
+  font-weight: 600;
+  margin: 0 0 0.75rem 0;
+}
+
+.success-banner p {
+  font-size: 1.125rem;
+  margin: 0;
+  opacity: 0.95;
+}
+
+.summary-preset {
+  background: #ffffff;
+  padding: 1.5rem;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(26, 95, 63, 0.06);
+  border: 1px solid #d1e7dd;
+  text-align: center;
+}
+
+.summary-preset h3 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #1a5f3f;
+  margin: 0 0 0.75rem 0;
+}
+
+.preset-badge {
+  display: inline-block;
+  background: linear-gradient(135deg, #2d6a4f 0%, #1a5f3f 100%);
+  color: #ffffff;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.summary-metrics {
+  background: #ffffff;
+  padding: 2rem;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(26, 95, 63, 0.06);
+  border: 1px solid #d1e7dd;
+}
+
+.summary-metrics h3 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #1a5f3f;
+  margin: 0 0 1.5rem 0;
+}
+
+.summary-metrics h4 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #2d6a4f;
+  margin: 2rem 0 1rem 0;
+}
+
+.metrics-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 1.25rem;
+}
+
+.summary-metric-card {
+  background: #f8fcfa;
+  border: 2px solid #d1e7dd;
+  border-radius: 12px;
+  padding: 1.25rem;
+  transition: all 0.2s ease;
+}
+
+.summary-metric-card:hover {
+  border-color: #2d6a4f;
+  box-shadow: 0 4px 12px rgba(45, 106, 79, 0.15);
+  transform: translateY(-2px);
+}
+
+.summary-metric-card.custom {
+  border-color: #a8d5ba;
+  background: linear-gradient(135deg, #f8fcfa 0%, #ffffff 100%);
+}
+
+.summary-metric-label {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: #4a7c5f;
+  margin-bottom: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.summary-metric-value {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.target-value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1a5f3f;
+  line-height: 1;
+}
+
+.target-unit {
+  font-size: 1rem;
+  font-weight: 500;
+  color: #4a7c5f;
+}
+
+.no-target {
+  font-size: 1rem;
+  color: #7fa894;
+  font-style: italic;
+}
+
+.summary-threshold {
+  font-size: 0.8125rem;
+  color: #c17a00;
+  background: #fff4e6;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  display: inline-block;
+  margin-top: 0.5rem;
+}
+
+.summary-frequency {
+  font-size: 0.8125rem;
+  color: #4a7c5f;
+  font-style: italic;
+  margin-top: 0.5rem;
+}
+
+.custom-metrics-summary {
+  margin-top: 2rem;
+  padding-top: 2rem;
+  border-top: 2px solid #d1e7dd;
+}
+
+.summary-meta {
+  background: #f8fcfa;
+  padding: 1rem;
+  border-radius: 10px;
+  border: 1px solid #d1e7dd;
+  text-align: center;
+}
+
+.summary-meta p {
+  margin: 0;
+  color: #4a7c5f;
+  font-size: 0.9375rem;
+}
+
+.summary-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.edit-plan-button,
+.create-new-plan-button {
+  padding: 1rem 2.5rem;
+  font-size: 1.125rem;
+  font-weight: 600;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+}
+
+.edit-plan-button {
+  background: linear-gradient(135deg, #2d6a4f 0%, #1a5f3f 100%);
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(45, 106, 79, 0.2);
+}
+
+.edit-plan-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(45, 106, 79, 0.3);
+}
+
+.create-new-plan-button {
+  background: #ffffff;
+  color: #2d6a4f;
+  border: 2px solid #2d6a4f;
+}
+
+.create-new-plan-button:hover {
+  background: #2d6a4f;
+  color: #ffffff;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(45, 106, 79, 0.2);
+}
+
+.edit-plan-button:active,
+.create-new-plan-button:active {
+  transform: translateY(0);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .hero-title {
+    font-size: 2rem;
+  }
+
+  .hero-subtitle {
+    font-size: 1.125rem;
+  }
+
+  .nutrition-plan-page {
+    padding: 1rem;
+  }
+
+  .preset-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .metrics-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .custom-form {
+    grid-template-columns: 1fr;
+  }
+
+  .preset-section,
+  .metrics-section,
+  .custom-metrics-section {
+    padding: 1.5rem;
+  }
+
+  .section-title {
+    font-size: 1.5rem;
+  }
+
+  .custom-actions {
+    flex-direction: column;
+  }
+
+  .save-custom-btn,
+  .cancel-custom-btn {
+    width: 100%;
+  }
+
+  .success-banner {
+    padding: 2rem 1.5rem;
+  }
+
+  .success-banner h2 {
+    font-size: 1.5rem;
+  }
+
+  .success-icon {
+    font-size: 3rem;
+  }
+
+  .metrics-summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .summary-actions {
+    flex-direction: column;
+  }
+
+  .edit-plan-button,
+  .create-new-plan-button {
+    width: 100%;
+  }
+}
+
