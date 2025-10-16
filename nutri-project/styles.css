@@ -1,0 +1,97 @@
+/* styles.css - Responsive Design */
+
+/* Base styles for mobile-first approach */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 
+               'Helvetica Neue', Arial, sans-serif;
+  line-height: 1.5;
+}
+
+/* Mobile: 320px - 767px */
+.container {
+  width: 100%;
+  padding: 1rem;
+  max-width: 100%;
+}
+
+.chart-container {
+  width: 100%;
+  height: 250px;
+  overflow-x: auto;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+/* Touch targets minimum 44x44px */
+button, 
+.interactive-element {
+  min-height: 44px;
+  min-width: 44px;
+  touch-action: manipulation;
+}
+
+/* Tablet: 768px - 1023px */
+@media (min-width: 768px) {
+  .container {
+    padding: 1.5rem;
+    max-width: 720px;
+    margin: 0 auto;
+  }
+  
+  .chart-container {
+    height: 300px;
+  }
+  
+  .grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+  }
+}
+
+/* Desktop: 1024px and up */
+@media (min-width: 1024px) {
+  .container {
+    padding: 2rem;
+    max-width: 1200px;
+  }
+  
+  .chart-container {
+    height: 350px;
+  }
+  
+  .grid-three {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .chart-line {
+    stroke-width: 3px;
+  }
+  
+  .text {
+    font-weight: 600;
+  }
+}

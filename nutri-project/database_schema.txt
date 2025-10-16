@@ -1,0 +1,57 @@
+-- users table
+CREATE TABLE users (
+    user_id SERIAL PRIMARY KEY,
+    harvard_id VARCHAR(20) UNIQUE NOT NULL,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    last_login TIMESTAMP
+);
+
+-- user_goals table
+CREATE TABLE user_goals (
+    goal_id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES users(user_id) ON DELETE CASCADE,
+    calorie_goal INTEGER,
+    protein_goal DECIMAL(6,2),
+    carb_goal DECIMAL(6,2),
+    fat_goal DECIMAL(6,2),
+    sodium_limit INTEGER,
+    fiber_goal DECIMAL(5,2),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- meals table
+CREATE TABLE meals (
+    meal_id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES users(user_id) ON DELETE CASCADE,
+    meal_date TIMESTAMP NOT NULL,
+    meal_type VARCHAR(20), -- breakfast, lunch, dinner, snack
+    food_name VARCHAR(255) NOT NULL,
+    dining_hall VARCHAR(100),
+    
+    -- Macronutrients
+    calories INTEGER,
+    protein DECIMAL(6,2),
+    carbohydrates DECIMAL(6,2),
+    fats DECIMAL(6,2),
+    
+    -- Micronutrients
+    sodium INTEGER,
+    fiber DECIMAL(5,2),
+    iron DECIMAL(5,2),
+    calcium INTEGER,
+    vitamin_c DECIMAL(5,2),
+    vitamin_d DECIMAL(5,2),
+    
+    -- Metadata
+    photo_url VARCHAR(500),
+    data_source VARCHAR(50), -- 'manual', 'huds_menu', 'photo_analysis'
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create indexes for performance
+CREATE INDEX idx_meals_user_date ON meals(user_id, meal_date);
+CREATE INDEX idx_meals_date ON meals(meal_date);
+CREATE INDEX idx_user_goals_user ON user_goals(user_id);
