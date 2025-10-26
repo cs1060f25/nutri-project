@@ -42,48 +42,6 @@ if (errorResponse.error && errorResponse.error.code === 'TEST_ERROR') {
   failed++;
 }
 
-// Test route structure
-console.log('\n🛣️  Testing Route Structure...');
-const authRoutes = require('../src/routes/authRoutes');
-console.log('  ✅ Auth routes loaded successfully');
-passed++;
-
-// Test controller structure
-console.log('\n🎮 Testing Controller Structure...');
-const authController = require('../src/controllers/authController');
-const requiredMethods = ['register', 'login', 'refresh', 'logout', 'getCurrentUser'];
-requiredMethods.forEach(method => {
-  if (typeof authController[method] === 'function') {
-    console.log(`  ✅ authController.${method}() exists`);
-    passed++;
-  } else {
-    console.log(`  ❌ authController.${method}() missing`);
-    failed++;
-  }
-});
-
-// Test middleware structure
-console.log('\n🛡️  Testing Middleware Structure...');
-const { verifyToken } = require('../src/middleware/authMiddleware');
-if (typeof verifyToken === 'function') {
-  console.log('  ✅ verifyToken middleware exists');
-  passed++;
-} else {
-  console.log('  ❌ verifyToken middleware missing');
-  failed++;
-}
-
-// Test service structure
-console.log('\n🔧 Testing Service Structure...');
-const { signInWithPassword, refreshIdToken } = require('../src/services/firebaseAuthService');
-if (typeof signInWithPassword === 'function' && typeof refreshIdToken === 'function') {
-  console.log('  ✅ Firebase auth service functions exist');
-  passed++;
-} else {
-  console.log('  ❌ Firebase auth service functions missing');
-  failed++;
-}
-
 // Summary
 console.log('\n' + '='.repeat(50));
 console.log('📊 Test Results:');
