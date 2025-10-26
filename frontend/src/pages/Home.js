@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { useAuth } from '../context/AuthContext';
 import './Home.css';
 
 const Home = () => {
   const [homeData, setHomeData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const { user } = useAuth();
 
   useEffect(() => {
     // Fetch data from the GET /home endpoint
@@ -47,6 +49,13 @@ const Home = () => {
 
   return (
     <div className="home-page">
+      <div className="home-header">
+        <div className="user-info">
+          <span className="welcome-text">
+            Welcome, <strong>{user?.firstName || user?.email}</strong>
+          </span>
+        </div>
+      </div>
       <div className="home-container">
         <div className="hero-section">
           <h1 className="hero-title">{homeData?.title}</h1>

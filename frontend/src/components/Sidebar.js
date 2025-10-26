@@ -1,8 +1,13 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import './Sidebar.css';
 
 // This component is designed to be extensible - you can easily add more navigation items in the future
 const Sidebar = ({ isCollapsed, onToggle }) => {
+  const { logout, user } = useAuth();
+  const navigate = useNavigate();
+
   // In the future, you can expand this array with more pages
   const navigationItems = [
     {
@@ -21,6 +26,11 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
     // { id: 'goals', label: 'Goals', path: '/goals', iconSvg: <svg>...</svg> },
     // { id: 'history', label: 'History', path: '/history', iconSvg: <svg>...</svg> },
   ];
+
+  const handleLogout = async () => {
+    await logout();
+    navigate('/');
+  };
 
   return (
     <div 
@@ -57,6 +67,28 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
           ))}
         </ul>
       </nav>
+      <div className="sidebar-footer">
+        {!isCollapsed && user && (
+          <div className="sidebar-user-info">
+            <span className="user-email">{user.email}</span>
+          </div>
+        )}
+        <button 
+          className="sidebar-logout-button" 
+          onClick={(e) => {
+            e.stopPropagation();
+            handleLogout();
+          }}
+          title="Logout"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+            <polyline points="16 17 21 12 16 7"></polyline>
+            <line x1="21" y1="12" x2="9" y2="12"></line>
+          </svg>
+          {!isCollapsed && <span>Logout</span>}
+        </button>
+      </div>
     </div>
   );
 };

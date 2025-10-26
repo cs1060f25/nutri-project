@@ -114,3 +114,68 @@
   justify-content: center;
   padding: 0.75rem;
 }
+
+.sidebar-footer {
+  border-top: 1px solid #d1e7dd;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.sidebar-user-info {
+  padding: 0.5rem;
+  background-color: rgba(26, 95, 63, 0.05);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.user-email {
+  font-size: 0.75rem;
+  color: #2d6a4f;
+  font-weight: 500;
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sidebar-logout-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  background: #1a5f3f;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(26, 95, 63, 0.3);
+  width: 100%;
+}
+
+.sidebar-logout-button:hover {
+  background: #2d6a4f;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(26, 95, 63, 0.4);
+}
+
+.sidebar-logout-button:active {
+  transform: translateY(0);
+}
+
+.sidebar-logout-button svg {
+  flex-shrink: 0;
+}
+
+.sidebar.collapsed .sidebar-logout-button {
+  padding: 0.75rem;
+}
+
+.sidebar.collapsed .sidebar-logout-button span {
+  display: none;
+}

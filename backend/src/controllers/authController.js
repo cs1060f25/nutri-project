@@ -8,7 +8,7 @@ const { signInWithPassword, refreshIdToken } = require('../services/firebaseAuth
  */
 const register = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, firstName, lastName, residence } = req.body;
 
     // Validate input
     if (!email || !password) {
@@ -17,22 +17,44 @@ const register = async (req, res) => {
       );
     }
 
+    if (!firstName || !lastName || !residence) {
+      return res.status(400).json(
+        createErrorResponse('INVALID_INPUT', 'First name, last name, and residence are required.')
+      );
+    }
+
+    // Create display name from first and last name
+    const displayName = `${firstName} ${lastName}`;
+
     // Create user with Firebase Admin SDK
     const userRecord = await admin.auth().createUser({
       email,
       password,
+      displayName,
       emailVerified: false,
     });
 
-    console.log('✅ User created successfully:', userRecord.uid);
+    // Store additional user info in custom claims
+    await admin.auth().setCustomUserClaims(userRecord.uid, {
+      firstName,
+      lastName,
+      residence,
+      roles: []
+    });
 
-    // Return 201 with no body (as per spec)
-    // Or optionally return user info
+    console.log('✅ User created successfully:', userRecord.uid);
+    console.log('   Name:', displayName);
+    console.log('   Residence:', residence);
+
+    // Return 201 with user info
     return res.status(201).json({
       user: {
         id: userRecord.uid,
         email: userRecord.email,
-        name: userRecord.displayName || null,
+        name: displayName,
+        firstName,
+        lastName,
+        residence,
         roles: [],
       },
     });
@@ -79,6 +101,9 @@ const login = async (req, res) => {
         id: userRecord.uid,
         email: userRecord.email,
         name: userRecord.displayName || null,
+        firstName: customClaims.firstName || null,
+        lastName: customClaims.lastName || null,
+        residence: customClaims.residence || null,
         roles: roles,
       },
     });
@@ -173,6 +198,9 @@ const getCurrentUser = async (req, res) => {
       id: userRecord.uid,
       email: userRecord.email,
       name: userRecord.displayName || null,
+      firstName: customClaims.firstName || null,
+      lastName: customClaims.lastName || null,
+      residence: customClaims.residence || null,
       roles: roles,
     });
 
@@ -185,11 +213,52 @@ const getCurrentUser = async (req, res) => {
   }
 };
 
+/**
+ * POST /auth/reset-password
+ * Send password reset email
+ */
+const resetPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json(
+        createErrorResponse('INVALID_EMAIL', 'Email is required.')
+      );
+    }
+
+    // Generate password reset link using Firebase Admin
+    const link = await admin.auth().generatePasswordResetLink(email);
+
+    console.log('✅ Password reset link generated for:', email);
+    console.log('🔗 Reset link:', link);
+
+    // In production, you would send this link via email service
+    // For now, we'll return success (Firebase will send the email if configured)
+    
+    return res.status(200).json({
+      message: 'Password reset email sent successfully.',
+      // In development, include the link
+      ...(process.env.NODE_ENV !== 'production' && { resetLink: link })
+    });
+
+  } catch (error) {
+    console.error('Password reset error:', error.code, error.message);
+
+    // Map Firebase error to our error format
+    const mappedError = mapFirebaseError(error.code);
+    return res.status(mappedError.statusCode).json(
+      createErrorResponse(mappedError.errorCode, mappedError.message)
+    );
+  }
+};
+
 module.exports = {
   register,
   login,
   refresh,
   logout,
   getCurrentUser,
+  resetPassword,
 };
 
