@@ -4,15 +4,15 @@ A secure authentication service built with Express.js and Firebase Auth, followi
 
 ## Features
 
-- ✅ Email/Password authentication via Firebase Auth
-- ✅ Secure password hashing (scrypt)
-- ✅ JWT-based access tokens (1-hour expiry)
-- ✅ Refresh token rotation
-- ✅ Token revocation support
-- ✅ Role-based access control via custom claims
-- ✅ Breach protection & email throttling
-- ✅ Deterministic error codes
-- ✅ Multi-client support
+- Email/Password authentication via Firebase Auth
+- Secure password hashing (scrypt)
+- JWT-based access tokens (1-hour expiry)
+- Refresh token rotation
+- Token revocation support
+- Role-based access control via custom claims
+- Breach protection & email throttling
+- Deterministic error codes
+- Multi-client support
 
 ## Architecture
 
@@ -37,47 +37,11 @@ cd backend
 npm install
 ```
 
-### 2. Firebase Configuration
+### 2. Environment Variables
 
-#### Create a Firebase Project
+Create a `.env` file in the `backend` directory based on your local configuration.
 
-1. Go to [Firebase Console](https://console.firebase.google.com/)
-2. Create a new project or use an existing one
-3. Enable **Authentication** → **Email/Password** sign-in method
-
-#### Get Service Account Credentials
-
-1. In Firebase Console, go to **Project Settings** → **Service Accounts**
-2. Click **Generate New Private Key**
-3. Save the JSON file securely (do NOT commit to git)
-
-#### Get Web API Key
-
-1. In Firebase Console, go to **Project Settings** → **General**
-2. Copy the **Web API Key** from your web app configuration
-
-### 3. Environment Variables
-
-Create a `.env` file in the `backend` directory:
-
-```env
-# Firebase Configuration
-FIREBASE_PROJECT_ID=your-project-id
-FIREBASE_CLIENT_EMAIL=your-service-account-email@your-project.iam.gserviceaccount.com
-FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nYOUR_PRIVATE_KEY_HERE\n-----END PRIVATE KEY-----\n"
-FIREBASE_WEB_API_KEY=your-web-api-key
-
-# Server Configuration
-PORT=3000
-NODE_ENV=development
-```
-
-**Important**: 
-- Replace `your-project-id`, `your-service-account-email`, `FIREBASE_PRIVATE_KEY`, and `FIREBASE_WEB_API_KEY` with your actual Firebase credentials
-- Keep the quotes around `FIREBASE_PRIVATE_KEY` and ensure `\n` characters are preserved
-- Never commit the `.env` file to version control
-
-### 4. Run the Server
+### 3. Run the Server
 
 ```bash
 # Development mode (with auto-restart)
@@ -260,33 +224,6 @@ All errors follow a consistent format:
 | 429 | `RATE_LIMITED` | Too many requests |
 | 500 | `INTERNAL` | Internal server error |
 
-## Managing User Roles
-
-Roles are stored as Firebase custom claims. To assign roles to users:
-
-```javascript
-const admin = require('firebase-admin');
-
-// Set custom claims for a user
-await admin.auth().setCustomUserClaims(uid, {
-  roles: ['user', 'admin']
-});
-```
-
-Roles will automatically be included in:
-- Login response
-- `/auth/me` response
-- JWT token claims
-
-## Security Best Practices
-
-1. **Environment Variables**: Never commit `.env` or service account keys
-2. **HTTPS**: Use HTTPS in production (TLS termination via Cloud Run/Load Balancer)
-3. **CORS**: Configure CORS to allow only trusted origins
-4. **Rate Limiting**: Firebase automatically throttles failed login attempts
-5. **Token Expiry**: Access tokens expire after 1 hour
-6. **Revocation**: Use `/auth/logout` to revoke all user sessions
-
 ## Deployment
 
 ### Deploy to Google Cloud Run
@@ -314,7 +251,7 @@ gcloud run deploy nutri-auth-backend \
   --set-env-vars FIREBASE_PROJECT_ID=your-project-id,...
 ```
 
-### Deploy to Firebase Functions (2nd Gen)
+### Deploy to Firebase Functions
 
 1. Install Firebase CLI: `npm install -g firebase-tools`
 2. Initialize: `firebase init functions`
@@ -322,7 +259,108 @@ gcloud run deploy nutri-auth-backend \
 
 ## Testing
 
-### Example: Register and Login
+The backend includes comprehensive automated tests to verify authentication functionality.
+
+### Available Test Commands
+
+#### 1. Unit Tests
+```bash
+npm test
+```
+
+Runs unit tests for core authentication functions. This test suite:
+- Validates Firebase configuration
+- Tests email/password validation logic
+- Verifies error mapping functions
+- Checks utility functions
+
+**Use this to**: Quickly verify core business logic without hitting the API.
+
+---
+
+#### 2. Full Authentication Flow Test
+```bash
+npm run test:auth
+```
+
+Tests the complete authentication lifecycle end-to-end. This test:
+1. **Registers** a new user with a unique email
+2. **Logs in** with the created credentials
+3. **Fetches user info** using the access token (`GET /auth/me`)
+4. **Refreshes** the access token using the refresh token
+5. **Logs out** to revoke all sessions
+6. **Verifies revocation** by attempting to use the revoked token (should fail)
+
+**Use this to**: Verify the complete user authentication journey works correctly.
+
+**Requirements**: Server must be running on `http://localhost:3000`
+
+**Output**: Shows each step with JSON responses and success/failure indicators.
+
+---
+
+#### 3. API Endpoint Test Suite
+```bash
+npm run test:api
+```
+
+Comprehensive test of all authentication endpoints including edge cases. This test validates:
+
+**Happy Path:**
+- Health check endpoint
+- User registration
+- User login
+- Get current user info
+- Token refresh
+- Token verification after refresh
+- User logout
+- Token revocation verification
+
+**Error Cases:**
+- Duplicate registration (409 conflict)
+- Wrong password (401 unauthorized)
+
+**Use this to**: Run a full test suite covering both success and failure scenarios.
+
+**Requirements**: Server must be running on `http://localhost:3000`
+
+**Output**: Color-coded results with detailed JSON responses for each test.
+
+---
+
+### Running Tests
+
+**Step 1**: Ensure the server is running
+```bash
+# In one terminal
+npm run dev
+```
+
+**Step 2**: Run tests in another terminal
+```bash
+# Run all tests
+npm test                # Unit tests (no server needed)
+npm run test:auth       # Full auth flow (server required)
+npm run test:api        # Complete endpoint suite (server required)
+```
+
+### Test Prerequisites
+
+- **jq** must be installed for shell script tests (formats JSON output)
+  ```bash
+  # macOS
+  brew install jq
+  
+  # Ubuntu/Debian
+  sudo apt-get install jq
+  ```
+
+- Server must be running on port 3000 for integration tests
+- Valid Firebase configuration in `.env` file
+
+### Manual Testing with cURL
+
+You can also test endpoints manually:
 
 ```bash
 # Register
@@ -340,13 +378,13 @@ curl -X GET http://localhost:3000/auth/me \
   -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
 ```
 
+### Using Postman
+
+Import `postman-collection.json` for a complete set of pre-configured API requests with automated token management.
+
 ## Support
 
 For issues or questions, please refer to:
 - [Firebase Auth Documentation](https://firebase.google.com/docs/auth)
 - [Firebase Admin SDK](https://firebase.google.com/docs/admin/setup)
-
-## License
-
-ISC
 
