@@ -1,7 +1,7 @@
 {
-  "name": "nutri-auth-backend",
+  "name": "nutri-project-backend",
   "version": "1.0.0",
-  "description": "Authentication service using Firebase Auth",
+  "description": "Backend API for HUDS Nutrition Analyzer with Firebase Authentication",
   "main": "src/index.js",
   "scripts": {
     "start": "node src/index.js",
@@ -16,7 +16,7 @@
     "set-role": "node scripts/setUserRole.js",
     "delete-user": "node scripts/deleteUser.js"
   },
-  "keywords": ["auth", "firebase", "express"],
+  "keywords": ["auth", "firebase", "express", "nutrition"],
   "author": "",
   "license": "ISC",
   "dependencies": {
@@ -30,4 +30,3 @@
     "nodemon": "^3.0.1"
   }
 }
-
