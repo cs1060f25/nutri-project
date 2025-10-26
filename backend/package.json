@@ -1,0 +1,33 @@
+{
+  "name": "nutri-auth-backend",
+  "version": "1.0.0",
+  "description": "Authentication service using Firebase Auth",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js",
+    "setup": "node setup-firebase.js",
+    "check": "node quick-test.js",
+    "test": "node tests/test-functions.js",
+    "test:syntax": "node tests/test-syntax.js",
+    "test:auth": "bash tests/test-full-auth.sh",
+    "test:api": "bash tests/test-endpoints.sh",
+    "list-users": "node scripts/listUsers.js",
+    "set-role": "node scripts/setUserRole.js",
+    "delete-user": "node scripts/deleteUser.js"
+  },
+  "keywords": ["auth", "firebase", "express"],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.18.2",
+    "firebase-admin": "^12.0.0",
+    "axios": "^1.6.0",
+    "dotenv": "^16.3.1",
+    "cors": "^2.8.5"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  }
+}
+
