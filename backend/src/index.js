@@ -4,6 +4,7 @@ require('dotenv').config();
 
 const { initializeFirebase } = require('./config/firebase');
 const authRoutes = require('./routes/authRoutes');
+const { homeData } = require('../data');
 
 // Initialize Express app
 const app = express();
@@ -37,6 +38,11 @@ app.get('/health', (req, res) => {
   });
 });
 
+// Home endpoint
+app.get('/home', (req, res) => {
+  res.status(200).json(homeData);
+});
+
 // Auth routes
 app.use('/auth', authRoutes);
 
@@ -65,8 +71,10 @@ app.use((err, req, res, next) => {
 app.listen(PORT, () => {
   console.log(`\n🚀 Server is running on port ${PORT}`);
   console.log(`📍 Health check: http://localhost:${PORT}/health`);
+  console.log(`🏠 Home: http://localhost:${PORT}/home`);
   console.log(`🔐 Auth endpoints available at: http://localhost:${PORT}/auth`);
   console.log('\nAvailable endpoints:');
+  console.log('  GET    /home');
   console.log('  POST   /auth/register');
   console.log('  POST   /auth/login');
   console.log('  POST   /auth/refresh');
