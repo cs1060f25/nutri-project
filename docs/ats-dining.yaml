@@ -1,0 +1,531 @@
+openapi: 3.0.0
+servers:
+  - url: 'https://go.prod.apis.huit.harvard.edu/ats'
+    description: Production
+  - url: 'https://go.stage.apis.huit.harvard.edu/ats'
+    description: Stage
+  - url: 'https://go.dev.apis.huit.harvard.edu/ats'
+    description: Dev
+
+# basePath: /ats/dining
+paths:
+  /events:
+    parameters:
+      - required: false
+        in: query
+        description: date
+        name: date
+        schema:
+          type: string
+          example: "09/15/2017"
+      - required: false
+        in: query
+        description: locationId
+        name: locationId
+        schema:
+          type: string
+          example: "09"
+    get:
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema: 
+                type: array
+                items:
+                  $ref: '#/components/schemas/event'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/failure'
+      description: <p>Get events
+      operationId: get_events
+      tags:
+        - default
+  /locations:
+    get:
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/location'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/failure'
+      description: <p>Get locations
+      operationId: get_locations
+      tags:
+        - default
+  /monitor/health:
+    get:
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/monitor_health_pass'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/monitor_health_fail'
+      description: |-
+        <p>
+        Health check endpoint which returns a status 200 and status: Pass if the API is up and responsive
+      operationId: get_health
+      tags:
+        - default
+  /recipes:
+    parameters:
+      - required: false
+        in: query
+        description: date
+        name: date
+        schema:
+          type: string
+          example: "09/15/2017"
+      - required: false
+        in: query
+        description: locationId
+        name: locationId
+        schema:
+          type: string
+          example: '03'
+    get:
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/recipe'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/failure'
+      description: <p>Get recipes
+      operationId: get_recipes
+      tags:
+        - default
+  '/recipes/{id}':
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/recipe'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/failure'
+      description: <p>Get a single recipe by id
+      operationId: get_recipe
+      tags:
+        - default
+info:
+  title: Dining API
+  version: v3
+  description: "
+    <p>The Dining Services API provides information about Harvard University Dining Services (HUDS) locations, items being served, and nutritional information. Only information for current menus is available, for as far into the future as HUDS forecasts (normally 2-4 weeks). Historical information is not available.</p>
+    <p>The data comes from the HUDS FoodPro system. Data is added by staff in the dining halls as part of their inventory process. A nightly process exports the data to an intermediary SQL database, which is maintained by HUIT (Campus Services Applications group).</p>
+    <hr>
+    <h2><strong>Getting Started</strong></h2>
+
+        <h3>How do I use this API?</h3>
+          <div class='over-content-requests'>
+          <p><strong>Request URL: </strong> <code>https://go.apis.huit.harvard.edu/ats/dining/v3/events</code></p>
+          <p><strong>Request Method: </strong> <code>GET</code></p>
+          <p><strong>Authorization: </strong> <code>API Key</code></p>
+          <ul>
+            <li><strong>Header Key: </strong> <code>X-Api-Key</code></li>
+            <li><strong>Header Value: </strong> <code>&lt;Client ID&gt;</code></li>
+          </ul>
+          <p><em>Note: please be sure to use the API Key in the header and not the query parameter string. For security we've blocked requests that use the API Key in the query parameter string.</em></p>
+        </div>
+        
+        <h3>Additional Sample Request URLs:</h3>
+          <div class='over-content-requests'>
+          <p>Get a list of dining locations: <code>https://go.apis.huit.harvard.edu/ats/dining/v3/locations</code></p>
+          <p>Get a list of all events for location '05' (Cabot and Pforzheimer House): <code>https://go.apis.huit.harvard.edu/ats/dining/v3/events?locationId=05</code></p>
+          <p>Get all recipes: <code>https://go.apis.huit.harvard.edu/ats/dining/v3/recipes</code></p>
+          <p>Get all recipes at location '05' (Cabot and Pforzheimer House):<code> https://go.apis.huit.harvard.edu/ats/dining/v3/recipes?locationId=05</code></p>
+          </div>
+      <hr>
+    
+        <h2><strong>Frequently Asked Questions</strong></h2>
+
+          <h3>Does the API include historical data?</h3>
+          <p>The Dining API allows people to have access to current menu data. This does not include historical data, it is intended to only have current data available. When dining facilities are closed data will not appear.</p>
+          <h3>Where does the data come from?</h3>
+          <p>This data comes from the dining services' Foodpro database. http://www.foodpro.huds.harvard.edu/foodpro/locationrestaurants.asp. This data is added by staff in the dining halls as part of their inventory process. It is then exported daily (at 2am) to a database held by Campus Services. This is a system level API, so it is not doing a lot in the way of data manipulation. Everything is as it is in the original data. However, the original data is flat. It is just the recipe data. Events and locations are derived from this data.</p>
+          <h3>I registered my app and have access to the API. What do I do next?</h3>
+          <p>Since this API is automatically approved, you are ready to start using the API in your application as soon as you've registered your app here in the API Portal. To test that your Client ID (API key) works or to walk through a simple example, follow the Postman Guide page on this portal and refer to the Getting Started section of this page for API-specific information.</p>
+      <hr>
+      
+      <h2><strong>Request Access</strong></h2>
+          <p>Access to this API is automatically approved for Harvard developers who register their app here in the API Portal. 
+          <p>To access this API, please register your app here in the API Portal. To do so you can select 'apps' from the developer dropdown in the upper right of the portal, then select '+New App', and create your app by following the instructions in the guides section. Upon saving your app, you will be able to see your API keys and can start using them right away. The Product Owner for the Dining API will also be notified, so they are aware that your app will be accessing the API.</p>
+      <hr>
+
+      <h2><strong>Service Level Agreement</strong></h2>
+          <p>This service is available 24/7. Support for this service is during business hours only. If you need support please send an email to aais-team@calists.harvard.edu</p>
+      <hr>
+      
+      <h2><strong>Terms of Use</strong></h2>
+          <p>All existing, University-wide policies regarding data usage have been reviewed and MUST be followed as documented:</p>
+          <ul>
+            <li><a href='https://policy.security.harvard.edu/' target='_blank'>Harvard Information Security Policy</a></li>
+            <li><a href='http://hwpi.harvard.edu/files/provost/files/policy_on_access_to_electronic_information.pdf' target='_blank'>Policy on Access to Electronic Information</a></li>
+            <li><a href='https://huit.harvard.edu/it-professional-code-conduct-protect-electronic-information' target='_blank'>IT Professional Code of Conduct</a></li>
+            <li><a href='https://policy.security.harvard.edu/u15--Confidentiality-agreement-and-training' target='_blank'>Confidentiality Agreement and Training</a></li>
+            <li><a href='https://ogc.harvard.edu/book/breach-data-security-what-do' target='_blank'>Data Breach Policy</a></li>
+            <li>All application infrastructure receiving data must conform to <a href='https://policy.security.harvard.edu/level-3' target='_blank'>Harvard Information Security Policy for Level 3 data</a>.</li>
+          </ul>
+          <p>Equivalent security, NDA, <a href='https://security.harvard.edu/node/55246' target='_blank'>Contract Riders</a> and other relevant requirements are in place for Contractors/Vendors/3rd Parties</p>
+          <p>Redistribution of data is strictly prohibited without written consent.</p>
+  "
+
+security:
+  - apikey: []
+tags:
+  - name: default
+    description: Default namespace
+
+components:
+  schemas:
+    monitor_health_fail:
+      required:
+        - error
+        - status
+      properties:
+        status:
+          type: string
+          description: FAIL
+          example: FAIL
+        error:
+          type: string
+          description: Error encountered
+          example: The server encountered an internal error and was unable to complete your request. Either the server is overloaded or there is an error in the application.
+      type: object
+    monitor_health_pass:
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          description: PASS
+          example: PASS
+      type: object
+    failure:
+      required:
+        - error
+        - status
+      properties:
+        status:
+          type: string
+          description: FAIL
+          example: FAIL
+        error:
+          type: string
+          description: Failure encountered
+          example: The server encountered an internal error and was unable to complete your request. Either the server is overloaded or there is an error in the application.
+      type: object
+    location:
+      required:
+        - location_name
+        - location_number
+      properties:
+        location_name:
+          type: string
+          description: Location Name
+          example: Barker Rotunda
+        location_number:
+          type: string
+          description: Location Number
+          example: '36'
+      type: object
+    event:
+      required:
+        - location_name
+        - location_number
+        - meal_name
+        - meal_number
+        - menu_category_name
+        - menu_category_number
+        - serve_date
+      properties:
+        meal_name:
+          type: string
+          description: 'Name of the meal, like Breakfast/Lunch/Dinner. The top level grouping for a given location.'
+          example: Breakfast
+        meal_number:
+          type: string
+          description: Meal Number
+          example: '1'
+        menu_category_name:
+          type: string
+          description: The second level grouping for a given location. A breakfast or a lunch may have many menu categories.
+          example: Bean/Grain
+        menu_category_number:
+          type: string
+          description: Category Number
+          example: '67'
+        location_name:
+          type: string
+          description: Location name
+          example: Barker Rotunda
+        location_number:
+          type: string
+          description: Location number
+          example: '36'
+        serve_date:
+          type: string
+          description: Specific serve date. Formatted as mm/dd/yyyy
+          example: 09/15/2017
+      type: object
+    recipe:
+      required:
+        - Allergens
+        - Calories
+        - Calories_From_Fat
+        - Catering_Department
+        - Cholesterol
+        - Cholesterol_DV
+        - Dietary_Fiber
+        - Dietary_Fiber_DV
+        - ID
+        - Ingredient_List
+        - Location_Name
+        - Location_Number
+        - Meal_Name
+        - Meal_Number
+        - Menu_Category_Name
+        - Menu_Category_Number
+        - Production_Department
+        - Protein
+        - Protein_DV
+        - Recipe_Name
+        - Recipe_Number
+        - Recipe_Print_As_Character
+        - Recipe_Print_As_Color
+        - Recipe_Print_As_Name
+        - Recipe_Product_Information
+        - Recipe_Web_Codes
+        - Sat_Fat
+        - Sat_Fat_DV
+        - Serve_Date
+        - Service_Department
+        - Serving_Size
+        - Sodium
+        - Sodium_DV
+        - Sugars
+        - Sugars_DV
+        - Total_Carb
+        - Total_Carb_DV
+        - Total_Fat
+        - Total_Fat_DV
+        - Trans_Fat
+        - Update_Date
+        - portion_cost
+        - selling_price
+      properties:
+        Sat_Fat_DV:
+          type: string
+          description: Sat Fat DV
+          example: '0'
+        Trans_Fat_DV:
+          type: string
+          description: Trans Fat DV
+        Sugars_DV:
+          type: string
+          description: Sugars DV
+          example: '0'
+        Dietary_Fiber_DV:
+          type: string
+          description: Dietary Fiber DV
+          example: '0'
+        selling_price:
+          type: string
+          description: selling price
+          example: '0.00'
+        ID:
+          type: string
+          description: recipt ID
+          example: '36297713'
+        Menu_Category_Number:
+          type: string
+          description: Menu Category Number
+          example: '23'
+        Recipe_Product_Information:
+          type: string
+          description: Recipe Product Information
+          example: These less-processed oats retain more of their hull and therefore more of their nutritional value.
+        Cholesterol:
+          type: string
+          description: Cholesterol
+          example: 0mg
+        portion_cost:
+          type: string
+          description: portion cost
+          example: '0.00'
+        Calories_From_Fat:
+          type: string
+          description: Calories From Fat
+          example: '27'
+        Sodium:
+          type: string
+          description: Sodium
+          example: 14.8mg
+        Recipe_Web_Codes:
+          type: string
+          description: Recipe Web Codes
+          example: VGN WGRN VGT
+        Total_Fat:
+          type: string
+          description: Total Fat
+          example: 3g
+        Recipe_Print_As_Name:
+          type: string
+          description: Recipe Print As Name
+          example: Kashi Pilaf
+        Sat_Fat:
+          type: string
+          description: Sat Fat
+          example: 0g
+        Recipe_Print_As_Character:
+          type: string
+          description: Recipe Print As Character
+        Recipe_Print_As_Color:
+          type: string
+          description: Recipe Print As Color
+          example: '4194368'
+        Total_Fat_DV:
+          type: string
+          description: Total Fat DV
+          example: '5'
+        Serve_Date:
+          type: string
+          description: Serve Date
+          example: 09/11/2017
+        Total_Carb:
+          type: string
+          description: Total Carb
+          example: 29.6g
+        Cholesterol_DV:
+          type: string
+          description: Cholesterol DV
+          example: '0'
+        Allergens:
+          type: string
+          description: Allergens
+          example: 'Wheat '
+        Trans_Fat:
+          type: string
+          description: Trans Fat
+          example: 0g
+        Service_Department:
+          type: string
+          description: Service Department
+          example: '01'
+        Catering_Department:
+          type: string
+          description: Catering Department
+          example: '01'
+        Location_Number:
+          type: string
+          description: Location Number
+          example: '03'
+        Sodium_DV:
+          type: string
+          description: Sodium DV
+          example: '1'
+        Sugars:
+          type: string
+          description: Sugars
+          example: 0g
+        Serving_Size:
+          type: string
+          description: Serving Size
+          example: 5 OZL
+        Meal_Name:
+          type: string
+          description: Meal Name
+          example: Breakfast
+        Total_Carb_DV:
+          type: string
+          description: Total Carb DV
+          example: '10'
+        Ingredient_List:
+          type: string
+          description: Ingredient List
+          example: '7 Whole Grain Kashi Pilaf (Kashi Seven Whole Grains & SesameÂ® Pilaf (Whole: Oats Brown Rice Rye Hard Red Winter Wheat Triticale Buckwheat Barley Sesame Seeds).)'
+        Update_Date:
+          type: string
+          description: Update Date
+        Location_Name:
+          type: string
+          description: Location Name
+          example: Cronkhite Center
+        Recipe_Name:
+          type: string
+          description: Recipe Name
+          example: CEREAL KASHI PILAF VGN
+        Protein:
+          type: string
+          description: Protein
+          example: 5.9g
+        Dietary_Fiber:
+          type: string
+          description: Dietary Fiber
+          example: 5.9g
+        Protein_DV:
+          type: string
+          description: Protein DV
+          example: '12'
+        Meal_Number:
+          type: string
+          description: Meal Number
+          example: '1'
+        Calories:
+          type: string
+          description: Calories
+          example: '167'
+        Production_Department:
+          type: string
+          description: Production Department
+          example: '01'
+        Menu_Category_Name:
+          type: string
+          description: Menu Category Name
+          example: Make Your Own Bar
+        Recipe_Number:
+          type: string
+          description: Recipe Number
+          example: '031001'
+      type: object
