@@ -6,12 +6,17 @@
  * Save a new meal log
  */
 export const saveMealLog = async (mealData, accessToken) => {
+  const headers = {
+    'Content-Type': 'application/json',
+  };
+  
+  if (accessToken) {
+    headers['Authorization'] = `Bearer ${accessToken}`;
+  }
+
   const response = await fetch('/api/meals', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${accessToken}`,
-    },
+    headers,
     body: JSON.stringify(mealData),
   });
 
@@ -26,7 +31,7 @@ export const saveMealLog = async (mealData, accessToken) => {
 /**
  * Get user's meal logs
  */
-export const getMealLogs = async (accessToken, filters = {}) => {
+export const getMealLogs = async (filters = {}, accessToken) => {
   const params = new URLSearchParams();
   if (filters.startDate) params.append('startDate', filters.startDate);
   if (filters.endDate) params.append('endDate', filters.endDate);
@@ -37,6 +42,7 @@ export const getMealLogs = async (accessToken, filters = {}) => {
   const url = queryString ? `/api/meals?${queryString}` : '/api/meals';
 
   const response = await fetch(url, {
+    method: 'GET',
     headers: {
       'Authorization': `Bearer ${accessToken}`,
     },
@@ -67,9 +73,30 @@ export const getDailySummary = async (accessToken, date) => {
 };
 
 /**
+ * Update a meal log
+ */
+export const updateMealLog = async (mealId, updates, accessToken) => {
+  const response = await fetch(`/api/meals/${mealId}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify(updates),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to update meal log');
+  }
+
+  return response.json();
+};
+
+/**
  * Delete a meal log
  */
-export const deleteMealLog = async (accessToken, mealId) => {
+export const deleteMealLog = async (mealId, accessToken) => {
   const response = await fetch(`/api/meals/${mealId}`, {
     method: 'DELETE',
     headers: {
@@ -78,7 +105,8 @@ export const deleteMealLog = async (accessToken, mealId) => {
   });
 
   if (!response.ok) {
-    throw new Error('Failed to delete meal log');
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to delete meal log');
   }
 
   return response.json();
