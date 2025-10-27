@@ -4,6 +4,7 @@ require('dotenv').config();
 
 const { initializeFirebase } = require('./config/firebase');
 const authRoutes = require('./routes/authRoutes');
+const hudsRoutes = require('./routes/hudsRoutes');
 const { homeData } = require('../data');
 
 // Initialize Express app
@@ -45,6 +46,9 @@ app.get('/home', (req, res) => {
 
 // Auth routes
 app.use('/auth', authRoutes);
+
+// HUDS API routes
+app.use('/api/huds', hudsRoutes);
 
 // Home endpoint - returns app data
 app.get('/home', (req, res) => {
@@ -89,6 +93,7 @@ app.listen(PORT, () => {
   console.log(`📍 Health check: http://localhost:${PORT}/health`);
   console.log(`🏠 Home: http://localhost:${PORT}/home`);
   console.log(`🔐 Auth endpoints available at: http://localhost:${PORT}/auth`);
+  console.log(`🍽️  HUDS API endpoints available at: http://localhost:${PORT}/api/huds`);
   console.log('\nAvailable endpoints:');
   console.log('  GET    /home');
   console.log('  POST   /auth/register');
@@ -96,6 +101,10 @@ app.listen(PORT, () => {
   console.log('  POST   /auth/refresh');
   console.log('  POST   /auth/logout');
   console.log('  GET    /auth/me');
+  console.log('  GET    /api/huds/locations');
+  console.log('  GET    /api/huds/menu/today');
+  console.log('  GET    /api/huds/recipes');
+  console.log('  GET    /api/huds/recipes/:id');
   console.log('');
 });
 
