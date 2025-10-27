@@ -6,7 +6,6 @@ const { initializeFirebase } = require('./config/firebase');
 const authRoutes = require('./routes/authRoutes');
 const hudsRoutes = require('./routes/hudsRoutes');
 const mealLogRoutes = require('./routes/mealLogRoutes');
-const goalRoutes = require('./routes/goalRoutes');
 const profileRoutes = require('./routes/profileRoutes');
 const { homeData } = require('../data');
 
@@ -55,9 +54,6 @@ app.use('/api/huds', hudsRoutes);
 
 // Meal log routes
 app.use('/api/meals', mealLogRoutes);
-
-// Nutrition goals routes
-app.use('/api/goals', goalRoutes);
 
 // User profile routes
 app.use('/api/profile', profileRoutes);
@@ -124,6 +120,8 @@ app.listen(PORT, () => {
   console.log('  PUT    /api/meals/:id');
   console.log('  DELETE /api/meals/:id');
   console.log('  GET    /api/meals/summary/:date');
+  console.log('  GET    /api/profile');
+  console.log('  PUT    /api/profile');
   console.log('');
 });
 
