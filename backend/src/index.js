@@ -5,6 +5,7 @@ require('dotenv').config();
 const { initializeFirebase } = require('./config/firebase');
 const authRoutes = require('./routes/authRoutes');
 const hudsRoutes = require('./routes/hudsRoutes');
+const mealLogRoutes = require('./routes/mealLogRoutes');
 const { homeData } = require('../data');
 
 // Initialize Express app
@@ -50,6 +51,9 @@ app.use('/auth', authRoutes);
 // HUDS API routes
 app.use('/api/huds', hudsRoutes);
 
+// Meal log routes
+app.use('/api/meals', mealLogRoutes);
+
 // Home endpoint - returns app data
 app.get('/home', (req, res) => {
   const homeData = {
@@ -94,6 +98,7 @@ app.listen(PORT, () => {
   console.log(`🏠 Home: http://localhost:${PORT}/home`);
   console.log(`🔐 Auth endpoints available at: http://localhost:${PORT}/auth`);
   console.log(`🍽️  HUDS API endpoints available at: http://localhost:${PORT}/api/huds`);
+  console.log(`📝  Meal logs endpoints available at: http://localhost:${PORT}/api/meals`);
   console.log('\nAvailable endpoints:');
   console.log('  GET    /home');
   console.log('  POST   /auth/register');
@@ -105,6 +110,12 @@ app.listen(PORT, () => {
   console.log('  GET    /api/huds/menu/today');
   console.log('  GET    /api/huds/recipes');
   console.log('  GET    /api/huds/recipes/:id');
+  console.log('  POST   /api/meals');
+  console.log('  GET    /api/meals');
+  console.log('  GET    /api/meals/:id');
+  console.log('  PUT    /api/meals/:id');
+  console.log('  DELETE /api/meals/:id');
+  console.log('  GET    /api/meals/summary/:date');
   console.log('');
 });
 
