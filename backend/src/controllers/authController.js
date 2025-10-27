@@ -1,6 +1,7 @@
 const { admin } = require('../config/firebase');
 const { mapFirebaseError, createErrorResponse } = require('../utils/errorMapper');
 const { signInWithPassword, refreshIdToken } = require('../services/firebaseAuthService');
+const { createUserProfile } = require('../services/userProfileService');
 
 /**
  * POST /auth/register
@@ -35,11 +36,20 @@ const register = async (req, res) => {
     });
 
     // Store additional user info in custom claims
-    await admin.auth().setCustomUserClaims(userRecord.uid, {
+    const customClaims = {
       firstName,
       lastName,
       residence,
       roles: []
+    };
+    await admin.auth().setCustomUserClaims(userRecord.uid, customClaims);
+
+    // Persist profile document in Firestore
+    await createUserProfile(userRecord.uid, {
+      email: userRecord.email,
+      firstName,
+      lastName,
+      residence,
     });
 
     console.log('✅ User created successfully:', userRecord.uid);
@@ -261,4 +271,3 @@ module.exports = {
   getCurrentUser,
   resetPassword,
 };
-
