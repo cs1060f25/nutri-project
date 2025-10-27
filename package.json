@@ -12,7 +12,8 @@
     "start:frontend": "cd frontend && npm start"
   },
   "dependencies": {
-    "firebase": "^12.4.0"
+    "firebase": "^12.4.0",
+    "firebase-admin": "^12.0.0"
   },
   "devDependencies": {
     "concurrently": "^8.2.0"
