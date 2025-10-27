@@ -505,6 +505,76 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
+/* Floating Action Button */
+.fab-button {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: #2d6a4f;
+  color: white;
+  border: none;
+  box-shadow: 0 8px 24px rgba(45, 106, 79, 0.4);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fab-button:hover {
+  background: #1a5f3f;
+  transform: translateY(-4px) scale(1.05);
+  box-shadow: 0 12px 32px rgba(45, 106, 79, 0.5);
+}
+
+.fab-button:active {
+  transform: translateY(-2px) scale(1.02);
+}
+
+.fab-icon {
+  font-size: 2rem;
+  font-weight: 300;
+  line-height: 1;
+}
+
+/* Success Banner */
+.success-banner {
+  position: fixed;
+  top: 6rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #2d6a4f;
+  color: white;
+  padding: 1rem 2rem;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(45, 106, 79, 0.4);
+  z-index: 1500;
+  font-weight: 600;
+  animation: slideDown 0.3s ease, fadeOut 0.3s ease 2.7s;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+@keyframes fadeOut {
+  to {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-10px);
+  }
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
   .home-page {
@@ -543,5 +613,42 @@
 
   .modal-title {
     font-size: 1.5rem;
+  }
+
+  .fab-button {
+    bottom: 1.5rem;
+    right: 1.5rem;
+    width: 56px;
+    height: 56px;
+  }
+
+  .fab-icon {
+    font-size: 1.75rem;
+  }
+
+  .success-banner {
+    top: 5rem;
+    left: 1rem;
+    right: 1rem;
+    transform: none;
+    width: calc(100% - 2rem);
+  }
+
+  @keyframes slideDown {
+    from {
+      opacity: 0;
+      transform: translateY(-20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes fadeOut {
+    to {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
   }
 }
