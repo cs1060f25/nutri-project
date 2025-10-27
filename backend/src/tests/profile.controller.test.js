@@ -52,6 +52,22 @@ describe('profileController', () => {
         })
       );
     });
+
+    it('returns 500 when service throws', async () => {
+      profileService.getUserProfile.mockRejectedValueOnce(new Error('boom'));
+
+      const req = { user: { uid: 'user-error' } };
+      const res = createMockResponse();
+
+      await profileController.getProfile(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          error: expect.objectContaining({ code: 'INTERNAL' }),
+        })
+      );
+    });
   });
 
   describe('updateProfile', () => {
@@ -72,6 +88,22 @@ describe('profileController', () => {
         message: 'Profile updated successfully',
         profile: updated,
       });
+    });
+
+    it('returns 500 when update fails', async () => {
+      profileService.updateUserProfile.mockRejectedValueOnce(new Error('nope'));
+
+      const req = { user: { uid: 'user-err' }, body: { residence: 'Lowell' } };
+      const res = createMockResponse();
+
+      await profileController.updateProfile(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          error: expect.objectContaining({ code: 'INTERNAL' }),
+        })
+      );
     });
   });
 });
