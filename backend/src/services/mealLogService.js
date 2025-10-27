@@ -111,8 +111,8 @@ const getMealLogs = async (userId, filters = {}) => {
     query = query.where('mealType', '==', filters.mealType);
   }
 
-  // Order by date descending
-  query = query.orderBy('mealDate', 'desc').orderBy('timestamp', 'desc');
+  // Order by timestamp descending (most recent first)
+  query = query.orderBy('timestamp', 'desc');
 
   // Limit results
   const limit = filters.limit || 50;
