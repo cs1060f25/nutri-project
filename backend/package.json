@@ -9,6 +9,8 @@
     "setup": "node setup-firebase.js",
     "check": "node quick-test.js",
     "test": "node tests/test-functions.js",
+    "test:unit": "jest",
+    "test:unit:watch": "jest --watch",
     "test:syntax": "node tests/test-syntax.js",
     "test:auth": "bash tests/test-full-auth.sh",
     "test:api": "bash tests/test-endpoints.sh",
@@ -27,6 +29,7 @@
     "cors": "^2.8.5"
   },
   "devDependencies": {
-    "nodemon": "^3.0.1"
+    "nodemon": "^3.0.1",
+    "jest": "^29.7.0"
   }
 }
