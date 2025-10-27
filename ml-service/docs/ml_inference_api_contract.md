@@ -184,6 +184,28 @@ console.log(data.predictions);
 
 ---
 
+## Performance Requirements
+
+### Response Time SLA
+
+- **p50 (median)**: < 200ms for images under 2MB
+- **p95**: < 500ms for images under 5MB
+- **p99**: < 1000ms for images under 10MB
+
+### Throughput
+
+- **Minimum**: 10 requests per second
+- **Target**: 50 requests per second
+- **Burst**: 100 requests per second for up to 30 seconds
+
+### Model Inference
+
+- **Latency**: < 150ms for model prediction
+- **Preprocessing**: < 50ms for image resize/normalization
+- **Postprocessing**: < 10ms for confidence sorting
+
+---
+
 ## Validation Checklist
 
 - [ ] Request accepts JPEG and PNG files
@@ -193,8 +215,11 @@ console.log(data.predictions);
 - [ ] 400 error for invalid file types
 - [ ] 413 error for files > 10MB
 - [ ] 500 error for processing failures
+- [ ] Response time under 500ms for typical images
+- [ ] Handles 10+ concurrent requests
 
 ---
 
 **Maintained by**: Waseem Ahmad  
-**Last updated**: October 27, 2025
+**Last updated**: October 27, 2025  
+**Version**: 1.0.1 (NUTRI-38: Added performance requirements)
