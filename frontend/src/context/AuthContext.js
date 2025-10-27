@@ -2,6 +2,30 @@ import React, { createContext, useState, useContext, useEffect } from 'react';
 
 const AuthContext = createContext(null);
 
+// Robust fetch helper that handles non-JSON responses
+async function postJson(url, body) {
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+
+  const text = await res.text();
+  let data;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    // Not JSON — likely an HTML error page from Vercel or a proxy
+    throw new Error(`HTTP ${res.status}: ${text.slice(0, 180)}`);
+  }
+
+  if (!res.ok) {
+    const msg = data?.error?.message || data?.message || `HTTP ${res.status}`;
+    throw new Error(msg);
+  }
+  return data;
+}
+
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
@@ -32,19 +56,7 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password, rememberMe = false) => {
     try {
-      const response = await fetch('/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Login failed');
-      }
+      const data = await postJson('/auth/login', { email, password });
 
       // Store tokens and user info based on rememberMe choice
       const storage = rememberMe ? localStorage : sessionStorage;
@@ -72,25 +84,13 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (email, password, firstName, lastName, residence) => {
     try {
-      const response = await fetch('/auth/register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ 
-          email, 
-          password,
-          firstName,
-          lastName,
-          residence
-        }),
+      const data = await postJson('/auth/register', { 
+        email, 
+        password,
+        firstName,
+        lastName,
+        residence
       });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Registration failed');
-      }
 
       // After registration, automatically log in
       return await login(email, password);
