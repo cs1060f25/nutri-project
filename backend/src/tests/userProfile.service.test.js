@@ -73,6 +73,13 @@ describe('userProfileService', () => {
         { merge: false }
       );
     });
+
+    it('throws if userId is missing', async () => {
+      await expect(createUserProfile('', {})).rejects.toThrow(
+        'User id is required to create a profile'
+      );
+      expect(mockCollection.doc).not.toHaveBeenCalled();
+    });
   });
 
   describe('getUserProfile', () => {
@@ -120,6 +127,38 @@ describe('userProfileService', () => {
       expect(result).toEqual({
         email: 'test@example.com',
         firstName: 'Updated',
+        updatedAt: 'SERVER_TIMESTAMP',
+      });
+    });
+
+    it('preserves existing fields when not supplied in updates', async () => {
+      mockDocRef.set.mockResolvedValueOnce();
+      mockDocRef.get.mockResolvedValueOnce({
+        data: () => ({
+          email: 'test@example.com',
+          firstName: 'Existing',
+          lastName: 'User',
+          residence: 'Lowell House',
+          updatedAt: 'SERVER_TIMESTAMP',
+        }),
+      });
+
+      const result = await updateUserProfile('user-4', {
+        residence: 'Lowell House',
+      });
+
+      expect(mockDocRef.set).toHaveBeenCalledWith(
+        expect.objectContaining({
+          residence: 'Lowell House',
+          updatedAt: 'SERVER_TIMESTAMP',
+        }),
+        { merge: true }
+      );
+      expect(result).toEqual({
+        email: 'test@example.com',
+        firstName: 'Existing',
+        lastName: 'User',
+        residence: 'Lowell House',
         updatedAt: 'SERVER_TIMESTAMP',
       });
     });
