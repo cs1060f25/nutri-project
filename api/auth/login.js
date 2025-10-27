@@ -23,7 +23,14 @@ const mapFirebaseError = (firebaseErrorCode) => {
     'INVALID_PASSWORD': { statusCode: 401, errorCode: 'INVALID_CREDENTIALS', message: 'Email or password is incorrect.' },
     'EMAIL_NOT_FOUND': { statusCode: 401, errorCode: 'INVALID_CREDENTIALS', message: 'Email or password is incorrect.' },
   };
-  return errorMap[firebaseErrorCode] || { statusCode: 500, errorCode: 'INTERNAL', message: 'An internal error occurred.' };
+  return errorMap[firebaseErrorCode];
+};
+
+// Defensive error mapping
+const toAppError = (err) => {
+  const raw = err?.code || err?.response?.data?.error?.message || err?.message || 'UNKNOWN';
+  const mapped = mapFirebaseError(raw);
+  return mapped ?? { statusCode: 500, errorCode: 'INTERNAL', message: 'Internal server error' };
 };
 
 const createErrorResponse = (errorCode, message) => {
@@ -95,13 +102,11 @@ module.exports = async (req, res) => {
       },
     });
 
-  } catch (error) {
-    console.error('Login error:', error.message);
-
-    // Map Firebase error to our error format
-    const mappedError = mapFirebaseError(error.message);
-    return res.status(mappedError.statusCode).json(
-      createErrorResponse(mappedError.errorCode, mappedError.message)
+  } catch (err) {
+    console.error('Login error:', err);
+    const mapped = toAppError(err);
+    return res.status(mapped.statusCode).type('application/json').json(
+      createErrorResponse(mapped.errorCode, mapped.message)
     );
   }
 };
