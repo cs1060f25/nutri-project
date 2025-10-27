@@ -20,17 +20,13 @@ const mapFirebaseError = (firebaseErrorCode) => {
     'auth/email-already-exists': { statusCode: 409, errorCode: 'EMAIL_ALREADY_EXISTS', message: 'An account with this email already exists.' },
     'auth/user-not-found': { statusCode: 401, errorCode: 'INVALID_CREDENTIALS', message: 'Email or password is incorrect.' },
     'auth/wrong-password': { statusCode: 401, errorCode: 'INVALID_CREDENTIALS', message: 'Email or password is incorrect.' },
+    'auth/invalid-credential': { statusCode: 401, errorCode: 'INVALID_CREDENTIALS', message: 'Email or password is incorrect.' },
     'INVALID_PASSWORD': { statusCode: 401, errorCode: 'INVALID_CREDENTIALS', message: 'Email or password is incorrect.' },
     'EMAIL_NOT_FOUND': { statusCode: 401, errorCode: 'INVALID_CREDENTIALS', message: 'Email or password is incorrect.' },
+    'auth/too-many-requests': { statusCode: 429, errorCode: 'TOO_MANY_REQUESTS', message: 'Too many requests. Please try again later.' },
+    'auth/operation-not-allowed': { statusCode: 403, errorCode: 'OPERATION_NOT_ALLOWED', message: 'This operation is not allowed.' },
   };
   return errorMap[firebaseErrorCode];
-};
-
-// Defensive error mapping
-const toAppError = (err) => {
-  const raw = err?.code || err?.response?.data?.error?.message || err?.message || 'UNKNOWN';
-  const mapped = mapFirebaseError(raw);
-  return mapped ?? { statusCode: 500, errorCode: 'INTERNAL', message: 'Internal server error' };
 };
 
 const createErrorResponse = (errorCode, message) => {
@@ -110,9 +106,17 @@ module.exports = async (req, res) => {
 
   } catch (err) {
     console.error('Login error:', err);
-    const mapped = toAppError(err);
-    return res.status(mapped.statusCode).type('application/json').json(
-      createErrorResponse(mapped.errorCode, mapped.message)
+    console.error('Error code:', err.code);
+    console.error('Error message:', err.message);
+    
+    // Map Firebase error to our error format
+    const mappedError = mapFirebaseError(err.code);
+    const statusCode = mappedError ? mappedError.statusCode : 500;
+    const errorCode = mappedError ? mappedError.errorCode : 'INTERNAL';
+    const message = mappedError ? mappedError.message : 'Internal server error';
+    
+    return res.status(statusCode).json(
+      createErrorResponse(errorCode, message)
     );
   }
 };
