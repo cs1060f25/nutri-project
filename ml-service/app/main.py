@@ -130,11 +130,31 @@ async def predict_food(file: UploadFile = File(...)):
         # Reopen after verify (verify closes the file)
         image = Image.open(io.BytesIO(contents))
         
+        # NUTRI-44: Validate image dimensions
+        width, height = image.size
+        MIN_DIMENSION = 32  # Minimum 32x32 pixels
+        MAX_DIMENSION = 8192  # Maximum 8192x8192 pixels
+        
+        if width < MIN_DIMENSION or height < MIN_DIMENSION:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Image dimensions too small. Minimum: {MIN_DIMENSION}x{MIN_DIMENSION} pixels"
+            )
+        
+        if width > MAX_DIMENSION or height > MAX_DIMENSION:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Image dimensions too large. Maximum: {MAX_DIMENSION}x{MAX_DIMENSION} pixels"
+            )
+        
         # Run inference
         predictions = model.predict(image)
         
         return PredictResponse(predictions=predictions)
         
+    except HTTPException:
+        # Re-raise HTTP exceptions (validation errors)
+        raise
     except Exception as e:
         raise HTTPException(
             status_code=500,

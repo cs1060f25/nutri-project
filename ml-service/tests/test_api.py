@@ -188,3 +188,46 @@ def test_predictions_ordered_by_confidence():
     for i in range(len(confidences) - 1):
         assert confidences[i] >= confidences[i + 1], \
             "Predictions should be ordered by confidence (descending)"
+
+
+def test_reject_tiny_images():
+    """
+    NUTRI-44: Test that images with dimensions too small are rejected.
+    Bug: API accepts 1x1 pixel images which can't contain meaningful food data.
+    """
+    # Create a 1x1 pixel image (too small for food recognition)
+    tiny_image = Image.new('RGB', (1, 1), color='red')
+    img_byte_arr = io.BytesIO()
+    tiny_image.save(img_byte_arr, format='JPEG')
+    img_byte_arr.seek(0)
+    
+    response = client.post(
+        "/predict",
+        files={"file": ("tiny.jpg", img_byte_arr, "image/jpeg")}
+    )
+    
+    # Should reject images smaller than minimum dimensions
+    assert response.status_code == 400
+    assert "too small" in response.json()["detail"].lower()
+
+
+def test_reject_oversized_images():
+    """
+    NUTRI-44: Test that images with excessive dimensions are rejected.
+    Bug: API accepts extremely large images (e.g., 50000x50000) causing memory issues.
+    """
+    # Create metadata for a huge image (don't actually create it to save memory)
+    # We'll test with a moderately large image instead
+    large_image = Image.new('RGB', (10000, 10000), color='blue')
+    img_byte_arr = io.BytesIO()
+    large_image.save(img_byte_arr, format='JPEG', quality=10)  # Low quality to reduce size
+    img_byte_arr.seek(0)
+    
+    response = client.post(
+        "/predict",
+        files={"file": ("huge.jpg", img_byte_arr, "image/jpeg")}
+    )
+    
+    # Should reject images larger than maximum dimensions
+    assert response.status_code == 400
+    assert "too large" in response.json()["detail"].lower() or "dimension" in response.json()["detail"].lower()
