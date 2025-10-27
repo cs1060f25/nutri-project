@@ -26,8 +26,7 @@ app = FastAPI(
 class Prediction(BaseModel):
     """Single food prediction with confidence score"""
     name: str = Field(..., description="Name of the identified food item")
-    confidence: str = Field(..., description="Confidence score between 0 and 1")  # BUG: Should be float
-
+    confidence: float = Field(..., description="Confidence score between 0 and 1", ge=0.0, le=1.0)
 
 class PredictResponse(BaseModel):
     """Response model for /predict endpoint"""
@@ -69,9 +68,9 @@ class DummyFoodRecognitionModel:
         seed = (width + height) % len(self.FOODS)
         
         return [
-            {"name": self.FOODS[seed], "confidence": "0.89"},  # BUG: String instead of float
-            {"name": self.FOODS[(seed + 1) % len(self.FOODS)], "confidence": "0.67"},
-            {"name": self.FOODS[(seed + 2) % len(self.FOODS)], "confidence": "0.45"}
+            {"name": self.FOODS[seed], "confidence": 0.89},
+            {"name": self.FOODS[(seed + 1) % len(self.FOODS)], "confidence": 0.67},
+            {"name": self.FOODS[(seed + 2) % len(self.FOODS)], "confidence": 0.45}
         ]
 
 
