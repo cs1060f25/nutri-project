@@ -84,7 +84,7 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (email, password, firstName, lastName, residence) => {
     try {
-      const data = await postJson('/auth/register', { 
+      await postJson('/auth/register', { 
         email, 
         password,
         firstName,
