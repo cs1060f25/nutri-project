@@ -1,7 +1,51 @@
 // Vercel serverless function for /auth/login
-const { admin } = require('../../backend/src/config/firebase');
-const { mapFirebaseError, createErrorResponse } = require('../../backend/src/utils/errorMapper');
-const { signInWithPassword } = require('../../backend/src/services/firebaseAuthService');
+const admin = require('firebase-admin');
+
+// Initialize Firebase Admin SDK
+if (!admin.apps.length) {
+  admin.initializeApp({
+    credential: admin.credential.cert({
+      projectId: process.env.FIREBASE_PROJECT_ID,
+      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+      privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+    }),
+  });
+}
+
+// Error mapping function
+const mapFirebaseError = (firebaseErrorCode) => {
+  const errorMap = {
+    'auth/invalid-email': { statusCode: 400, errorCode: 'INVALID_EMAIL', message: 'The email address is not valid.' },
+    'auth/weak-password': { statusCode: 400, errorCode: 'WEAK_PASSWORD', message: 'The password is too weak.' },
+    'auth/email-already-exists': { statusCode: 409, errorCode: 'EMAIL_ALREADY_EXISTS', message: 'An account with this email already exists.' },
+    'auth/user-not-found': { statusCode: 401, errorCode: 'INVALID_CREDENTIALS', message: 'Email or password is incorrect.' },
+    'auth/wrong-password': { statusCode: 401, errorCode: 'INVALID_CREDENTIALS', message: 'Email or password is incorrect.' },
+    'INVALID_PASSWORD': { statusCode: 401, errorCode: 'INVALID_CREDENTIALS', message: 'Email or password is incorrect.' },
+    'EMAIL_NOT_FOUND': { statusCode: 401, errorCode: 'INVALID_CREDENTIALS', message: 'Email or password is incorrect.' },
+  };
+  return errorMap[firebaseErrorCode] || { statusCode: 500, errorCode: 'INTERNAL', message: 'An internal error occurred.' };
+};
+
+const createErrorResponse = (errorCode, message) => {
+  return { error: { code: errorCode, message: message } };
+};
+
+// Firebase REST API function
+const signInWithPassword = async (email, password) => {
+  const response = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${process.env.FIREBASE_API_KEY}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password, returnSecureToken: true })
+  });
+  
+  const data = await response.json();
+  
+  if (!response.ok) {
+    throw new Error(data.error?.message || 'Authentication failed');
+  }
+  
+  return data;
+};
 
 module.exports = async (req, res) => {
   // Enable CORS
