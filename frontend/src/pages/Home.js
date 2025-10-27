@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { getTodaysMenu, getLocations } from '../services/hudsService';
+import { saveMealLog } from '../services/mealLogService';
+import MealLogger from '../components/MealLogger';
 import './Home.css';
 
 const Home = () => {
@@ -10,7 +12,9 @@ const Home = () => {
   const [selectedRecipe, setSelectedRecipe] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const { user } = useAuth();
+  const [isMealLoggerOpen, setIsMealLoggerOpen] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+  const { user, accessToken } = useAuth();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -45,6 +49,17 @@ const Home = () => {
   const formatNutritionValue = (value) => {
     if (!value || value === '0' || value === 'N/A') return null;
     return value;
+  };
+
+  const handleSaveMeal = async (mealData) => {
+    try {
+      await saveMealLog(mealData, accessToken);
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 3000);
+    } catch (err) {
+      console.error('Error saving meal:', err);
+      throw err;
+    }
   };
 
   if (loading) {
@@ -84,6 +99,26 @@ const Home = () => {
           </span>
         </div>
       </div>
+
+      {saveSuccess && (
+        <div className="success-banner">
+          ✓ Meal logged successfully!
+        </div>
+      )}
+
+      <button
+        className="fab-button"
+        onClick={() => setIsMealLoggerOpen(true)}
+        title="Log a meal"
+      >
+        <span className="fab-icon">+</span>
+      </button>
+
+      <MealLogger
+        isOpen={isMealLoggerOpen}
+        onClose={() => setIsMealLoggerOpen(false)}
+        onSave={handleSaveMeal}
+      />
 
       <div className="home-container">
         <div className="hero-section">
