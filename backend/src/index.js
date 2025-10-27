@@ -6,6 +6,8 @@ const { initializeFirebase } = require('./config/firebase');
 const authRoutes = require('./routes/authRoutes');
 const hudsRoutes = require('./routes/hudsRoutes');
 const mealLogRoutes = require('./routes/mealLogRoutes');
+const goalRoutes = require('./routes/goalRoutes');
+const profileRoutes = require('./routes/profileRoutes');
 const { homeData } = require('../data');
 
 // Initialize Express app
@@ -53,6 +55,12 @@ app.use('/api/huds', hudsRoutes);
 
 // Meal log routes
 app.use('/api/meals', mealLogRoutes);
+
+// Nutrition goals routes
+app.use('/api/goals', goalRoutes);
+
+// User profile routes
+app.use('/api/profile', profileRoutes);
 
 // Home endpoint - returns app data
 app.get('/home', (req, res) => {
@@ -120,4 +128,3 @@ app.listen(PORT, () => {
 });
 
 module.exports = app;
-
