@@ -110,7 +110,11 @@ module.exports = async (req, res) => {
     console.error('Error message:', err.message);
     
     // Map Firebase error to our error format
-    const mappedError = mapFirebaseError(err.code);
+    // Firebase REST API errors come in err.message (e.g., "INVALID_PASSWORD", "EMAIL_NOT_FOUND")
+    // Firebase Admin SDK errors come in err.code (e.g., "auth/user-not-found")
+    const errorKey = err.code || err.message;
+    const mappedError = mapFirebaseError(errorKey);
+    
     const statusCode = mappedError ? mappedError.statusCode : 500;
     const errorCode = mappedError ? mappedError.errorCode : 'INTERNAL';
     const message = mappedError ? mappedError.message : 'Internal server error';
