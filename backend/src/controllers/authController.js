@@ -18,6 +18,16 @@ const register = async (req, res) => {
       );
     }
 
+    const allowedDomain = '@college.harvard.edu';
+    if (!email.toLowerCase().endsWith(allowedDomain)) {
+      return res.status(400).json(
+        createErrorResponse(
+          'INVALID_EMAIL',
+          `Email must end with ${allowedDomain}`
+        )
+      );
+    }
+
     if (!firstName || !lastName || !residence) {
       return res.status(400).json(
         createErrorResponse('INVALID_INPUT', 'First name, last name, and residence are required.')
@@ -92,6 +102,16 @@ const login = async (req, res) => {
     if (!email || !password) {
       return res.status(400).json(
         createErrorResponse('INVALID_EMAIL', 'Email and password are required.')
+      );
+    }
+
+    const allowedDomain = '@college.harvard.edu';
+    if (!email.toLowerCase().endsWith(allowedDomain)) {
+      return res.status(400).json(
+        createErrorResponse(
+          'INVALID_EMAIL',
+          `Email must end with ${allowedDomain}`
+        )
       );
     }
 
