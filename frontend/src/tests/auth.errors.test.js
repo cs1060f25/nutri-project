@@ -6,7 +6,7 @@ describe('Login Error Handling', () => {
   jest.setTimeout(30000);
 
   it('should return 401 with INVALID_CREDENTIALS when password is incorrect', async () => {
-    const apiUrl = 'https://nutri-project-main.vercel.app/auth/login';
+    const apiUrl = 'https://nutri-project-main-git-bugfix-authen-d9e31d-kharvey19s-projects.vercel.app/auth/login';
     const testData = {
       email: 'kharvey@college.harvard.edu',
       password: '123457',

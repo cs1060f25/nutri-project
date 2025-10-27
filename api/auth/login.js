@@ -22,8 +22,10 @@ const mapFirebaseError = (firebaseErrorCode) => {
     'auth/wrong-password': { statusCode: 401, errorCode: 'INVALID_CREDENTIALS', message: 'Email or password is incorrect.' },
     'auth/invalid-credential': { statusCode: 401, errorCode: 'INVALID_CREDENTIALS', message: 'Email or password is incorrect.' },
     'INVALID_PASSWORD': { statusCode: 401, errorCode: 'INVALID_CREDENTIALS', message: 'Email or password is incorrect.' },
+    'INVALID_LOGIN_CREDENTIALS': { statusCode: 401, errorCode: 'INVALID_CREDENTIALS', message: 'Email or password is incorrect.' },
     'EMAIL_NOT_FOUND': { statusCode: 401, errorCode: 'INVALID_CREDENTIALS', message: 'Email or password is incorrect.' },
     'auth/too-many-requests': { statusCode: 429, errorCode: 'TOO_MANY_REQUESTS', message: 'Too many requests. Please try again later.' },
+    'TOO_MANY_ATTEMPTS_TRY_LATER': { statusCode: 429, errorCode: 'TOO_MANY_REQUESTS', message: 'Too many requests. Please try again later.' },
     'auth/operation-not-allowed': { statusCode: 403, errorCode: 'OPERATION_NOT_ALLOWED', message: 'This operation is not allowed.' },
   };
   return errorMap[firebaseErrorCode];
@@ -113,7 +115,10 @@ module.exports = async (req, res) => {
     // Firebase REST API errors come in err.message (e.g., "INVALID_PASSWORD", "EMAIL_NOT_FOUND")
     // Firebase Admin SDK errors come in err.code (e.g., "auth/user-not-found")
     const errorKey = err.code || err.message;
+    console.error('Error key being mapped:', errorKey);
+    
     const mappedError = mapFirebaseError(errorKey);
+    console.error('Mapped error result:', mappedError);
     
     const statusCode = mappedError ? mappedError.statusCode : 500;
     const errorCode = mappedError ? mappedError.errorCode : 'INTERNAL';
