@@ -80,8 +80,8 @@ model = DummyFoodRecognitionModel()
 
 @app.get("/")
 async def root():
-    """Health check endpoint"""
-    return {"status": "ok", "service": "ml-inference-api"}
+    """Health check endpoint with version info"""
+    return {"status": "ok", "service": "ml-inference-api", "version": "1.0.0"}
 
 
 @app.post("/predict", response_model=PredictResponse)
