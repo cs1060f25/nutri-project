@@ -15,30 +15,49 @@ Firestore Database
 │   │   ├── createdAt: timestamp
 │   │   ├── updatedAt: timestamp
 │   │   │
-│   │   └── nutritionPlans (subcollection)
+│   │   ├── nutritionPlans (subcollection)
+│   │   │   │
+│   │   │   ├── {planId_1} (document)
+│   │   │   │   ├── preset: "mind-focus"
+│   │   │   │   ├── presetName: "🧘 Mind & Focus"
+│   │   │   │   ├── isActive: true
+│   │   │   │   ├── createdAt: timestamp
+│   │   │   │   ├── updatedAt: timestamp
+│   │   │   │   └── metrics: {
+│   │   │   │         "protein": {
+│   │   │   │           "enabled": true,
+│   │   │   │           "unit": "g",
+│   │   │   │           "target": "50"
+│   │   │   │         },
+│   │   │   │         "calories": {
+│   │   │   │           "enabled": true,
+│   │   │   │           "unit": "kcal",
+│   │   │   │           "target": "2000"
+│   │   │   │         }
+│   │   │   │       }
+│   │   │   │
+│   │   │   └── {planId_2} (document)
+│   │   │       ├── preset: "muscle-gain"
+│   │   │       ├── isActive: false
+│   │   │       └── ... (same structure)
+│   │   │
+│   │   └── meals (subcollection)
 │   │       │
-│   │       ├── {planId_1} (document)
-│   │       │   ├── preset: "mind-focus"
-│   │       │   ├── presetName: "🧘 Mind & Focus"
-│   │       │   ├── isActive: true
+│   │       ├── {mealId_1} (document)
+│   │       │   ├── userId: "userId_1"
+│   │       │   ├── userEmail: "user@example.com"
+│   │       │   ├── mealDate: "2025-11-03"
+│   │       │   ├── timestamp: timestamp (with date and time)
+│   │       │   ├── mealType: "lunch"
+│   │       │   ├── mealName: "Lunch"
+│   │       │   ├── locationId: "05"
+│   │       │   ├── locationName: "Cabot and Pforzheimer House"
+│   │       │   ├── items: [...]
+│   │       │   ├── totals: {...}
 │   │       │   ├── createdAt: timestamp
-│   │       │   ├── updatedAt: timestamp
-│   │       │   └── metrics: {
-│   │       │         "protein": {
-│   │       │           "enabled": true,
-│   │       │           "unit": "g",
-│   │       │           "target": "50"
-│   │       │         },
-│   │       │         "calories": {
-│   │       │           "enabled": true,
-│   │       │           "unit": "kcal",
-│   │       │           "target": "2000"
-│   │       │         }
-│   │       │       }
+│   │       │   └── updatedAt: timestamp
 │   │       │
-│   │       └── {planId_2} (document)
-│   │           ├── preset: "muscle-gain"
-│   │           ├── isActive: false
+│   │       └── {mealId_2} (document)
 │   │           └── ... (same structure)
 │   │
 │   └── {userId_2} (document)
@@ -108,5 +127,73 @@ All nutrition metrics are derived from the HUDS Dining API recipe data:
 
 These correspond to the following HUDS API fields:
 - `Calories`, `Calories_From_Fat`, `Protein`, `Total_Carb`, `Dietary_Fiber`, `Sugars`, `Total_Fat`, `Sat_Fat`, `Trans_Fat`, `Cholesterol`, `Sodium`
+
+---
+
+## `users/{uid}/meals/{mealId}`
+
+Subcollection storing individual meal logs for each user. Each meal represents a dining event with specific food items consumed.
+
+| Field           | Type      | Notes                                                        |
+|-----------------|-----------|--------------------------------------------------------------|
+| `userId`        | string    | Reference to the user who logged the meal                    |
+| `userEmail`     | string    | Email of the user (for convenience)                          |
+| `mealDate`      | string    | Date of the meal in YYYY-MM-DD format                        |
+| `timestamp`     | timestamp | Date and time when the meal was consumed (user-specified)    |
+| `mealType`      | string    | Type of meal (lowercase, e.g., 'breakfast', 'lunch', 'dinner') |
+| `mealName`      | string    | Display name of the meal from HUDS (e.g., 'Breakfast', 'Lunch') |
+| `locationId`    | string    | HUDS location number (e.g., '05')                            |
+| `locationName`  | string    | HUDS location name (e.g., 'Cabot and Pforzheimer House')     |
+| `items`         | array     | Array of food items consumed (see structure below)           |
+| `totals`        | object    | Aggregated nutritional totals for the entire meal            |
+| `createdAt`     | timestamp | When the meal log was first created                          |
+| `updatedAt`     | timestamp | When the meal log was last modified                          |
+
+### Example items array structure:
+```json
+[
+  {
+    "recipeId": "36297713",
+    "recipeName": "Kashi Pilaf",
+    "quantity": 1.5,
+    "servingSize": "5 OZL",
+    "calories": "167",
+    "totalFat": "3g",
+    "saturatedFat": "0g",
+    "transFat": "0g",
+    "cholesterol": "0mg",
+    "sodium": "14.8mg",
+    "totalCarb": "29.6g",
+    "dietaryFiber": "5.9g",
+    "sugars": "0g",
+    "protein": "5.9g",
+    "webCodes": "VGN WGRN VGT",
+    "allergens": "Wheat"
+  }
+]
+```
+
+### Example totals object structure:
+```json
+{
+  "calories": 500,
+  "totalFat": "15.0g",
+  "saturatedFat": "3.5g",
+  "transFat": "0.0g",
+  "cholesterol": "45.0mg",
+  "sodium": "890.0mg",
+  "totalCarb": "60.0g",
+  "dietaryFiber": "8.0g",
+  "sugars": "12.0g",
+  "protein": "25.0g"
+}
+```
+
+### Notes:
+- All nutritional data comes from the HUDS Dining API
+- The `quantity` field in items allows users to specify portions (e.g., 1.5 servings)
+- Totals are automatically calculated by multiplying each item's nutrition by its quantity
+- The `timestamp` field captures both date and time for accurate meal tracking
+- Items preserve all nutritional information from HUDS for comprehensive tracking
 
 
