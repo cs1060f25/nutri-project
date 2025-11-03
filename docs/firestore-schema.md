@@ -71,14 +71,14 @@ Firestore Database
 
 Stores profile data for each authenticated user.
 
-| Field      | Type      | Notes                                       |
-|------------|-----------|---------------------------------------------|
-| `email`    | string    | User's email address from Firebase Auth.    |
-| `firstName`| string    | First name collected during registration.   |
-| `lastName` | string    | Last name collected during registration.    |
-| `residence`| string    | Dorm or house selection.                    |
-| `createdAt`| timestamp | Set when the profile is first created.      |
-| `updatedAt`| timestamp | Updated whenever the profile is modified.   |
+| Field       | Type      | Notes                                     |
+| ----------- | --------- | ----------------------------------------- |
+| `email`     | string    | User's email address from Firebase Auth.  |
+| `firstName` | string    | First name collected during registration. |
+| `lastName`  | string    | Last name collected during registration.  |
+| `residence` | string    | Dorm or house selection.                  |
+| `createdAt` | timestamp | Set when the profile is first created.    |
+| `updatedAt` | timestamp | Updated whenever the profile is modified. |
 
 Profiles are written immediately after Firebase Auth creates an account and can be extended with additional fields via profile update endpoints.
 
@@ -88,16 +88,17 @@ Profiles are written immediately after Firebase Auth creates an account and can 
 
 Subcollection storing nutrition tracking plans for each user. Users can have multiple plans (for history), but only one plan is marked as active at a time.
 
-| Field           | Type      | Notes                                                        |
-|-----------------|-----------|--------------------------------------------------------------|
-| `preset`        | string    | ID of the preset used (e.g., 'balanced', 'high-protein') or null for custom |
-| `presetName`    | string    | Display name of the preset (e.g., '⚖️ Balanced Diet')         |
-| `metrics`       | object    | Map of enabled metrics with their settings. Key is metric ID, value is object with `enabled`, `unit`, `target`. All metrics correspond to data available in HUDS API |
-| `isActive`      | boolean   | Whether this is the currently active plan for the user       |
-| `createdAt`     | timestamp | When the plan was first created                              |
-| `updatedAt`     | timestamp | When the plan was last modified                              |
+| Field        | Type      | Notes                                                                                                                                                                |
+| ------------ | --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `preset`     | string    | ID of the preset used (e.g., 'balanced', 'high-protein') or null for custom                                                                                          |
+| `presetName` | string    | Display name of the preset (e.g., '⚖️ Balanced Diet')                                                                                                                |
+| `metrics`    | object    | Map of enabled metrics with their settings. Key is metric ID, value is object with `enabled`, `unit`, `target`. All metrics correspond to data available in HUDS API |
+| `isActive`   | boolean   | Whether this is the currently active plan for the user                                                                                                               |
+| `createdAt`  | timestamp | When the plan was first created                                                                                                                                      |
+| `updatedAt`  | timestamp | When the plan was last modified                                                                                                                                      |
 
 ### Example metrics object structure:
+
 ```json
 {
   "protein": {
@@ -119,13 +120,16 @@ Subcollection storing nutrition tracking plans for each user. Users can have mul
 ```
 
 ### Available Metrics (based on HUDS API data):
+
 All nutrition metrics are derived from the HUDS Dining API recipe data:
+
 - **Energy**: `calories`, `caloriesFromFat`
 - **Macronutrients**: `protein`, `totalCarbs`, `fiber`, `sugars`
 - **Fats**: `totalFat`, `saturatedFat`, `transFat`
 - **Other**: `cholesterol`, `sodium`
 
 These correspond to the following HUDS API fields:
+
 - `Calories`, `Calories_From_Fat`, `Protein`, `Total_Carb`, `Dietary_Fiber`, `Sugars`, `Total_Fat`, `Sat_Fat`, `Trans_Fat`, `Cholesterol`, `Sodium`
 
 ---
@@ -134,22 +138,23 @@ These correspond to the following HUDS API fields:
 
 Subcollection storing individual meal logs for each user. Each meal represents a dining event with specific food items consumed.
 
-| Field           | Type      | Notes                                                        |
-|-----------------|-----------|--------------------------------------------------------------|
-| `userId`        | string    | Reference to the user who logged the meal                    |
-| `userEmail`     | string    | Email of the user (for convenience)                          |
-| `mealDate`      | string    | Date of the meal in YYYY-MM-DD format                        |
-| `timestamp`     | timestamp | Date and time when the meal was consumed (user-specified)    |
-| `mealType`      | string    | Type of meal (lowercase, e.g., 'breakfast', 'lunch', 'dinner') |
-| `mealName`      | string    | Display name of the meal from HUDS (e.g., 'Breakfast', 'Lunch') |
-| `locationId`    | string    | HUDS location number (e.g., '05')                            |
-| `locationName`  | string    | HUDS location name (e.g., 'Cabot and Pforzheimer House')     |
-| `items`         | array     | Array of food items consumed (see structure below)           |
-| `totals`        | object    | Aggregated nutritional totals for the entire meal            |
-| `createdAt`     | timestamp | When the meal log was first created                          |
-| `updatedAt`     | timestamp | When the meal log was last modified                          |
+| Field          | Type      | Notes                                                           |
+| -------------- | --------- | --------------------------------------------------------------- |
+| `userId`       | string    | Reference to the user who logged the meal                       |
+| `userEmail`    | string    | Email of the user (for convenience)                             |
+| `mealDate`     | string    | Date of the meal in YYYY-MM-DD format                           |
+| `timestamp`    | timestamp | Date and time when the meal was consumed (user-specified)       |
+| `mealType`     | string    | Type of meal (lowercase, e.g., 'breakfast', 'lunch', 'dinner')  |
+| `mealName`     | string    | Display name of the meal from HUDS (e.g., 'Breakfast', 'Lunch') |
+| `locationId`   | string    | HUDS location number (e.g., '05')                               |
+| `locationName` | string    | HUDS location name (e.g., 'Cabot and Pforzheimer House')        |
+| `items`        | array     | Array of food items consumed (see structure below)              |
+| `totals`       | object    | Aggregated nutritional totals for the entire meal               |
+| `createdAt`    | timestamp | When the meal log was first created                             |
+| `updatedAt`    | timestamp | When the meal log was last modified                             |
 
 ### Example items array structure:
+
 ```json
 [
   {
@@ -174,6 +179,7 @@ Subcollection storing individual meal logs for each user. Each meal represents a
 ```
 
 ### Example totals object structure:
+
 ```json
 {
   "calories": 500,
@@ -190,10 +196,9 @@ Subcollection storing individual meal logs for each user. Each meal represents a
 ```
 
 ### Notes:
+
 - All nutritional data comes from the HUDS Dining API
 - The `quantity` field in items allows users to specify portions (e.g., 1.5 servings)
 - Totals are automatically calculated by multiplying each item's nutrition by its quantity
 - The `timestamp` field captures both date and time for accurate meal tracking
 - Items preserve all nutritional information from HUDS for comprehensive tracking
-
-
