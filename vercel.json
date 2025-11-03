@@ -8,15 +8,9 @@
     { "source": "/auth/me", "destination": "/api/auth/me" },
     { "source": "/auth/refresh", "destination": "/api/auth/refresh" },
     { "source": "/auth/logout", "destination": "/api/auth/logout" },
-    { "source": "/api/nutrition-plan", "destination": "/api/nutrition-plan/index" },
-    { "source": "/api/huds/locations", "destination": "/api/huds/locations" },
-    { "source": "/api/huds/events", "destination": "/api/huds/events" },
-    { "source": "/api/huds/menu/today", "destination": "/api/huds/menu-today" },
-    { "source": "/api/huds/menu/date", "destination": "/api/huds/menu-date" },
-    { "source": "/api/meals/summary/:date", "destination": "/api/meals/summary/[date]" },
-    { "source": "/api/meals/:id", "destination": "/api/meals/[id]" },
-    { "source": "/api/meals", "destination": "/api/meals/index" },
-    { "source": "/api/nutrition-progress/today", "destination": "/api/nutrition-progress/today" },
+    { "source": "/api/nutrition-plan/:path*", "destination": "/api/nutrition-plan/index" },
+    { "source": "/api/huds/:path*", "destination": "/api/huds" },
+    { "source": "/api/meals/:path*", "destination": "/api/meals" },
     { "source": "/test-env", "destination": "/api/test-env" }
   ]
 }
