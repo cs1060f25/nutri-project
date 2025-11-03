@@ -92,7 +92,6 @@ module.exports = async (req, res) => {
         preset: planData.preset || null,
         presetName: planData.presetName || null,
         metrics: planData.metrics || {},
-        customMetrics: planData.customMetrics || [],
         isActive: true,
         createdAt: timestamp,
         updatedAt: timestamp,

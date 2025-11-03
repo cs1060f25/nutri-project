@@ -23,23 +23,18 @@ Firestore Database
 │   │       │   ├── isActive: true
 │   │       │   ├── createdAt: timestamp
 │   │       │   ├── updatedAt: timestamp
-│   │       │   ├── metrics: {
-│   │       │   │     "protein": {
-│   │       │   │       "enabled": true,
-│   │       │   │       "unit": "g",
-│   │       │   │       "target": "150"
-│   │       │   │     },
-│   │       │   │     "waterIntake": { ... }
-│   │       │   │   }
-│   │       │   └── customMetrics: [
-│   │       │         {
-│   │       │           "id": "custom_123",
-│   │       │           "name": "Omega-3",
-│   │       │           "unit": "mg",
-│   │       │           "target": "1000",
-│   │       │           "frequency": "daily"
+│   │       │   └── metrics: {
+│   │       │         "protein": {
+│   │       │           "enabled": true,
+│   │       │           "unit": "g",
+│   │       │           "target": "50"
+│   │       │         },
+│   │       │         "calories": {
+│   │       │           "enabled": true,
+│   │       │           "unit": "kcal",
+│   │       │           "target": "2000"
 │   │       │         }
-│   │       │       ]
+│   │       │       }
 │   │       │
 │   │       └── {planId_2} (document)
 │   │           ├── preset: "muscle-gain"
@@ -76,10 +71,9 @@ Subcollection storing nutrition tracking plans for each user. Users can have mul
 
 | Field           | Type      | Notes                                                        |
 |-----------------|-----------|--------------------------------------------------------------|
-| `preset`        | string    | ID of the preset used (e.g., 'mind-focus', 'muscle-gain') or null for custom |
-| `presetName`    | string    | Display name of the preset (e.g., '🧘 Mind & Focus')         |
-| `metrics`       | object    | Map of enabled metrics with their settings. Key is metric ID, value is object with `enabled`, `unit`, `target` |
-| `customMetrics` | array     | Array of custom metrics created by the user. Each contains `id`, `name`, `unit`, `target`, `frequency` |
+| `preset`        | string    | ID of the preset used (e.g., 'balanced', 'high-protein') or null for custom |
+| `presetName`    | string    | Display name of the preset (e.g., '⚖️ Balanced Diet')         |
+| `metrics`       | object    | Map of enabled metrics with their settings. Key is metric ID, value is object with `enabled`, `unit`, `target`. All metrics correspond to data available in HUDS API |
 | `isActive`      | boolean   | Whether this is the currently active plan for the user       |
 | `createdAt`     | timestamp | When the plan was first created                              |
 | `updatedAt`     | timestamp | When the plan was last modified                              |
@@ -90,27 +84,29 @@ Subcollection storing nutrition tracking plans for each user. Users can have mul
   "protein": {
     "enabled": true,
     "unit": "g",
-    "target": "150"
+    "target": "50"
   },
-  "waterIntake": {
+  "calories": {
     "enabled": true,
-    "unit": "cups",
-    "target": "8"
+    "unit": "kcal",
+    "target": "2000"
+  },
+  "sodium": {
+    "enabled": true,
+    "unit": "mg",
+    "target": "2300"
   }
 }
 ```
 
-### Example customMetrics array structure:
-```json
-[
-  {
-    "id": "custom_1699999999999",
-    "name": "Omega-3",
-    "unit": "mg",
-    "target": "1000",
-    "frequency": "daily"
-  }
-]
-```
+### Available Metrics (based on HUDS API data):
+All nutrition metrics are derived from the HUDS Dining API recipe data:
+- **Energy**: `calories`, `caloriesFromFat`
+- **Macronutrients**: `protein`, `totalCarbs`, `fiber`, `sugars`
+- **Fats**: `totalFat`, `saturatedFat`, `transFat`
+- **Other**: `cholesterol`, `sodium`
+
+These correspond to the following HUDS API fields:
+- `Calories`, `Calories_From_Fat`, `Protein`, `Total_Carb`, `Dietary_Fiber`, `Sugars`, `Total_Fat`, `Sat_Fat`, `Trans_Fat`, `Cholesterol`, `Sodium`
 
 

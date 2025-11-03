@@ -5,9 +5,6 @@ import { createNutritionPlan, getActiveNutritionPlan, updateNutritionPlan } from
 const NutritionPlan = () => {
   const [selectedPreset, setSelectedPreset] = useState('');
   const [metrics, setMetrics] = useState({});
-  const [customMetrics, setCustomMetrics] = useState([]);
-  const [showCustomForm, setShowCustomForm] = useState(false);
-  const [newMetric, setNewMetric] = useState({ name: '', unit: 'g', target: '', frequency: 'daily' });
   const [showSummary, setShowSummary] = useState(false);
   const [savedPlan, setSavedPlan] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -27,7 +24,6 @@ const NutritionPlan = () => {
           setSavedPlan(plan);
           setSelectedPreset(plan.preset || '');
           setMetrics(plan.metrics || {});
-          setCustomMetrics(plan.customMetrics || []);
           setShowSummary(true);
           setIsEditMode(true);
           setJustSaved(false); // Don't show success banner when loading existing plan
@@ -53,113 +49,90 @@ const NutritionPlan = () => {
   }, [metrics]);
 
   const presets = {
-    'mind-focus': {
-      name: '🧘 Mind & Focus',
-      description: 'Optimize for cognitive performance and mental clarity',
+    'balanced': {
+      name: '⚖️ Balanced Diet',
+      description: 'Track all major macronutrients for balanced nutrition',
       metrics: {
-        waterIntake: { target: '8' },
-        caffeine: { target: '200' },
-        sodium: { target: '2300' },
-        vitaminD: { target: '1000' },
-        sleepQuality: { target: '8' }
+        calories: { target: '2000' },
+        protein: { target: '50' },
+        totalCarbs: { target: '275' },
+        totalFat: { target: '65' },
+        fiber: { target: '25' },
+        sodium: { target: '2300' }
       }
     },
-    'muscle-gain': {
-      name: '🏋️ Muscle Gain',
-      description: 'Build muscle mass with optimized nutrition',
+    'high-protein': {
+      name: '🏋️ High Protein',
+      description: 'Focus on protein intake for muscle building',
       metrics: {
+        calories: { target: '2200' },
         protein: { target: '150' },
-        carbs: { target: '250' },
-        fats: { target: '70' },
-        creatine: { target: '5' },
-        calorySurplus: { target: '300' }
+        totalCarbs: { target: '200' },
+        totalFat: { target: '70' },
+        saturatedFat: { target: '20' }
       }
     },
-    'endurance': {
-      name: '⚡ Endurance Training',
-      description: 'Fuel performance and optimize recovery',
+    'low-sodium': {
+      name: '🧂 Low Sodium',
+      description: 'Monitor and limit sodium intake',
       metrics: {
-        carbs: { target: '300' },
-        sodium: { target: '2500' },
-        potassium: { target: '3500' },
-        hrv: { target: '65' },
-        energyLevels: { target: '8' }
+        calories: { target: '2000' },
+        sodium: { target: '1500' },
+        protein: { target: '50' },
+        fiber: { target: '25' },
+        cholesterol: { target: '300' }
       }
     },
-    'metabolic': {
-      name: '🧪 Metabolic Health',
-      description: 'Track biomarkers and metabolic wellness',
+    'heart-healthy': {
+      name: '❤️ Heart Healthy',
+      description: 'Track nutrients important for cardiovascular health',
       metrics: {
-        bloodGlucose: { target: '90' },
-        fastingHours: { target: '16' },
-        fiber: { target: '30' },
-        fatRatio: { target: '0.35' },
-        ketones: { target: '0.5' }
+        calories: { target: '2000' },
+        totalFat: { target: '50' },
+        saturatedFat: { target: '13' },
+        transFat: { target: '0' },
+        cholesterol: { target: '300' },
+        sodium: { target: '1500' },
+        fiber: { target: '30' }
       }
     }
   };
 
   const metricCategories = {
+    energy: {
+      title: 'Energy & Calories',
+      metrics: [
+        { id: 'calories', label: 'Calories', defaultUnit: 'kcal', placeholder: '2000' },
+        { id: 'caloriesFromFat', label: 'Calories from Fat', defaultUnit: 'kcal', placeholder: '600' }
+      ]
+    },
     macronutrients: {
       title: 'Macronutrients',
       metrics: [
-        { id: 'protein', label: 'Protein', defaultUnit: 'g', placeholder: '120' },
-        { id: 'carbs', label: 'Carbohydrates', defaultUnit: 'g', placeholder: '200' },
-        { id: 'fats', label: 'Fats', defaultUnit: 'g', placeholder: '60' },
-        { id: 'fiber', label: 'Fiber', defaultUnit: 'g', placeholder: '30' },
-        { id: 'calorySurplus', label: 'Calorie Surplus', defaultUnit: 'kcal', placeholder: '300' }
+        { id: 'protein', label: 'Protein', defaultUnit: 'g', placeholder: '50' },
+        { id: 'totalCarbs', label: 'Total Carbohydrates', defaultUnit: 'g', placeholder: '275' },
+        { id: 'fiber', label: 'Dietary Fiber', defaultUnit: 'g', placeholder: '25' },
+        { id: 'sugars', label: 'Sugars', defaultUnit: 'g', placeholder: '50' }
       ]
     },
-    micronutrients: {
-      title: 'Micronutrients',
+    fats: {
+      title: 'Fats',
       metrics: [
-        { id: 'sodium', label: 'Sodium', defaultUnit: 'mg', placeholder: '2300' },
-        { id: 'iron', label: 'Iron', defaultUnit: 'mg', placeholder: '18' },
-        { id: 'vitaminD', label: 'Vitamin D', defaultUnit: 'IU', placeholder: '1000' },
-        { id: 'potassium', label: 'Potassium', defaultUnit: 'mg', placeholder: '3500' },
-        { id: 'calcium', label: 'Calcium', defaultUnit: 'mg', placeholder: '1000' }
+        { id: 'totalFat', label: 'Total Fat', defaultUnit: 'g', placeholder: '65' },
+        { id: 'saturatedFat', label: 'Saturated Fat', defaultUnit: 'g', placeholder: '20' },
+        { id: 'transFat', label: 'Trans Fat', defaultUnit: 'g', placeholder: '0' }
       ]
     },
-    performance: {
-      title: 'Performance',
+    other: {
+      title: 'Other Nutrients',
       metrics: [
-        { id: 'preWorkoutTiming', label: 'Pre-workout Timing', defaultUnit: 'hours', placeholder: '2' },
-        { id: 'energyLevels', label: 'Energy Levels', defaultUnit: 'scale (1-10)', placeholder: '8' },
-        { id: 'hrv', label: 'Heart Rate Variability', defaultUnit: 'ms', placeholder: '65' },
-        { id: 'caffeine', label: 'Caffeine Intake', defaultUnit: 'mg', placeholder: '200' },
-        { id: 'creatine', label: 'Creatine', defaultUnit: 'g', placeholder: '5' }
-      ]
-    },
-    recovery: {
-      title: 'Recovery',
-      metrics: [
-        { id: 'sleepQuality', label: 'Sleep Quality', defaultUnit: 'hours', placeholder: '8' },
-        { id: 'restingHeartRate', label: 'Resting Heart Rate', defaultUnit: 'bpm', placeholder: '60' },
-        { id: 'sorenessIndex', label: 'Soreness Index', defaultUnit: 'scale (1-10)', placeholder: '3' },
-        { id: 'recoveryScore', label: 'Recovery Score', defaultUnit: '%', placeholder: '85' }
-      ]
-    },
-    biomarkers: {
-      title: 'Biomarkers',
-      metrics: [
-        { id: 'bloodGlucose', label: 'Blood Glucose', defaultUnit: 'mg/dL', placeholder: '90' },
-        { id: 'ketones', label: 'Ketones', defaultUnit: 'mmol/L', placeholder: '0.5' },
-        { id: 'bodyFatPct', label: 'Body Fat %', defaultUnit: '%', placeholder: '15' },
-        { id: 'fastingHours', label: 'Fasting Hours', defaultUnit: 'hours', placeholder: '16' },
-        { id: 'fatRatio', label: 'Fat Ratio', defaultUnit: 'ratio', placeholder: '0.35' }
-      ]
-    },
-    hydration: {
-      title: 'Hydration & Other',
-      metrics: [
-        { id: 'waterIntake', label: 'Water Intake', defaultUnit: 'cups', placeholder: '8' },
-        { id: 'electrolytes', label: 'Electrolytes', defaultUnit: 'mg', placeholder: '1000' },
-        { id: 'alcohol', label: 'Alcohol', defaultUnit: 'drinks', placeholder: '0' }
+        { id: 'cholesterol', label: 'Cholesterol', defaultUnit: 'mg', placeholder: '300' },
+        { id: 'sodium', label: 'Sodium', defaultUnit: 'mg', placeholder: '2300' }
       ]
     }
   };
 
-  const unitOptions = ['g', 'mg', 'oz', 'kcal', 'IU', 'ml', 'cups', 'hours', 'bpm', 'ms', '%', 'mmol/L', 'mg/dL', 'ratio', 'scale (1-10)'];
+  const unitOptions = ['g', 'mg', 'kcal'];
 
   const handlePresetChange = (presetKey) => {
     setSelectedPreset(presetKey);
@@ -209,18 +182,6 @@ const NutritionPlan = () => {
     }));
   };
 
-  const handleAddCustomMetric = () => {
-    if (newMetric.name.trim()) {
-      const customId = `custom_${Date.now()}`;
-      setCustomMetrics(prev => [...prev, { ...newMetric, id: customId }]);
-      setMetrics(prev => ({
-        ...prev,
-        [customId]: { enabled: true, unit: newMetric.unit, target: newMetric.target }
-      }));
-      setNewMetric({ name: '', unit: 'g', target: '', frequency: 'daily' });
-      setShowCustomForm(false);
-    }
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -235,8 +196,7 @@ const NutritionPlan = () => {
       const planData = {
         preset: selectedPreset,
         presetName: selectedPreset ? presets[selectedPreset]?.name : 'Custom Plan',
-        metrics: enabledMetrics,
-        customMetrics,
+        metrics: enabledMetrics
       };
       
       console.log('Submitting nutrition plan:', planData);
@@ -267,7 +227,6 @@ const NutritionPlan = () => {
     setSavedPlan(null);
     setSelectedPreset('');
     setMetrics({});
-    setCustomMetrics([]);
     setIsEditMode(false);
     setError(null);
     setJustSaved(false);
@@ -313,7 +272,6 @@ const NutritionPlan = () => {
   // Show summary view
   if (showSummary && savedPlan) {
     const enabledMetricsCount = Object.keys(savedPlan.metrics).length;
-    const customMetricsCount = savedPlan.customMetrics.length;
 
     return (
       <div className="nutrition-plan-page">
@@ -328,7 +286,7 @@ const NutritionPlan = () => {
               <div className="success-banner">
                 <div className="success-icon">✓</div>
                 <h2>Nutrition Plan {isEditMode ? 'Updated' : 'Created'} Successfully!</h2>
-                <p>You're tracking {enabledMetricsCount + customMetricsCount} metrics</p>
+                <p>You're tracking {enabledMetricsCount} nutrition metrics</p>
               </div>
             )}
 
@@ -359,24 +317,6 @@ const NutritionPlan = () => {
                       </div>
                     </div>
                   ))}
-                </div>
-              )}
-
-              {savedPlan.customMetrics.length > 0 && (
-                <div className="custom-metrics-summary">
-                  <h4>Custom Metrics</h4>
-                  <div className="metrics-summary-grid">
-                    {savedPlan.customMetrics.map(metric => (
-                      <div key={metric.id} className="summary-metric-card custom">
-                        <div className="summary-metric-label">{metric.name}</div>
-                        <div className="summary-metric-value">
-                          <span className="target-value">{metric.target}</span>
-                          <span className="target-unit">{metric.unit}</span>
-                        </div>
-                        <div className="summary-frequency">{metric.frequency}</div>
-                      </div>
-                    ))}
-                  </div>
                 </div>
               )}
             </div>
@@ -420,7 +360,7 @@ const NutritionPlan = () => {
       <div className="nutrition-plan-container">
         <div className="hero-section">
           <h1 className="hero-title">Nutrition Plan</h1>
-          <p className="hero-subtitle">Build your personalized expert nutrition tracking plan</p>
+          <p className="hero-subtitle">Set daily nutrition goals based on HUDS dining hall meals</p>
         </div>
 
         {error && (
@@ -439,8 +379,8 @@ const NutritionPlan = () => {
         <form onSubmit={handleSubmit} className="nutrition-form">
           {/* Preset Selection */}
           <div className="preset-section">
-            <h2 className="section-title">📋 Quick Start with Expert Presets</h2>
-            <p className="section-description">Choose a preset goal to auto-populate recommended metrics</p>
+            <h2 className="section-title">📋 Quick Start with Preset Goals</h2>
+            <p className="section-description">Choose a nutrition goal to auto-populate recommended daily targets</p>
             
             <div className="preset-grid">
               <div 
@@ -468,7 +408,7 @@ const NutritionPlan = () => {
           {/* Metrics Selection */}
           <div className="metrics-section">
             <h2 className="section-title">📊 Select Metrics to Track</h2>
-            <p className="section-description">Choose the metrics you want to monitor and set your daily targets</p>
+            <p className="section-description">Choose nutrition metrics available from HUDS meals and set your daily targets</p>
 
             {Object.entries(metricCategories).map(([categoryKey, category]) => (
               <div key={categoryKey} className="metric-category">
@@ -517,86 +457,6 @@ const NutritionPlan = () => {
                 </div>
               </div>
             ))}
-          </div>
-
-          {/* Custom Metrics */}
-          <div className="custom-metrics-section">
-            <h2 className="section-title">➕ Add Custom Metrics</h2>
-            <p className="section-description">Track additional metrics specific to your needs</p>
-            
-            {!showCustomForm && (
-              <button
-                type="button"
-                onClick={() => setShowCustomForm(true)}
-                className="add-custom-button"
-              >
-                + Add Custom Metric
-              </button>
-            )}
-
-            {showCustomForm && (
-              <div className="custom-form">
-                <input
-                  type="text"
-                  placeholder="Metric Name (e.g., Fiber Intake, Mood)"
-                  value={newMetric.name}
-                  onChange={(e) => setNewMetric({ ...newMetric, name: e.target.value })}
-                  className="custom-input"
-                />
-                <select
-                  value={newMetric.unit}
-                  onChange={(e) => setNewMetric({ ...newMetric, unit: e.target.value })}
-                  className="custom-select"
-                >
-                  {unitOptions.map(unit => (
-                    <option key={unit} value={unit}>{unit}</option>
-                  ))}
-                </select>
-                <input
-                  type="number"
-                  placeholder="Target Value"
-                  value={newMetric.target}
-                  onChange={(e) => setNewMetric({ ...newMetric, target: e.target.value })}
-                  className="custom-input"
-                  step="any"
-                />
-                <select
-                  value={newMetric.frequency}
-                  onChange={(e) => setNewMetric({ ...newMetric, frequency: e.target.value })}
-                  className="custom-select"
-                >
-                  <option value="daily">Daily</option>
-                  <option value="weekly">Weekly</option>
-                  <option value="monthly">Monthly</option>
-                </select>
-                <div className="custom-actions">
-                  <button type="button" onClick={handleAddCustomMetric} className="save-custom-btn">
-                    Save Metric
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setShowCustomForm(false)}
-                    className="cancel-custom-btn"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {customMetrics.length > 0 && (
-              <div className="custom-metrics-list">
-                <h4>Your Custom Metrics:</h4>
-                {customMetrics.map(metric => (
-                  <div key={metric.id} className="custom-metric-item">
-                    <span>{metric.name}</span>
-                    <span className="metric-detail">
-                      Target: {metric.target} {metric.unit} • {metric.frequency}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
           </div>
 
           <button type="submit" className="submit-plan-button" disabled={loading}>

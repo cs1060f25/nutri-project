@@ -28,7 +28,6 @@ const saveNutritionPlan = async (userId, planData, planId = null) => {
     preset: planData.preset || null,
     presetName: planData.presetName || null,
     metrics: planData.metrics || {},
-    customMetrics: planData.customMetrics || [],
     updatedAt: timestamp,
   };
 
