@@ -2,7 +2,10 @@
  * Frontend service for nutrition plan API calls
  */
 
-const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:3000';
+// In production (Vercel), use relative URLs. In development, use localhost.
+const API_BASE = process.env.NODE_ENV === 'production' 
+  ? '' 
+  : (process.env.REACT_APP_API_URL || 'http://localhost:3000');
 
 /**
  * Get the auth token from storage
