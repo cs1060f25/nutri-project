@@ -1,10 +1,12 @@
 /**
  * Service for managing meal logs in Firestore
+ * Meals are stored in a user-scoped subcollection: users/{userId}/meals/{mealId}
  */
 
 const { admin } = require('../config/firebase');
 
-const MEALS_COLLECTION = 'mealLogs';
+const USERS_COLLECTION = 'users';
+const MEALS_SUBCOLLECTION = 'meals';
 
 // Lazy-load Firestore instance to avoid initialization issues
 const getDb = () => admin.firestore();
@@ -64,7 +66,7 @@ const calculateTotals = (items) => {
 };
 
 /**
- * Create a new meal log
+ * Create a new meal log in users/{userId}/meals subcollection
  */
 const createMealLog = async (userId, userEmail, mealData) => {
   const totals = calculateTotals(mealData.items);
@@ -74,31 +76,42 @@ const createMealLog = async (userId, userEmail, mealData) => {
     userEmail,
     mealDate: mealData.mealDate,
     mealType: mealData.mealType,
+    mealName: mealData.mealName || mealData.mealType, // Store actual meal name from HUDS
     locationId: mealData.locationId,
     locationName: mealData.locationName,
     items: mealData.items,
     totals,
-    timestamp: admin.firestore.FieldValue.serverTimestamp(),
+    timestamp: mealData.timestamp || admin.firestore.FieldValue.serverTimestamp(), // Allow user-specified timestamp
     createdAt: admin.firestore.FieldValue.serverTimestamp(),
     updatedAt: admin.firestore.FieldValue.serverTimestamp(),
   };
 
-  const docRef = await getDb().collection(MEALS_COLLECTION).add(mealLog);
+  const mealsRef = getDb()
+    .collection(USERS_COLLECTION)
+    .doc(userId)
+    .collection(MEALS_SUBCOLLECTION);
+  
+  const docRef = await mealsRef.add(mealLog);
   
   return {
     id: docRef.id,
     ...mealLog,
-    timestamp: new Date(),
+    timestamp: mealData.timestamp || new Date(),
     createdAt: new Date(),
     updatedAt: new Date(),
   };
 };
 
 /**
- * Get meal logs for a user
+ * Get meal logs for a user from users/{userId}/meals subcollection
  */
 const getMealLogs = async (userId, filters = {}) => {
-  let query = getDb().collection(MEALS_COLLECTION).where('userId', '==', userId);
+  const mealsRef = getDb()
+    .collection(USERS_COLLECTION)
+    .doc(userId)
+    .collection(MEALS_SUBCOLLECTION);
+
+  let query = mealsRef;
 
   // Apply filters
   if (filters.startDate) {
@@ -135,21 +148,22 @@ const getMealLogs = async (userId, filters = {}) => {
 };
 
 /**
- * Get a single meal log by ID
+ * Get a single meal log by ID from users/{userId}/meals subcollection
  */
 const getMealLogById = async (userId, mealId) => {
-  const doc = await getDb().collection(MEALS_COLLECTION).doc(mealId).get();
+  const docRef = getDb()
+    .collection(USERS_COLLECTION)
+    .doc(userId)
+    .collection(MEALS_SUBCOLLECTION)
+    .doc(mealId);
+  
+  const doc = await docRef.get();
   
   if (!doc.exists) {
     throw new Error('Meal log not found');
   }
 
   const data = doc.data();
-  
-  // Verify the meal belongs to the user
-  if (data.userId !== userId) {
-    throw new Error('Unauthorized access to meal log');
-  }
 
   return {
     id: doc.id,
@@ -161,10 +175,15 @@ const getMealLogById = async (userId, mealId) => {
 };
 
 /**
- * Update a meal log
+ * Update a meal log in users/{userId}/meals subcollection
  */
 const updateMealLog = async (userId, mealId, updates) => {
-  const docRef = getDb().collection(MEALS_COLLECTION).doc(mealId);
+  const docRef = getDb()
+    .collection(USERS_COLLECTION)
+    .doc(userId)
+    .collection(MEALS_SUBCOLLECTION)
+    .doc(mealId);
+  
   const doc = await docRef.get();
 
   if (!doc.exists) {
@@ -172,9 +191,6 @@ const updateMealLog = async (userId, mealId, updates) => {
   }
 
   const data = doc.data();
-  if (data.userId !== userId) {
-    throw new Error('Unauthorized access to meal log');
-  }
 
   // Recalculate totals if items changed
   if (updates.items) {
@@ -194,19 +210,19 @@ const updateMealLog = async (userId, mealId, updates) => {
 };
 
 /**
- * Delete a meal log
+ * Delete a meal log from users/{userId}/meals subcollection
  */
 const deleteMealLog = async (userId, mealId) => {
-  const docRef = getDb().collection(MEALS_COLLECTION).doc(mealId);
+  const docRef = getDb()
+    .collection(USERS_COLLECTION)
+    .doc(userId)
+    .collection(MEALS_SUBCOLLECTION)
+    .doc(mealId);
+  
   const doc = await docRef.get();
 
   if (!doc.exists) {
     throw new Error('Meal log not found');
-  }
-
-  const data = doc.data();
-  if (data.userId !== userId) {
-    throw new Error('Unauthorized access to meal log');
   }
 
   await docRef.delete();
@@ -215,11 +231,13 @@ const deleteMealLog = async (userId, mealId) => {
 };
 
 /**
- * Get daily nutritional summary
+ * Get daily nutritional summary from users/{userId}/meals subcollection
  */
 const getDailySummary = async (userId, date) => {
-  const snapshot = await getDb().collection(MEALS_COLLECTION)
-    .where('userId', '==', userId)
+  const snapshot = await getDb()
+    .collection(USERS_COLLECTION)
+    .doc(userId)
+    .collection(MEALS_SUBCOLLECTION)
     .where('mealDate', '==', date)
     .get();
 

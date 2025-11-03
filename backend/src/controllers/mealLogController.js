@@ -10,7 +10,7 @@ const mealLogService = require('../services/mealLogService');
  */
 const createMealLog = async (req, res) => {
   try {
-    const { mealDate, mealType, locationId, locationName, items } = req.body;
+    const { mealDate, mealType, mealName, timestamp, locationId, locationName, items } = req.body;
     const userId = req.user.uid;
     const userEmail = req.user.email;
 
@@ -21,16 +21,11 @@ const createMealLog = async (req, res) => {
       });
     }
 
-    const validMealTypes = ['breakfast', 'lunch', 'dinner'];
-    if (!validMealTypes.includes(mealType)) {
-      return res.status(400).json({
-        error: 'Invalid mealType. Must be: breakfast, lunch, or dinner',
-      });
-    }
-
     const mealLog = await mealLogService.createMealLog(userId, userEmail, {
       mealDate,
       mealType,
+      mealName: mealName || mealType,
+      timestamp: timestamp ? new Date(timestamp) : null,
       locationId,
       locationName,
       items,

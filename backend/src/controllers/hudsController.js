@@ -14,6 +14,20 @@ const getLocations = async (req, res) => {
 };
 
 /**
+ * Get events (meal types available) for a specific date/location
+ */
+const getEvents = async (req, res) => {
+  try {
+    const { date, locationId } = req.query;
+    const events = await hudsService.getEvents(date || null, locationId || null);
+    res.json(events);
+  } catch (error) {
+    console.error('Error fetching events:', error);
+    res.status(500).json({ error: 'Failed to fetch events' });
+  }
+};
+
+/**
  * Get today's menu
  */
 const getTodaysMenu = async (req, res) => {
@@ -24,6 +38,23 @@ const getTodaysMenu = async (req, res) => {
   } catch (error) {
     console.error('Error fetching menu:', error);
     res.status(500).json({ error: 'Failed to fetch today\'s menu' });
+  }
+};
+
+/**
+ * Get menu for a specific date
+ */
+const getMenuByDate = async (req, res) => {
+  try {
+    const { date, locationId } = req.query;
+    if (!date) {
+      return res.status(400).json({ error: 'Date parameter is required' });
+    }
+    const menu = await hudsService.getMenuByDate(date, locationId || null);
+    res.json(menu);
+  } catch (error) {
+    console.error('Error fetching menu by date:', error);
+    res.status(500).json({ error: 'Failed to fetch menu for the specified date' });
   }
 };
 
@@ -57,7 +88,9 @@ const getRecipeById = async (req, res) => {
 
 module.exports = {
   getLocations,
+  getEvents,
   getTodaysMenu,
+  getMenuByDate,
   getRecipes,
   getRecipeById,
 };

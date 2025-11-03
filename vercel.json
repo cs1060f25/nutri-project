@@ -4,9 +4,9 @@
   "rewrites": [
     { "source": "/home", "destination": "/api/home" },
     { "source": "/auth/:path", "destination": "/api/auth" },
-    { "source": "/api/nutrition-plan", "destination": "/api/nutrition-plan/index" },
-    { "source": "/api/huds/locations", "destination": "/api/huds/locations" },
-    { "source": "/api/huds/menu/today", "destination": "/api/huds/menu-today" },
+    { "source": "/api/nutrition-plan/:path*", "destination": "/api/nutrition-plan/index" },
+    { "source": "/api/huds/:path*", "destination": "/api/huds" },
+    { "source": "/api/meals/:path*", "destination": "/api/meals" },
     { "source": "/test-env", "destination": "/api/test-env" }
   ]
 }
