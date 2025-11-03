@@ -8,10 +8,7 @@
     { "source": "/auth/me", "destination": "/api/auth/me" },
     { "source": "/auth/refresh", "destination": "/api/auth/refresh" },
     { "source": "/auth/logout", "destination": "/api/auth/logout" },
+    { "source": "/api/nutrition-plan", "destination": "/api/nutrition-plan/index" },
     { "source": "/test-env", "destination": "/api/test-env" }
-  ],
-  "routes": [
-    { "src": "/api/nutrition-plan", "methods": ["POST"], "dest": "/api/nutrition-plan/create" },
-    { "src": "/api/nutrition-plan", "methods": ["GET"], "dest": "/api/nutrition-plan/get" }
   ]
 }
