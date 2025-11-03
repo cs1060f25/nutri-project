@@ -16,6 +16,7 @@
     { "source": "/api/meals/summary/:date", "destination": "/api/meals/summary/[date]" },
     { "source": "/api/meals/:id", "destination": "/api/meals/[id]" },
     { "source": "/api/meals", "destination": "/api/meals/index" },
+    { "source": "/api/nutrition-progress/today", "destination": "/api/nutrition-progress/today" },
     { "source": "/test-env", "destination": "/api/test-env" }
   ]
 }
