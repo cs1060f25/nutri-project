@@ -225,11 +225,6 @@
   border-color: #2d6a4f;
 }
 
-.threshold-input {
-  font-size: 0.8125rem;
-  font-style: italic;
-}
-
 /* Custom Metrics Section */
 .custom-metrics-section {
   background: #ffffff;
@@ -538,16 +533,6 @@
   font-size: 1rem;
   color: #7fa894;
   font-style: italic;
-}
-
-.summary-threshold {
-  font-size: 0.8125rem;
-  color: #c17a00;
-  background: #fff4e6;
-  padding: 0.25rem 0.5rem;
-  border-radius: 4px;
-  display: inline-block;
-  margin-top: 0.5rem;
 }
 
 .summary-frequency {

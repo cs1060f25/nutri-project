@@ -79,8 +79,7 @@ async function viewAllData() {
               const prefix = isLast ? '  └─' : '  ├─';
               
               const target = metric.target || 'Not set';
-              const threshold = metric.threshold ? ` (Alert: ${metric.threshold} ${metric.unit})` : '';
-              console.log(`${prefix}    • ${metricId}: ${target} ${metric.unit}${threshold}`);
+              console.log(`${prefix}    • ${metricId}: ${target} ${metric.unit}`);
             });
           } else {
             console.log(`  ├─ Metrics Tracked: None`);
