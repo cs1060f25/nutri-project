@@ -7,9 +7,19 @@ const MealLogger = ({ isOpen, onClose, onSave }) => {
   const [locations, setLocations] = useState([]);
   const [menuData, setMenuData] = useState([]);
   
-  // Form state
-  const [mealDate, setMealDate] = useState(new Date().toISOString().split('T')[0]);
-  const [mealType, setMealType] = useState('lunch');
+  // Pre-defined meal types from HUDS API documentation
+  const mealTypes = [
+    { value: 'breakfast', label: 'Breakfast' },
+    { value: 'lunch', label: 'Lunch' },
+    { value: 'dinner', label: 'Dinner' },
+    { value: 'brunch', label: 'Brunch' },
+  ];
+  
+  // Form state - ALWAYS use today's date (HUDS API only provides current data)
+  const today = new Date().toISOString().split('T')[0];
+  const [mealTime, setMealTime] = useState(new Date().toTimeString().slice(0, 5)); // HH:MM format
+  const [mealType, setMealType] = useState('breakfast');
+  const [mealName, setMealName] = useState('Breakfast');
   const [selectedLocation, setSelectedLocation] = useState('');
   const [selectedLocationName, setSelectedLocationName] = useState('');
   const [selectedItems, setSelectedItems] = useState([]);
@@ -24,7 +34,7 @@ const MealLogger = ({ isOpen, onClose, onSave }) => {
       try {
         const locs = await getLocations();
         setLocations(locs);
-        if (locs.length > 0) {
+        if (locs.length > 0 && !selectedLocation) {
           setSelectedLocation(locs[0].location_number);
           setSelectedLocationName(locs[0].location_name);
         }
@@ -37,21 +47,24 @@ const MealLogger = ({ isOpen, onClose, onSave }) => {
     if (isOpen) {
       fetchLocations();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
-  // Load menu when location selected
+  // Load menu when location or step changes (use same method as home page)
   useEffect(() => {
     const fetchMenu = async () => {
       if (!selectedLocation) return;
       
       try {
         setLoading(true);
+        console.log('Fetching today\'s menu for location:', selectedLocation);
         const menu = await getTodaysMenu(selectedLocation);
+        console.log('Menu data received:', menu);
         setMenuData(menu);
         setError(null);
       } catch (err) {
         console.error('Error loading menu:', err);
-        setError('Failed to load menu');
+        setError('Failed to load today\'s menu. Make sure HUDS has published the menu for today.');
       } finally {
         setLoading(false);
       }
@@ -65,6 +78,10 @@ const MealLogger = ({ isOpen, onClose, onSave }) => {
   const handleNext = () => {
     if (!selectedLocation) {
       setError('Please select a dining hall');
+      return;
+    }
+    if (!mealType) {
+      setError('Please select a meal type');
       return;
     }
     setStep(2);
@@ -144,9 +161,15 @@ const MealLogger = ({ isOpen, onClose, onSave }) => {
 
     try {
       setLoading(true);
+      
+      // Combine today's date and selected time into a single timestamp
+      const timestamp = new Date(`${today}T${mealTime}`).toISOString();
+      
       await onSave({
-        mealDate,
+        mealDate: today,
         mealType,
+        mealName,
+        timestamp,
         locationId: selectedLocation,
         locationName: selectedLocationName,
         items: selectedItems,
@@ -156,6 +179,8 @@ const MealLogger = ({ isOpen, onClose, onSave }) => {
       setStep(1);
       setSelectedItems([]);
       setSearchTerm('');
+      setMealType('breakfast');
+      setMealName('Breakfast');
       onClose();
     } catch (err) {
       console.error('Error saving meal:', err);
@@ -196,6 +221,12 @@ const MealLogger = ({ isOpen, onClose, onSave }) => {
     setSelectedLocationName(loc ? loc.location_name : '');
   };
 
+  const handleMealTypeChange = (mealTypeValue) => {
+    setMealType(mealTypeValue);
+    const mealTypeObj = mealTypes.find(m => m.value === mealTypeValue);
+    setMealName(mealTypeObj ? mealTypeObj.label : mealTypeValue);
+  };
+
   if (!isOpen) return null;
 
   const totals = calculateTotals();
@@ -218,30 +249,27 @@ const MealLogger = ({ isOpen, onClose, onSave }) => {
 
         {step === 1 && (
           <div className="meal-logger-step">
-            <h3>Meal Details</h3>
-            
-            <div className="form-group">
-              <label htmlFor="mealDate">Date</label>
-              <input
-                type="date"
-                id="mealDate"
-                value={mealDate}
-                onChange={(e) => setMealDate(e.target.value)}
-                max={new Date().toISOString().split('T')[0]}
-              />
-            </div>
+            <h3>Log Today's Meal</h3>
+            <p style={{ fontSize: '0.9em', color: '#666', marginBottom: '1rem' }}>
+              📅 {new Date().toLocaleDateString('en-US', { 
+                weekday: 'long', 
+                month: 'long', 
+                day: 'numeric',
+                year: 'numeric'
+              })}
+            </p>
+            <p style={{ fontSize: '0.85em', color: '#888', marginBottom: '1.5rem', fontStyle: 'italic' }}>
+              Note: You can only log meals from today's menu (HUDS API limitation)
+            </p>
 
             <div className="form-group">
-              <label htmlFor="mealType">Meal Type</label>
-              <select
-                id="mealType"
-                value={mealType}
-                onChange={(e) => setMealType(e.target.value)}
-              >
-                <option value="breakfast">Breakfast</option>
-                <option value="lunch">Lunch</option>
-                <option value="dinner">Dinner</option>
-              </select>
+              <label htmlFor="mealTime">Time</label>
+              <input
+                type="time"
+                id="mealTime"
+                value={mealTime}
+                onChange={(e) => setMealTime(e.target.value)}
+              />
             </div>
 
             <div className="form-group">
@@ -259,9 +287,30 @@ const MealLogger = ({ isOpen, onClose, onSave }) => {
               </select>
             </div>
 
+            <div className="form-group">
+              <label htmlFor="mealType">Meal Type</label>
+              <select
+                id="mealType"
+                value={mealType}
+                onChange={(e) => handleMealTypeChange(e.target.value)}
+              >
+                {mealTypes.map(type => (
+                  <option key={type.value} value={type.value}>
+                    {type.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
             <div className="meal-logger-actions">
               <button className="btn-secondary" onClick={onClose}>Cancel</button>
-              <button className="btn-primary" onClick={handleNext}>Next</button>
+              <button 
+                className="btn-primary" 
+                onClick={handleNext}
+                disabled={!selectedLocation || !mealType}
+              >
+                Next
+              </button>
             </div>
           </div>
         )}
