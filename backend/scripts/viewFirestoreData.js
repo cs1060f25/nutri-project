@@ -72,28 +72,17 @@ async function viewAllData() {
           const metricKeys = Object.keys(metrics);
           
           if (metricKeys.length > 0) {
-            console.log(`  ├─ Metrics Tracked (${metricKeys.length}):`);
+            console.log(`  └─ Metrics Tracked (${metricKeys.length}):`);
             metricKeys.forEach((metricId, idx) => {
               const metric = metrics[metricId];
-              const isLast = idx === metricKeys.length - 1 && (!planData.customMetrics || planData.customMetrics.length === 0);
-              const prefix = isLast ? '  └─' : '  ├─';
+              const isLast = idx === metricKeys.length - 1;
+              const prefix = isLast ? '     └─' : '     ├─';
               
               const target = metric.target || 'Not set';
               console.log(`${prefix}    • ${metricId}: ${target} ${metric.unit}`);
             });
           } else {
-            console.log(`  ├─ Metrics Tracked: None`);
-          }
-
-          // Show custom metrics
-          const customMetrics = planData.customMetrics || [];
-          if (customMetrics.length > 0) {
-            console.log(`  └─ Custom Metrics (${customMetrics.length}):`);
-            customMetrics.forEach((metric, idx) => {
-              const isLast = idx === customMetrics.length - 1;
-              const prefix = isLast ? '     └─' : '     ├─';
-              console.log(`${prefix}    • ${metric.name}: ${metric.target} ${metric.unit} (${metric.frequency})`);
-            });
+            console.log(`  └─ Metrics Tracked: None`);
           }
 
           // Show raw JSON if detailed flag is set
