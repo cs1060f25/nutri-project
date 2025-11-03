@@ -116,6 +116,4 @@ Subcollection storing nutrition tracking plans for each user. Users can have mul
 ]
 ```
 
-**Note:** Collections in Firestore are created automatically when you first write data to them. No manual setup is required.
-
 
