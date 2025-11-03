@@ -35,7 +35,8 @@ module.exports = async (req, res) => {
       params.locationId = locationId;
     }
 
-    const response = await axios.get(`${BASE_URL}/events`, {
+    // Fetch recipes from HUDS API
+    const response = await axios.get(`${BASE_URL}/recipes`, {
       headers: {
         'X-Api-Key': API_KEY,
         'Accept': 'application/json',
@@ -43,7 +44,47 @@ module.exports = async (req, res) => {
       params,
     });
 
-    return res.status(200).json(response.data);
+    const recipes = response.data;
+
+    // Transform flat array into nested structure by location -> meal -> category
+    const menuByLocation = {};
+
+    recipes.forEach(recipe => {
+      const locNum = recipe.Location_Number;
+      const locName = recipe.Location_Name;
+      const mealNum = recipe.Meal_Number;
+      const mealName = recipe.Meal_Name;
+      const categoryNum = recipe.Menu_Category_Number;
+      const categoryName = recipe.Menu_Category_Name;
+
+      if (!menuByLocation[locNum]) {
+        menuByLocation[locNum] = {
+          locationNumber: locNum,
+          locationName: locName,
+          meals: {},
+        };
+      }
+
+      if (!menuByLocation[locNum].meals[mealNum]) {
+        menuByLocation[locNum].meals[mealNum] = {
+          mealNumber: mealNum,
+          mealName: mealName,
+          categories: {},
+        };
+      }
+
+      if (!menuByLocation[locNum].meals[mealNum].categories[categoryNum]) {
+        menuByLocation[locNum].meals[mealNum].categories[categoryNum] = {
+          categoryNumber: categoryNum,
+          categoryName: categoryName,
+          recipes: [],
+        };
+      }
+
+      menuByLocation[locNum].meals[mealNum].categories[categoryNum].recipes.push(recipe);
+    });
+
+    return res.status(200).json(Object.values(menuByLocation));
   } catch (error) {
     console.error('Error fetching menu:', error.message);
     return res.status(500).json({ error: 'Failed to fetch today\'s menu' });

@@ -24,9 +24,6 @@ const Home = () => {
           getLocations(),
           getTodaysMenu(selectedLocation),
         ]);
-        console.log('Menu data received:', menu);
-        console.log('Menu data type:', typeof menu);
-        console.log('Menu is array:', Array.isArray(menu));
         setLocations(locs);
         setMenuData(menu);
         setError(null);
