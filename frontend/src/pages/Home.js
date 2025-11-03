@@ -24,6 +24,9 @@ const Home = () => {
           getLocations(),
           getTodaysMenu(selectedLocation),
         ]);
+        console.log('Menu data received:', menu);
+        console.log('Menu data type:', typeof menu);
+        console.log('Menu is array:', Array.isArray(menu));
         setLocations(locs);
         setMenuData(menu);
         setError(null);
@@ -161,16 +164,16 @@ const Home = () => {
             <div key={location.locationNumber} className="location-section">
               <h2 className="location-name">{location.locationName}</h2>
               
-              {Object.values(location.meals).map(meal => (
+              {location.meals && Object.values(location.meals).map(meal => (
                 <div key={meal.mealNumber} className="meal-section">
                   <h3 className="meal-name">{meal.mealName}</h3>
                   
-                  {Object.values(meal.categories).map(category => (
+                  {meal.categories && Object.values(meal.categories).map(category => (
                     <div key={category.categoryNumber} className="category-section">
                       <h4 className="category-name">{category.categoryName}</h4>
                       
                       <div className="recipes-grid">
-                        {category.recipes.map(recipe => (
+                        {category.recipes && category.recipes.map(recipe => (
                           <div 
                             key={recipe.ID} 
                             className="recipe-card"
