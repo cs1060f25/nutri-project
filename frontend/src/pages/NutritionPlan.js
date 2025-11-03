@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './NutritionPlan.css';
+import { createNutritionPlan, getActiveNutritionPlan, updateNutritionPlan } from '../services/nutritionPlanService';
 
 const NutritionPlan = () => {
   const [selectedPreset, setSelectedPreset] = useState('');
@@ -9,6 +10,39 @@ const NutritionPlan = () => {
   const [newMetric, setNewMetric] = useState({ name: '', unit: 'g', target: '', frequency: 'daily' });
   const [showSummary, setShowSummary] = useState(false);
   const [savedPlan, setSavedPlan] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [isEditMode, setIsEditMode] = useState(false);
+
+  // Load existing nutrition plan on component mount
+  useEffect(() => {
+    const loadExistingPlan = async () => {
+      try {
+        setLoading(true);
+        const plan = await getActiveNutritionPlan();
+        
+        if (plan) {
+          // Load the plan data into the form
+          setSavedPlan(plan);
+          setSelectedPreset(plan.preset || '');
+          setMetrics(plan.metrics || {});
+          setCustomMetrics(plan.customMetrics || []);
+          setShowSummary(true);
+          setIsEditMode(true);
+        }
+      } catch (err) {
+        console.error('Error loading nutrition plan:', err);
+        // Don't show error if plan doesn't exist - just means this is a new user
+        if (!err.message.includes('not found')) {
+          setError('Failed to load your nutrition plan. Please try again.');
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadExistingPlan();
+  }, []);
 
   // Debug: Log when metrics state changes
   useEffect(() => {
@@ -187,23 +221,43 @@ const NutritionPlan = () => {
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    const enabledMetrics = Object.entries(metrics)
-      .filter(([_, value]) => value.enabled)
-      .reduce((acc, [key, value]) => ({ ...acc, [key]: value }), {});
-    
-    const planData = {
-      preset: selectedPreset,
-      presetName: selectedPreset ? presets[selectedPreset]?.name : 'Custom Plan',
-      metrics: enabledMetrics,
-      customMetrics,
-      createdAt: new Date().toISOString()
-    };
-    
-    console.log('Submitting nutrition plan:', planData);
-    setSavedPlan(planData);
-    setShowSummary(true);
+    setLoading(true);
+    setError(null);
+
+    try {
+      const enabledMetrics = Object.entries(metrics)
+        .filter(([_, value]) => value.enabled)
+        .reduce((acc, [key, value]) => ({ ...acc, [key]: value }), {});
+      
+      const planData = {
+        preset: selectedPreset,
+        presetName: selectedPreset ? presets[selectedPreset]?.name : 'Custom Plan',
+        metrics: enabledMetrics,
+        customMetrics,
+      };
+      
+      console.log('Submitting nutrition plan:', planData);
+
+      let response;
+      if (isEditMode && savedPlan?.id) {
+        // Update existing plan
+        response = await updateNutritionPlan(savedPlan.id, planData);
+      } else {
+        // Create new plan
+        response = await createNutritionPlan(planData);
+      }
+      
+      setSavedPlan(response.plan);
+      setShowSummary(true);
+      setIsEditMode(true);
+    } catch (err) {
+      console.error('Error saving nutrition plan:', err);
+      setError(err.message || 'Failed to save nutrition plan. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleCreateNew = () => {
@@ -212,10 +266,13 @@ const NutritionPlan = () => {
     setSelectedPreset('');
     setMetrics({});
     setCustomMetrics([]);
+    setIsEditMode(false);
+    setError(null);
   };
 
   const handleEditPlan = () => {
     setShowSummary(false);
+    setError(null);
   };
 
   // Helper function to get metric label from ID
@@ -225,6 +282,28 @@ const NutritionPlan = () => {
       if (metric) return metric.label;
     }
     return metricId;
+  };
+
+  // Helper function to format Firestore timestamp
+  const formatTimestamp = (timestamp) => {
+    if (!timestamp) return 'Not available';
+    
+    // Handle Firestore Timestamp object
+    if (timestamp._seconds) {
+      return new Date(timestamp._seconds * 1000).toLocaleString();
+    }
+    
+    // Handle ISO string
+    if (typeof timestamp === 'string') {
+      return new Date(timestamp).toLocaleString();
+    }
+    
+    // Handle regular Date object
+    if (timestamp instanceof Date) {
+      return timestamp.toLocaleString();
+    }
+    
+    return 'Invalid date';
   };
 
   // Show summary view
@@ -302,7 +381,10 @@ const NutritionPlan = () => {
             </div>
 
             <div className="summary-meta">
-              <p>Created: {new Date(savedPlan.createdAt).toLocaleString()}</p>
+              <p>Created: {formatTimestamp(savedPlan.createdAt)}</p>
+              {savedPlan.updatedAt && savedPlan.createdAt !== savedPlan.updatedAt && (
+                <p>Last Updated: {formatTimestamp(savedPlan.updatedAt)}</p>
+              )}
             </div>
 
             <div className="summary-actions">
@@ -319,6 +401,19 @@ const NutritionPlan = () => {
     );
   }
 
+  // Show loading state
+  if (loading && !savedPlan) {
+    return (
+      <div className="nutrition-plan-page">
+        <div className="nutrition-plan-container">
+          <div className="loading-container" style={{ textAlign: 'center', padding: '50px' }}>
+            <div style={{ fontSize: '24px', marginBottom: '20px' }}>Loading your nutrition plan...</div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="nutrition-plan-page">
       <div className="nutrition-plan-container">
@@ -326,6 +421,19 @@ const NutritionPlan = () => {
           <h1 className="hero-title">Nutrition Plan</h1>
           <p className="hero-subtitle">Build your personalized expert nutrition tracking plan</p>
         </div>
+
+        {error && (
+          <div className="error-banner" style={{
+            background: '#fee',
+            border: '1px solid #fcc',
+            borderRadius: '8px',
+            padding: '15px',
+            marginBottom: '20px',
+            color: '#c33'
+          }}>
+            <strong>Error:</strong> {error}
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="nutrition-form">
           {/* Preset Selection */}
@@ -498,8 +606,8 @@ const NutritionPlan = () => {
             )}
           </div>
 
-          <button type="submit" className="submit-plan-button">
-            Save Nutrition Plan
+          <button type="submit" className="submit-plan-button" disabled={loading}>
+            {loading ? 'Saving...' : (isEditMode ? 'Update Nutrition Plan' : 'Save Nutrition Plan')}
           </button>
         </form>
       </div>
