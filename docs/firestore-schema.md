@@ -27,8 +27,7 @@ Firestore Database
 │   │       │   │     "protein": {
 │   │       │   │       "enabled": true,
 │   │       │   │       "unit": "g",
-│   │       │   │       "target": "150",
-│   │       │   │       "threshold": "120"
+│   │       │   │       "target": "150"
 │   │       │   │     },
 │   │       │   │     "waterIntake": { ... }
 │   │       │   │   }
@@ -79,7 +78,7 @@ Subcollection storing nutrition tracking plans for each user. Users can have mul
 |-----------------|-----------|--------------------------------------------------------------|
 | `preset`        | string    | ID of the preset used (e.g., 'mind-focus', 'muscle-gain') or null for custom |
 | `presetName`    | string    | Display name of the preset (e.g., '🧘 Mind & Focus')         |
-| `metrics`       | object    | Map of enabled metrics with their settings. Key is metric ID, value is object with `enabled`, `unit`, `target`, `threshold` |
+| `metrics`       | object    | Map of enabled metrics with their settings. Key is metric ID, value is object with `enabled`, `unit`, `target` |
 | `customMetrics` | array     | Array of custom metrics created by the user. Each contains `id`, `name`, `unit`, `target`, `frequency` |
 | `isActive`      | boolean   | Whether this is the currently active plan for the user       |
 | `createdAt`     | timestamp | When the plan was first created                              |
@@ -91,14 +90,12 @@ Subcollection storing nutrition tracking plans for each user. Users can have mul
   "protein": {
     "enabled": true,
     "unit": "g",
-    "target": "150",
-    "threshold": "120"
+    "target": "150"
   },
   "waterIntake": {
     "enabled": true,
     "unit": "cups",
-    "target": "8",
-    "threshold": "6"
+    "target": "8"
   }
 }
 ```

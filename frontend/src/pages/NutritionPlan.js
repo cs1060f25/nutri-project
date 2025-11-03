@@ -57,44 +57,44 @@ const NutritionPlan = () => {
       name: '🧘 Mind & Focus',
       description: 'Optimize for cognitive performance and mental clarity',
       metrics: {
-        waterIntake: { target: '8', threshold: '6' },
-        caffeine: { target: '200', threshold: '400' },
-        sodium: { target: '2300', threshold: '2500' },
-        vitaminD: { target: '1000', threshold: '' },
-        sleepQuality: { target: '8', threshold: '6' }
+        waterIntake: { target: '8' },
+        caffeine: { target: '200' },
+        sodium: { target: '2300' },
+        vitaminD: { target: '1000' },
+        sleepQuality: { target: '8' }
       }
     },
     'muscle-gain': {
       name: '🏋️ Muscle Gain',
       description: 'Build muscle mass with optimized nutrition',
       metrics: {
-        protein: { target: '150', threshold: '120' },
-        carbs: { target: '250', threshold: '' },
-        fats: { target: '70', threshold: '' },
-        creatine: { target: '5', threshold: '' },
-        calorySurplus: { target: '300', threshold: '' }
+        protein: { target: '150' },
+        carbs: { target: '250' },
+        fats: { target: '70' },
+        creatine: { target: '5' },
+        calorySurplus: { target: '300' }
       }
     },
     'endurance': {
       name: '⚡ Endurance Training',
       description: 'Fuel performance and optimize recovery',
       metrics: {
-        carbs: { target: '300', threshold: '250' },
-        sodium: { target: '2500', threshold: '3000' },
-        potassium: { target: '3500', threshold: '' },
-        hrv: { target: '65', threshold: '50' },
-        energyLevels: { target: '8', threshold: '6' }
+        carbs: { target: '300' },
+        sodium: { target: '2500' },
+        potassium: { target: '3500' },
+        hrv: { target: '65' },
+        energyLevels: { target: '8' }
       }
     },
     'metabolic': {
       name: '🧪 Metabolic Health',
       description: 'Track biomarkers and metabolic wellness',
       metrics: {
-        bloodGlucose: { target: '90', threshold: '100' },
-        fastingHours: { target: '16', threshold: '12' },
-        fiber: { target: '30', threshold: '25' },
-        fatRatio: { target: '0.35', threshold: '' },
-        ketones: { target: '0.5', threshold: '' }
+        bloodGlucose: { target: '90' },
+        fastingHours: { target: '16' },
+        fiber: { target: '30' },
+        fatRatio: { target: '0.35' },
+        ketones: { target: '0.5' }
       }
     }
   };
@@ -176,8 +176,7 @@ const NutritionPlan = () => {
             newMetrics[metricId] = {
               enabled: true,
               unit: metric.defaultUnit,
-              target: presetValues.target,
-              threshold: presetValues.threshold
+              target: presetValues.target
             };
             console.log('Added metric:', metricId, newMetrics[metricId]);
             break;
@@ -199,7 +198,7 @@ const NutritionPlan = () => {
       ...prev,
       [metricId]: prev[metricId]
         ? { ...prev[metricId], enabled: !prev[metricId].enabled }
-        : { enabled: true, unit: defaultUnit, target: '', threshold: '' }
+        : { enabled: true, unit: defaultUnit, target: '' }
     }));
   };
 
@@ -216,7 +215,7 @@ const NutritionPlan = () => {
       setCustomMetrics(prev => [...prev, { ...newMetric, id: customId }]);
       setMetrics(prev => ({
         ...prev,
-        [customId]: { enabled: true, unit: newMetric.unit, target: newMetric.target, threshold: '' }
+        [customId]: { enabled: true, unit: newMetric.unit, target: newMetric.target }
       }));
       setNewMetric({ name: '', unit: 'g', target: '', frequency: 'daily' });
       setShowCustomForm(false);
@@ -358,11 +357,6 @@ const NutritionPlan = () => {
                           <span className="no-target">No target set</span>
                         )}
                       </div>
-                      {metricData.threshold && (
-                        <div className="summary-threshold">
-                          Alert at: {metricData.threshold} {metricData.unit}
-                        </div>
-                      )}
                     </div>
                   ))}
                 </div>
@@ -515,14 +509,6 @@ const NutritionPlan = () => {
                                 ))}
                               </select>
                             </div>
-                            <input
-                              type="number"
-                              placeholder="Alert threshold (optional)"
-                              value={metrics[metric.id].threshold}
-                              onChange={(e) => handleMetricChange(metric.id, 'threshold', e.target.value)}
-                              className="metric-input threshold-input"
-                              step="any"
-                            />
                           </div>
                         )}
                       </div>
