@@ -15,16 +15,76 @@ const getAuthToken = () => {
 };
 
 /**
+ * Fetch with automatic token refresh on 401
+ */
+const fetchWithAuth = async (url, options = {}) => {
+  let token = getAuthToken();
+  
+  const makeRequest = async (authToken) => {
+    return fetch(url, {
+      ...options,
+      headers: {
+        ...options.headers,
+        'Authorization': `Bearer ${authToken}`,
+      },
+    });
+  };
+
+  let response = await makeRequest(token);
+
+  // If 401, try to refresh token and retry once
+  if (response.status === 401) {
+    try {
+      const refreshToken = localStorage.getItem('refreshToken') || sessionStorage.getItem('refreshToken');
+      
+      if (!refreshToken) {
+        throw new Error('No refresh token available');
+      }
+
+      const refreshResponse = await fetch(`${API_BASE}/auth/refresh`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refreshToken }),
+      });
+
+      if (!refreshResponse.ok) {
+        throw new Error('Token refresh failed');
+      }
+
+      const data = await refreshResponse.json();
+      
+      // Update tokens in storage
+      const storage = localStorage.getItem('refreshToken') ? localStorage : sessionStorage;
+      storage.setItem('accessToken', data.accessToken);
+      storage.setItem('refreshToken', data.refreshToken);
+
+      // Retry the original request with new token
+      response = await makeRequest(data.accessToken);
+    } catch (error) {
+      console.error('Token refresh failed:', error);
+      // Clear tokens and redirect to login
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('refreshToken');
+      localStorage.removeItem('user');
+      sessionStorage.removeItem('accessToken');
+      sessionStorage.removeItem('refreshToken');
+      sessionStorage.removeItem('user');
+      window.location.href = '/auth';
+      throw error;
+    }
+  }
+
+  return response;
+};
+
+/**
  * Create a new nutrition plan
  */
 export const createNutritionPlan = async (planData) => {
-  const token = getAuthToken();
-  
-  const response = await fetch(`${API_BASE}/api/nutrition-plan`, {
+  const response = await fetchWithAuth(`${API_BASE}/api/nutrition-plan`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
     },
     body: JSON.stringify(planData),
   });
@@ -41,13 +101,8 @@ export const createNutritionPlan = async (planData) => {
  * Get the active nutrition plan
  */
 export const getActiveNutritionPlan = async () => {
-  const token = getAuthToken();
-  
-  const response = await fetch(`${API_BASE}/api/nutrition-plan`, {
+  const response = await fetchWithAuth(`${API_BASE}/api/nutrition-plan`, {
     method: 'GET',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-    },
   });
 
   if (response.status === 404) {
@@ -68,13 +123,10 @@ export const getActiveNutritionPlan = async () => {
  * Update an existing nutrition plan
  */
 export const updateNutritionPlan = async (planId, planData) => {
-  const token = getAuthToken();
-  
-  const response = await fetch(`${API_BASE}/api/nutrition-plan/${planId}`, {
+  const response = await fetchWithAuth(`${API_BASE}/api/nutrition-plan/${planId}`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
     },
     body: JSON.stringify(planData),
   });
@@ -91,13 +143,8 @@ export const updateNutritionPlan = async (planId, planData) => {
  * Get a specific nutrition plan by ID
  */
 export const getNutritionPlanById = async (planId) => {
-  const token = getAuthToken();
-  
-  const response = await fetch(`${API_BASE}/api/nutrition-plan/${planId}`, {
+  const response = await fetchWithAuth(`${API_BASE}/api/nutrition-plan/${planId}`, {
     method: 'GET',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-    },
   });
 
   if (!response.ok) {
@@ -113,13 +160,8 @@ export const getNutritionPlanById = async (planId) => {
  * Get nutrition plan history
  */
 export const getNutritionPlanHistory = async (limit = 10) => {
-  const token = getAuthToken();
-  
-  const response = await fetch(`${API_BASE}/api/nutrition-plan/history?limit=${limit}`, {
+  const response = await fetchWithAuth(`${API_BASE}/api/nutrition-plan/history?limit=${limit}`, {
     method: 'GET',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-    },
   });
 
   if (!response.ok) {
@@ -135,13 +177,8 @@ export const getNutritionPlanHistory = async (limit = 10) => {
  * Delete a nutrition plan
  */
 export const deleteNutritionPlan = async (planId) => {
-  const token = getAuthToken();
-  
-  const response = await fetch(`${API_BASE}/api/nutrition-plan/${planId}`, {
+  const response = await fetchWithAuth(`${API_BASE}/api/nutrition-plan/${planId}`, {
     method: 'DELETE',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-    },
   });
 
   if (!response.ok) {

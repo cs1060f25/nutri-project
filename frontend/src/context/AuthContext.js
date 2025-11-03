@@ -100,6 +100,33 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const refreshAccessToken = async () => {
+    try {
+      const storedRefreshToken = localStorage.getItem('refreshToken') || sessionStorage.getItem('refreshToken');
+      
+      if (!storedRefreshToken) {
+        throw new Error('No refresh token available');
+      }
+
+      const data = await postJson('/auth/refresh', { refreshToken: storedRefreshToken });
+
+      // Update tokens in storage (use same storage type as before)
+      const storage = localStorage.getItem('refreshToken') ? localStorage : sessionStorage;
+      storage.setItem('accessToken', data.accessToken);
+      storage.setItem('refreshToken', data.refreshToken);
+
+      setAccessToken(data.accessToken);
+      setRefreshToken(data.refreshToken);
+
+      return data.accessToken;
+    } catch (error) {
+      console.error('Token refresh error:', error);
+      // If refresh fails, log out the user
+      await logout();
+      throw error;
+    }
+  };
+
   const logout = async () => {
     try {
       if (accessToken) {
@@ -135,6 +162,7 @@ export const AuthProvider = ({ children }) => {
     login,
     register,
     logout,
+    refreshAccessToken,
     isAuthenticated: !!user,
   };
 
