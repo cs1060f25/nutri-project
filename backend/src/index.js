@@ -8,6 +8,7 @@ const hudsRoutes = require('./routes/hudsRoutes');
 const mealLogRoutes = require('./routes/mealLogRoutes');
 const profileRoutes = require('./routes/profileRoutes');
 const nutritionPlanRoutes = require('./routes/nutritionPlanRoutes');
+const nutritionProgressRoutes = require('./routes/nutritionProgressRoutes');
 const { homeData } = require('../data');
 
 // Initialize Express app
@@ -62,6 +63,9 @@ app.use('/api/profile', profileRoutes);
 // Nutrition plan routes
 app.use('/api/nutrition-plan', nutritionPlanRoutes);
 
+// Nutrition progress routes
+app.use('/api/nutrition-progress', nutritionProgressRoutes);
+
 // Home endpoint - returns app data
 app.get('/home', (req, res) => {
   const homeData = {
@@ -115,7 +119,9 @@ app.listen(PORT, () => {
   console.log('  POST   /auth/logout');
   console.log('  GET    /auth/me');
   console.log('  GET    /api/huds/locations');
+  console.log('  GET    /api/huds/events');
   console.log('  GET    /api/huds/menu/today');
+  console.log('  GET    /api/huds/menu/date');
   console.log('  GET    /api/huds/recipes');
   console.log('  GET    /api/huds/recipes/:id');
   console.log('  POST   /api/meals');

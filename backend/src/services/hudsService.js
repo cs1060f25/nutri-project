@@ -80,13 +80,12 @@ const getRecipeById = async (id) => {
 };
 
 /**
- * Get today's menu organized by location and meal
+ * Get menu organized by location and meal for a specific date
  */
-const getTodaysMenu = async (locationId = null) => {
-  const today = new Date();
+const getMenuByDate = async (date, locationId = null) => {
   const [recipes, events] = await Promise.all([
-    getRecipes(today, locationId),
-    getEvents(today, locationId),
+    getRecipes(date, locationId),
+    getEvents(date, locationId),
   ]);
 
   // Organize data by location, meal, and menu category
@@ -130,11 +129,21 @@ const getTodaysMenu = async (locationId = null) => {
   return Object.values(menuByLocation);
 };
 
+/**
+ * Get today's menu organized by location and meal
+ */
+const getTodaysMenu = async (locationId = null) => {
+  const today = new Date();
+  return getMenuByDate(today, locationId);
+};
+
 module.exports = {
   getLocations,
   getEvents,
   getRecipes,
   getRecipeById,
   getTodaysMenu,
+  getMenuByDate,
+  formatDate, // Export for use in controllers
 };
 
