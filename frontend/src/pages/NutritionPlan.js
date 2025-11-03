@@ -346,10 +346,9 @@ const NutritionPlan = () => {
   if (loading && !savedPlan) {
     return (
       <div className="nutrition-plan-page">
-        <div className="nutrition-plan-container">
-          <div className="loading-container" style={{ textAlign: 'center', padding: '50px' }}>
-            <div style={{ fontSize: '24px', marginBottom: '20px' }}>Loading your nutrition plan...</div>
-          </div>
+        <div className="loading">
+          <div className="loading-spinner"></div>
+          <p className="loading-text">Loading your nutrition plan...</p>
         </div>
       </div>
     );
