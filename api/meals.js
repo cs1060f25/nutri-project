@@ -1,4 +1,4 @@
-// Vercel serverless function for /api/meals (handles both GET and POST)
+// Consolidated Vercel serverless function for ALL meal endpoints
 const admin = require('firebase-admin');
 
 // Initialize Firebase Admin SDK
@@ -52,7 +52,6 @@ const calculateTotals = (items) => {
   items.forEach(item => {
     const qty = item.quantity || 1;
     
-    // Parse numeric values from strings like "10g" or "300mg"
     const parseNutrient = (value) => {
       if (!value) return 0;
       const num = parseFloat(value.toString().replace(/[^0-9.]/g, ''));
@@ -71,7 +70,6 @@ const calculateTotals = (items) => {
     totals.protein += parseNutrient(item.protein) * qty;
   });
 
-  // Round to 1 decimal place and format with units
   return {
     calories: Math.round(totals.calories),
     totalFat: `${totals.totalFat.toFixed(1)}g`,
@@ -89,7 +87,7 @@ const calculateTotals = (items) => {
 module.exports = async (req, res) => {
   // CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   
   if (req.method === 'OPTIONS') {
@@ -102,8 +100,141 @@ module.exports = async (req, res) => {
     const userId = decodedToken.uid;
     const userEmail = decodedToken.email;
 
-    // Handle GET request - Get meal logs with optional filters
-    if (req.method === 'GET') {
+    const path = req.url.replace('/api/meals', '');
+
+    // Route: GET /api/meals/summary/:date
+    if (req.method === 'GET' && path.startsWith('/summary/')) {
+      const date = path.split('/summary/')[1].split('?')[0];
+      
+      if (!date) {
+        return res.status(400).json(createErrorResponse('INVALID_REQUEST', 'Date parameter is required'));
+      }
+
+      const snapshot = await getDb()
+        .collection(USERS_COLLECTION)
+        .doc(userId)
+        .collection(MEALS_SUBCOLLECTION)
+        .where('mealDate', '==', date)
+        .get();
+
+      const meals = [];
+      snapshot.forEach(doc => {
+        meals.push({ id: doc.id, ...doc.data() });
+      });
+
+      const summary = {
+        date,
+        mealCount: meals.length,
+        meals: meals.map(m => ({
+          id: m.id,
+          mealType: m.mealType,
+          locationName: m.locationName,
+          itemCount: m.items.length,
+          totals: m.totals,
+        })),
+        dailyTotals: calculateTotals(meals.flatMap(m => m.items)),
+      };
+
+      return res.status(200).json(summary);
+    }
+
+    // Route: GET /api/meals/:id (specific meal by ID)
+    if (req.method === 'GET' && path.match(/^\/[^/]+$/) && !path.includes('?')) {
+      const id = path.substring(1);
+      
+      const docRef = getDb()
+        .collection(USERS_COLLECTION)
+        .doc(userId)
+        .collection(MEALS_SUBCOLLECTION)
+        .doc(id);
+      
+      const doc = await docRef.get();
+      
+      if (!doc.exists) {
+        return res.status(404).json(createErrorResponse('NOT_FOUND', 'Meal log not found'));
+      }
+
+      const data = doc.data();
+
+      return res.status(200).json({
+        id: doc.id,
+        ...data,
+        timestamp: data.timestamp?.toDate(),
+        createdAt: data.createdAt?.toDate(),
+        updatedAt: data.updatedAt?.toDate(),
+      });
+    }
+
+    // Route: PUT /api/meals/:id (update meal)
+    if (req.method === 'PUT' && path.match(/^\/[^/]+$/)) {
+      const id = path.substring(1);
+      
+      const docRef = getDb()
+        .collection(USERS_COLLECTION)
+        .doc(userId)
+        .collection(MEALS_SUBCOLLECTION)
+        .doc(id);
+      
+      const doc = await docRef.get();
+
+      if (!doc.exists) {
+        return res.status(404).json(createErrorResponse('NOT_FOUND', 'Meal log not found'));
+      }
+
+      const updates = req.body;
+      delete updates.userId;
+      delete updates.userEmail;
+      delete updates.createdAt;
+
+      if (updates.items) {
+        updates.totals = calculateTotals(updates.items);
+      }
+
+      updates.updatedAt = admin.firestore.FieldValue.serverTimestamp();
+
+      await docRef.update(updates);
+
+      const updatedDoc = await docRef.get();
+      const data = updatedDoc.data();
+
+      return res.status(200).json({
+        message: 'Meal log updated successfully',
+        meal: {
+          id: updatedDoc.id,
+          ...data,
+          timestamp: data.timestamp?.toDate(),
+          createdAt: data.createdAt?.toDate(),
+          updatedAt: data.updatedAt?.toDate(),
+        },
+      });
+    }
+
+    // Route: DELETE /api/meals/:id (delete meal)
+    if (req.method === 'DELETE' && path.match(/^\/[^/]+$/)) {
+      const id = path.substring(1);
+      
+      const docRef = getDb()
+        .collection(USERS_COLLECTION)
+        .doc(userId)
+        .collection(MEALS_SUBCOLLECTION)
+        .doc(id);
+      
+      const doc = await docRef.get();
+
+      if (!doc.exists) {
+        return res.status(404).json(createErrorResponse('NOT_FOUND', 'Meal log not found'));
+      }
+
+      await docRef.delete();
+
+      return res.status(200).json({
+        message: 'Meal log deleted successfully',
+        id,
+      });
+    }
+
+    // Route: GET /api/meals (list meals with filters)
+    if (req.method === 'GET' && (path === '' || path === '/' || path.startsWith('?'))) {
       const { startDate, endDate, mealType, limit } = req.query;
       
       const mealsRef = getDb()
@@ -113,7 +244,6 @@ module.exports = async (req, res) => {
 
       let query = mealsRef;
 
-      // Apply filters
       if (startDate) {
         query = query.where('mealDate', '>=', startDate);
       }
@@ -124,10 +254,8 @@ module.exports = async (req, res) => {
         query = query.where('mealType', '==', mealType);
       }
 
-      // Order by timestamp descending (most recent first)
       query = query.orderBy('timestamp', 'desc');
 
-      // Limit results
       const limitNum = limit ? parseInt(limit, 10) : 50;
       query = query.limit(limitNum);
 
@@ -150,11 +278,10 @@ module.exports = async (req, res) => {
       });
     }
 
-    // Handle POST request - Create new meal log
+    // Route: POST /api/meals (create new meal)
     if (req.method === 'POST') {
       const { mealDate, mealType, mealName, timestamp, locationId, locationName, items } = req.body;
 
-      // Validation
       if (!mealDate || !mealType || !locationId || !items || items.length === 0) {
         return res.status(400).json(
           createErrorResponse('INVALID_REQUEST', 'Missing required fields: mealDate, mealType, locationId, items')

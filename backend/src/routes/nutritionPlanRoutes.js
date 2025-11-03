@@ -8,6 +8,7 @@ const {
   getPlanHistory,
   deletePlan,
 } = require('../controllers/nutritionPlanController');
+const { getTodayProgress } = require('../controllers/nutritionProgressController');
 const { verifyToken } = require('../middleware/authMiddleware');
 
 // All routes require authentication
@@ -18,6 +19,9 @@ router.post('/', createNutritionPlan);
 
 // Get active nutrition plan
 router.get('/', getActivePlan);
+
+// Get today's nutrition progress (consolidated route)
+router.get('/progress/today', getTodayProgress);
 
 // Get plan history
 router.get('/history', getPlanHistory);

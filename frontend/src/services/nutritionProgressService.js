@@ -14,7 +14,7 @@ export const getTodayProgress = async (accessToken) => {
     headers['Authorization'] = `Bearer ${accessToken}`;
   }
 
-  const response = await fetch('/api/nutrition-progress/today', {
+  const response = await fetch('/api/nutrition-plan/progress/today', {
     method: 'GET',
     headers,
   });
