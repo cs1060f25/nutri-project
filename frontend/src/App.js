@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import './App.css';
 import { AuthProvider } from './context/AuthContext';
@@ -20,7 +19,7 @@ function App() {
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/__/auth/action" element={<FirebaseActionHandler />} />
               <Route
-                path="/home"
+                path="/home/*"
                 element={
                   <ProtectedRoute>
                     <MainLayout />
@@ -38,20 +37,18 @@ function MainLayout() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   return (
-    <Router>
-      <div className="app">
-        <Sidebar 
-          isCollapsed={isSidebarCollapsed}
-          onToggle={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-        />
-        <div className={`main-content ${isSidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/nutrition-plan" element={<NutritionPlan />} />
-          </Routes>
-        </div>
+    <div className="app">
+      <Sidebar 
+        isCollapsed={isSidebarCollapsed}
+        onToggle={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+      />
+      <div className={`main-content ${isSidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/nutrition-plan" element={<NutritionPlan />} />
+        </Routes>
       </div>
-    </Router>
+    </div>
   );
 }
 
