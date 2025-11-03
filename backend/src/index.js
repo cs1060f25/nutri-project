@@ -7,6 +7,7 @@ const authRoutes = require('./routes/authRoutes');
 const hudsRoutes = require('./routes/hudsRoutes');
 const mealLogRoutes = require('./routes/mealLogRoutes');
 const profileRoutes = require('./routes/profileRoutes');
+const nutritionPlanRoutes = require('./routes/nutritionPlanRoutes');
 const { homeData } = require('../data');
 
 // Initialize Express app
@@ -57,6 +58,9 @@ app.use('/api/meals', mealLogRoutes);
 
 // User profile routes
 app.use('/api/profile', profileRoutes);
+
+// Nutrition plan routes
+app.use('/api/nutrition-plan', nutritionPlanRoutes);
 
 // Home endpoint - returns app data
 app.get('/home', (req, res) => {
@@ -122,6 +126,12 @@ app.listen(PORT, () => {
   console.log('  GET    /api/meals/summary/:date');
   console.log('  GET    /api/profile');
   console.log('  PUT    /api/profile');
+  console.log('  POST   /api/nutrition-plan');
+  console.log('  GET    /api/nutrition-plan');
+  console.log('  GET    /api/nutrition-plan/history');
+  console.log('  GET    /api/nutrition-plan/:planId');
+  console.log('  PUT    /api/nutrition-plan/:planId');
+  console.log('  DELETE /api/nutrition-plan/:planId');
   console.log('');
 });
 

@@ -224,6 +224,94 @@ All errors follow a consistent format:
 | 429 | `RATE_LIMITED` | Too many requests |
 | 500 | `INTERNAL` | Internal server error |
 
+## Utility Scripts
+
+The backend includes several utility scripts for database management and debugging.
+
+### View Firestore Data
+
+View all users and their nutrition plans stored in Firestore:
+
+```bash
+cd backend
+node scripts/viewFirestoreData.js
+```
+
+**Output Example:**
+```
+🔍 Fetching Firestore Data...
+
+👥 Found 2 user(s)
+
+📄 User Document ID: abc123xyz
+
+User Profile:
+{
+  "email": "user@college.harvard.edu",
+  "firstName": "John",
+  "lastName": "Doe",
+  "residence": "Winthrop"
+}
+
+🍎 Nutrition Plans (1):
+
+  Plan 1 (ID: plan_abc123):
+  ├─ Preset: 🧘 Mind & Focus
+  ├─ Active: ✓
+  ├─ Metrics Tracked (5):
+  ├─    • waterIntake: 8 cups (Alert: 6 cups)
+  ├─    • caffeine: 200 mg (Alert: 400 mg)
+  └─    • protein: 150 g (Alert: 120 g)
+```
+
+**Options:**
+```bash
+# View with raw JSON data
+node scripts/viewFirestoreData.js --raw
+# or
+node scripts/viewFirestoreData.js -r
+```
+
+---
+
+### List All Users
+
+List all registered users:
+
+```bash
+cd backend
+node scripts/listUsers.js
+```
+
+---
+
+### Delete a User
+
+Delete a user by their Firebase UID:
+
+```bash
+cd backend
+node scripts/deleteUser.js <userId>
+```
+
+---
+
+### Set User Role
+
+Assign a role to a user:
+
+```bash
+cd backend
+node scripts/setUserRole.js <userId> <role>
+```
+
+**Example:**
+```bash
+node scripts/setUserRole.js abc123xyz admin
+```
+
+---
+
 ## Deployment
 
 ### Deploy to Google Cloud Run
