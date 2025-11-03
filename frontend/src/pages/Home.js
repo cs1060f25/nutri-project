@@ -2,7 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { getTodaysMenu, getLocations } from '../services/hudsService';
 import { saveMealLog } from '../services/mealLogService';
+import { getTodayProgress } from '../services/nutritionProgressService';
 import MealLogger from '../components/MealLogger';
+import NutritionProgress from '../components/NutritionProgress';
 import './Home.css';
 
 const Home = () => {
@@ -14,6 +16,8 @@ const Home = () => {
   const [error, setError] = useState(null);
   const [isMealLoggerOpen, setIsMealLoggerOpen] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [progressData, setProgressData] = useState(null);
+  const [progressLoading, setProgressLoading] = useState(true);
   const { user, accessToken } = useAuth();
 
   useEffect(() => {
@@ -38,6 +42,26 @@ const Home = () => {
     fetchData();
   }, [selectedLocation]);
 
+  // Fetch nutrition progress
+  useEffect(() => {
+    const fetchProgress = async () => {
+      if (!accessToken) return;
+      
+      try {
+        setProgressLoading(true);
+        const progress = await getTodayProgress(accessToken);
+        setProgressData(progress);
+      } catch (err) {
+        console.error('Error fetching nutrition progress:', err);
+        // Don't show error to user - just fail silently for progress
+      } finally {
+        setProgressLoading(false);
+      }
+    };
+
+    fetchProgress();
+  }, [accessToken]);
+
   const openNutritionModal = (recipe) => {
     setSelectedRecipe(recipe);
   };
@@ -56,6 +80,14 @@ const Home = () => {
       await saveMealLog(mealData, accessToken);
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3000);
+      
+      // Refresh nutrition progress after saving a meal
+      try {
+        const progress = await getTodayProgress(accessToken);
+        setProgressData(progress);
+      } catch (err) {
+        console.error('Error refreshing progress:', err);
+      }
     } catch (err) {
       console.error('Error saving meal:', err);
       throw err;
@@ -132,6 +164,9 @@ const Home = () => {
             })}
           </p>
         </div>
+
+        {/* Nutrition Progress Section */}
+        {!progressLoading && <NutritionProgress progressData={progressData} />}
 
         {/* Location Filter */}
         <div className="location-filter">
