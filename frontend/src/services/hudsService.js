@@ -37,6 +37,20 @@ export const getLocations = async () => {
 };
 
 /**
+ * Get events (meal types available) for a specific date and/or location
+ */
+export const getEvents = async (date = null, locationId = null) => {
+  const params = {};
+  if (date) {
+    params.date = date;
+  }
+  if (locationId) {
+    params.locationId = locationId;
+  }
+  return hudsRequest('/events', params);
+};
+
+/**
  * Get today's menu organized by location and meal
  */
 export const getTodaysMenu = async (locationId = null) => {
@@ -45,6 +59,19 @@ export const getTodaysMenu = async (locationId = null) => {
     params.locationId = locationId;
   }
   return hudsRequest('/menu/today', params);
+};
+
+/**
+ * Get menu for a specific date organized by location and meal
+ * @param {string} date - Date in YYYY-MM-DD format
+ * @param {string|null} locationId - Optional location ID to filter
+ */
+export const getMenuByDate = async (date, locationId = null) => {
+  const params = { date };
+  if (locationId) {
+    params.locationId = locationId;
+  }
+  return hudsRequest('/menu/date', params);
 };
 
 /**
