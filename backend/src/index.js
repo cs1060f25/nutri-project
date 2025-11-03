@@ -115,7 +115,9 @@ app.listen(PORT, () => {
   console.log('  POST   /auth/logout');
   console.log('  GET    /auth/me');
   console.log('  GET    /api/huds/locations');
+  console.log('  GET    /api/huds/events');
   console.log('  GET    /api/huds/menu/today');
+  console.log('  GET    /api/huds/menu/date');
   console.log('  GET    /api/huds/recipes');
   console.log('  GET    /api/huds/recipes/:id');
   console.log('  POST   /api/meals');
