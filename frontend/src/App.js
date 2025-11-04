@@ -5,6 +5,7 @@ import { AuthProvider } from './context/AuthContext';
 import Sidebar from './components/Sidebar';
 import Home from './pages/Home';
 import NutritionPlan from './pages/NutritionPlan';
+import Scanner from './pages/Scanner';
 import Auth from './pages/Auth';
 import ResetPassword from './pages/ResetPassword';
 import FirebaseActionHandler from './pages/FirebaseActionHandler';
@@ -46,6 +47,7 @@ function MainLayout() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/nutrition-plan" element={<NutritionPlan />} />
+          <Route path="/scanner" element={<Scanner />} />
         </Routes>
       </div>
     </div>
