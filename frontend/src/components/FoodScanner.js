@@ -42,7 +42,7 @@ const FoodScanner = () => {
       const formData = new FormData();
       formData.append('image', selectedFile);
 
-      const response = await fetch('http://localhost:3000/api/scan', {
+      const response = await fetch('/api/scan', {
         method: 'POST',
         body: formData,
       });
