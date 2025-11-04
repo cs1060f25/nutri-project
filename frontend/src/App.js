@@ -6,6 +6,7 @@ import Sidebar from './components/Sidebar';
 import Home from './pages/Home';
 import NutritionPlan from './pages/NutritionPlan';
 import Scanner from './pages/Scanner';
+import ScannerTest from './pages/ScannerTest';
 import Auth from './pages/Auth';
 import ResetPassword from './pages/ResetPassword';
 import FirebaseActionHandler from './pages/FirebaseActionHandler';
@@ -17,6 +18,7 @@ function App() {
           <AuthProvider>
             <Routes>
               <Route path="/" element={<Auth />} />
+              <Route path="/scanner-test" element={<ScannerTest />} />
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/__/auth/action" element={<FirebaseActionHandler />} />
               <Route
