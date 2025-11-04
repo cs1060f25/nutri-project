@@ -38,6 +38,9 @@
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.0",
     "@testing-library/user-event": "^14.6.1",
-    "jest-environment-jsdom": "^30.2.0"
+    "autoprefixer": "^10.4.21",
+    "jest-environment-jsdom": "^30.2.0",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^4.1.16"
   }
 }
