@@ -36,6 +36,18 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
           <line x1="9" y1="16" x2="15" y2="16"></line>
         </svg>
       )
+    },
+    {
+      id: 'insights',
+      label: 'Insights',
+      path: '/home/insights',
+      iconSvg: (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M12 20V10"></path>
+          <path d="M18 20V4"></path>
+          <path d="M6 20v-6"></path>
+        </svg>
+      )
     }
     // Future navigation items can be added here, for example:
     // { id: 'menu', label: 'Menu', path: '/menu', iconSvg: <svg>...</svg> },
@@ -115,4 +127,3 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
 };
 
 export default Sidebar;
-
