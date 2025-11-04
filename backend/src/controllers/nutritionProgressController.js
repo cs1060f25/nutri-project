@@ -35,6 +35,105 @@ const buildProgress = (consumedTotals, metrics = {}) => {
   return progress;
 };
 
+const computeTrendData = (days, metrics) => {
+  const enabledMetricKeys = Object.entries(metrics || {})
+    .filter(([, metric]) => metric.enabled)
+    .map(([key]) => key);
+
+  if (enabledMetricKeys.length === 0 || days.length === 0) {
+    return {
+      series: [],
+      metrics: {},
+      narratives: [],
+    };
+  }
+
+  const series = days.map(day => {
+    const values = {};
+    const targets = {};
+
+    enabledMetricKeys.forEach(key => {
+      values[key] = day.totalsNumeric[key] || 0;
+      targets[key] = parseFloat(metrics[key].target) || 0;
+    });
+
+    return {
+      date: day.date,
+      mealCount: day.mealCount,
+      values,
+      targets,
+    };
+  });
+
+  const metricTrends = {};
+  const narratives = [];
+  const totalMeals = days.reduce((sum, day) => sum + (day.mealCount || 0), 0);
+
+  enabledMetricKeys.forEach(key => {
+    const values = series.map(point => point.values[key] || 0);
+    const totalValue = values.reduce((sum, val) => sum + val, 0);
+    const avgPerDay = values.length ? totalValue / values.length : 0;
+    const avgPerMeal = totalMeals > 0 ? totalValue / totalMeals : 0;
+
+    const half = Math.max(1, Math.ceil(values.length / 2));
+    const firstValues = values.slice(0, half);
+    const secondValues = values.slice(values.length - half);
+
+    const firstMeals = days.slice(0, half).reduce((sum, day) => sum + (day.mealCount || 0), 0);
+    const secondMeals = days.slice(days.length - half)
+      .reduce((sum, day) => sum + (day.mealCount || 0), 0);
+
+    const firstAvgPerMeal = firstMeals > 0
+      ? firstValues.reduce((sum, val) => sum + val, 0) / firstMeals
+      : 0;
+    const secondAvgPerMeal = secondMeals > 0
+      ? secondValues.reduce((sum, val) => sum + val, 0) / secondMeals
+      : 0;
+
+    const changePerMealPercent = firstAvgPerMeal > 0
+      ? ((secondAvgPerMeal - firstAvgPerMeal) / firstAvgPerMeal) * 100
+      : 0;
+
+    let direction = 'flat';
+    if (changePerMealPercent > 5) {
+      direction = 'up';
+    } else if (changePerMealPercent < -5) {
+      direction = 'down';
+    }
+
+    metricTrends[key] = {
+      averagePerDay: avgPerDay,
+      averagePerMeal: avgPerMeal,
+      changePerMealPercent,
+      direction,
+      target: parseFloat(metrics[key].target) || 0,
+    };
+
+    const roundedChange = Math.abs(Math.round(changePerMealPercent));
+    let message;
+    if (direction === 'up') {
+      message = `Since the start of this range, your average ${key} per meal increased by ${roundedChange}%`;
+    } else if (direction === 'down') {
+      message = `Since the start of this range, your average ${key} per meal decreased by ${roundedChange}%`;
+    } else {
+      message = `Your average ${key} per meal has stayed about the same over this range`;
+    }
+
+    narratives.push({
+      metric: key,
+      direction,
+      changePercent: changePerMealPercent,
+      message,
+    });
+  });
+
+  return {
+    series,
+    metrics: metricTrends,
+    narratives,
+  };
+};
+
 /**
  * Get today's nutrition progress compared to active plan
  * GET /api/nutrition-progress/today
@@ -132,10 +231,13 @@ const getRangeProgress = async (req, res) => {
       return {
         date: summary.date,
         mealCount: summary.mealCount,
-        totals: summary.totals,
+        totalsFormatted: summary.totals,
+        totalsNumeric: consumed,
         progress,
       };
     });
+
+    const trend = computeTrendData(days, metrics);
 
     res.json({
       hasActivePlan: true,
@@ -146,6 +248,7 @@ const getRangeProgress = async (req, res) => {
       },
       days,
       meals,
+      trend,
     });
   } catch (error) {
     console.error('Error fetching range nutrition progress:', error);
