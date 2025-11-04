@@ -159,46 +159,132 @@ const FoodScanner = () => {
 
       {/* Results Card */}
       {results && (
-        <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-md p-6 space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-semibold text-gray-800 dark:text-gray-100">
-              Nutritional Analysis
-            </h2>
+        <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-lg p-6 space-y-6 border border-gray-100 dark:border-gray-800">
+          <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 pb-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center">
+                <svg className="w-6 h-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+              </div>
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                Nutritional Analysis
+              </h2>
+            </div>
             <button
               onClick={resetScanner}
-              className="text-sm text-blue-500 hover:text-blue-600 font-medium"
+              className="px-4 py-2 text-sm bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-lg transition-colors"
             >
               New Scan
             </button>
           </div>
 
-          {/* Nutrition Table */}
-          <div className="space-y-3">
-            <div className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-              <span className="text-gray-700 dark:text-gray-300 font-medium">Protein</span>
-              <span className="text-gray-900 dark:text-gray-100 font-semibold">{results.protein}g</span>
+          {/* Nutrition Grid */}
+          <div className="grid grid-cols-2 gap-4">
+            {/* Protein */}
+            <div className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 rounded-xl p-4 border border-green-200 dark:border-green-800">
+              <div className="flex items-center gap-2 mb-1">
+                <div className="w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center">
+                  <span className="text-white font-bold text-xs">P</span>
+                </div>
+                <span className="text-sm text-gray-600 dark:text-gray-400 font-medium">Protein</span>
+              </div>
+              <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                {results.protein}<span className="text-base font-normal text-gray-500 ml-1">g</span>
+              </div>
             </div>
             
-            <div className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-              <span className="text-gray-700 dark:text-gray-300 font-medium">Carbs</span>
-              <span className="text-gray-900 dark:text-gray-100 font-semibold">{results.carbs}g</span>
+            {/* Carbs */}
+            <div className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 rounded-xl p-4 border border-orange-200 dark:border-orange-800">
+              <div className="flex items-center gap-2 mb-1">
+                <div className="w-8 h-8 bg-orange-500 rounded-lg flex items-center justify-center">
+                  <span className="text-white font-bold text-xs">C</span>
+                </div>
+                <span className="text-sm text-gray-600 dark:text-gray-400 font-medium">Carbs</span>
+              </div>
+              <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                {results.carbs}<span className="text-base font-normal text-gray-500 ml-1">g</span>
+              </div>
             </div>
             
-            <div className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-              <span className="text-gray-700 dark:text-gray-300 font-medium">Fat</span>
-              <span className="text-gray-900 dark:text-gray-100 font-semibold">{results.fat}g</span>
+            {/* Fat */}
+            <div className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 rounded-xl p-4 border border-purple-200 dark:border-purple-800">
+              <div className="flex items-center gap-2 mb-1">
+                <div className="w-8 h-8 bg-purple-500 rounded-lg flex items-center justify-center">
+                  <span className="text-white font-bold text-xs">F</span>
+                </div>
+                <span className="text-sm text-gray-600 dark:text-gray-400 font-medium">Fat</span>
+              </div>
+              <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                {results.fat}<span className="text-base font-normal text-gray-500 ml-1">g</span>
+              </div>
             </div>
             
-            <div className="flex justify-between items-center p-3 bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-200 dark:border-blue-800 rounded-lg">
-              <span className="text-blue-700 dark:text-blue-300 font-bold">Total Calories</span>
-              <span className="text-blue-900 dark:text-blue-100 font-bold text-xl">{results.calories}</span>
+            {/* Calories */}
+            <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-xl p-4 border border-blue-200 dark:border-blue-800">
+              <div className="flex items-center gap-2 mb-1">
+                <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
+                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                  </svg>
+                </div>
+                <span className="text-sm text-gray-600 dark:text-gray-400 font-medium">Calories</span>
+              </div>
+              <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                {results.calories}<span className="text-base font-normal text-gray-500 ml-1">kcal</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Calorie Breakdown Bar */}
+          <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-2 font-medium uppercase tracking-wider">Calorie Distribution</p>
+            <div className="flex h-6 rounded-full overflow-hidden shadow-inner bg-gray-200 dark:bg-gray-700">
+              <div 
+                className="bg-green-500 flex items-center justify-center text-xs text-white font-semibold"
+                style={{width: `${(results.protein * 4 / results.calories * 100).toFixed(0)}%`}}
+                title={`Protein: ${(results.protein * 4 / results.calories * 100).toFixed(0)}%`}
+              >
+                {(results.protein * 4 / results.calories * 100).toFixed(0)}%
+              </div>
+              <div 
+                className="bg-orange-500 flex items-center justify-center text-xs text-white font-semibold"
+                style={{width: `${(results.carbs * 4 / results.calories * 100).toFixed(0)}%`}}
+                title={`Carbs: ${(results.carbs * 4 / results.calories * 100).toFixed(0)}%`}
+              >
+                {(results.carbs * 4 / results.calories * 100).toFixed(0)}%
+              </div>
+              <div 
+                className="bg-purple-500 flex items-center justify-center text-xs text-white font-semibold"
+                style={{width: `${(results.fat * 9 / results.calories * 100).toFixed(0)}%`}}
+                title={`Fat: ${(results.fat * 9 / results.calories * 100).toFixed(0)}%`}
+              >
+                {(results.fat * 9 / results.calories * 100).toFixed(0)}%
+              </div>
+            </div>
+            <div className="flex justify-between mt-2">
+              <div className="flex items-center gap-1">
+                <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                <span className="text-xs text-gray-600 dark:text-gray-400">Protein</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
+                <span className="text-xs text-gray-600 dark:text-gray-400">Carbs</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <div className="w-3 h-3 bg-purple-500 rounded-full"></div>
+                <span className="text-xs text-gray-600 dark:text-gray-400">Fat</span>
+              </div>
             </div>
           </div>
 
           {/* Timestamp */}
-          <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
-            Scanned at {new Date(results.timestamp).toLocaleString()}
-          </p>
+          <div className="flex items-center justify-center gap-2 text-xs text-gray-500 dark:text-gray-400 pt-2 border-t border-gray-200 dark:border-gray-700">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <span>Scanned at {new Date(results.timestamp).toLocaleString()}</span>
+          </div>
         </div>
       )}
     </div>
