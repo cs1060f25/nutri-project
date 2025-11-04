@@ -2,6 +2,10 @@ import React, { useEffect, useMemo, useState } from 'react';
 import './Insights.css';
 import { useAuth } from '../context/AuthContext';
 import { getRangeProgress } from '../services/insightsService';
+import InsightsDayCard from '../components/InsightsDayCard';
+import InsightsTrendChart from '../components/InsightsTrendChart';
+import InsightsTrendSummary from '../components/InsightsTrendSummary';
+import { getMetricName } from '../utils/nutrition';
 
 const formatDateInput = (date) => date.toISOString().split('T')[0];
 
@@ -15,72 +19,13 @@ const defaultRange = () => {
   };
 };
 
-const metricName = (key) => {
-  const map = {
-    calories: 'Calories',
-    protein: 'Protein',
-    totalFat: 'Total Fat',
-    saturatedFat: 'Saturated Fat',
-    totalCarbs: 'Total Carbs',
-    fiber: 'Fiber',
-    sugars: 'Sugars',
-    sodium: 'Sodium',
-  };
-  return map[key] || key;
-};
-
-const statusLabel = (status) => {
-  switch (status) {
-    case 'met':
-      return 'Goal met';
-    case 'close':
-      return 'Almost there';
-    default:
-      return 'Needs attention';
-  }
-};
-
-const DayProgressCard = ({ day }) => {
-  return (
-    <div className="insights-day-card">
-      <div className="insights-day-header">
-        <h3>{new Date(day.date).toLocaleDateString()}</h3>
-        <span>{day.mealCount} meals logged</span>
-      </div>
-      <div className="insights-metrics-grid">
-        {Object.entries(day.progress).map(([key, metric]) => (
-          <div key={key} className="insights-metric">
-            <div className="insights-metric-header">
-              <span className="insights-metric-name">{metricName(key)}</span>
-              <span className={`insights-status insights-status-${metric.status}`}>
-                {statusLabel(metric.status)}
-              </span>
-            </div>
-            <div className="insights-metric-bar">
-              <div
-                className="insights-metric-fill"
-                style={{ width: `${Math.min(metric.percentage, 100)}%` }}
-              />
-            </div>
-            <div className="insights-metric-info">
-              <span>
-                {Math.round(metric.current)} / {Math.round(metric.target)} {metric.unit}
-              </span>
-              <span>{metric.percentage}%</span>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-};
-
 const Insights = () => {
   const { accessToken } = useAuth();
   const [range, setRange] = useState(defaultRange);
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [selectedMetric, setSelectedMetric] = useState('');
 
   const activeRange = useMemo(() => ({
     start: range.start,
@@ -105,6 +50,22 @@ const Insights = () => {
 
     fetchData();
   }, [accessToken, activeRange]);
+
+  const metricOptions = useMemo(() => {
+    if (!data?.trend?.metrics) return [];
+    return Object.keys(data.trend.metrics);
+  }, [data]);
+
+  useEffect(() => {
+    if (!metricOptions.length) {
+      setSelectedMetric('');
+      return;
+    }
+
+    if (!selectedMetric || !metricOptions.includes(selectedMetric)) {
+      setSelectedMetric(metricOptions[0]);
+    }
+  }, [metricOptions, selectedMetric]);
 
   const handleRangeChange = (event) => {
     const { name, value } = event.target;
@@ -181,10 +142,43 @@ const Insights = () => {
         </div>
       )}
 
+      {metricOptions.length > 0 && (
+        <section className="insights-trend-section">
+          <div className="insights-trend-controls">
+            <div>
+              <h2>Progress & Trends</h2>
+              <p>Track how your goals are trending across this range.</p>
+            </div>
+            <label className="insights-metric-select">
+              Metric
+              <select
+                value={selectedMetric}
+                onChange={(event) => setSelectedMetric(event.target.value)}
+              >
+                {metricOptions.map(option => (
+                  <option key={option} value={option}>
+                    {getMetricName(option)}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+          <InsightsTrendChart
+            series={data?.trend?.series || []}
+            metricKey={selectedMetric}
+            trendMetrics={data?.trend?.metrics}
+          />
+          <InsightsTrendSummary
+            metricKey={selectedMetric}
+            trend={data?.trend}
+          />
+        </section>
+      )}
+
       {hasData ? (
         <section className="insights-days">
           {data.days.map(day => (
-            <DayProgressCard key={day.date} day={day} />
+            <InsightsDayCard key={day.date} day={day} />
           ))}
         </section>
       ) : (
@@ -199,4 +193,3 @@ const Insights = () => {
 };
 
 export default Insights;
-
