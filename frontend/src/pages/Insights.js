@@ -5,6 +5,7 @@ import { getRangeProgress } from '../services/insightsService';
 import InsightsDayCard from '../components/InsightsDayCard';
 import InsightsTrendChart from '../components/InsightsTrendChart';
 import InsightsTrendSummary from '../components/InsightsTrendSummary';
+import InsightsMealTable from '../components/InsightsMealTable';
 import { getMetricName } from '../utils/nutrition';
 
 const formatDateInput = (date) => date.toISOString().split('T')[0];
@@ -200,6 +201,16 @@ const Insights = () => {
         <div className="insights-empty">
           <p>No meals logged for this date range yet. Log meals to see your progress.</p>
         </div>
+      )}
+
+      {data?.meals && data.meals.length > 0 && (
+        <section className="insights-table-section">
+          <div className="insights-table-header">
+            <h2>Meal History</h2>
+            <p>Review every meal you logged in this range with full nutrition details.</p>
+          </div>
+          <InsightsMealTable meals={data.meals} />
+        </section>
       )}
     </div>
   );
