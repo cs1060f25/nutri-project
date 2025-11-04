@@ -11,6 +11,19 @@ const parseNutrient = (value) => {
   return isNaN(num) ? 0 : num;
 };
 
+const metricDisplayNames = {
+  calories: 'Calories',
+  protein: 'Protein',
+  totalFat: 'Total Fat',
+  saturatedFat: 'Saturated Fat',
+  totalCarbs: 'Total Carbohydrates',
+  fiber: 'Fiber',
+  sugars: 'Sugars',
+  sodium: 'Sodium',
+};
+
+const getMetricDisplayName = (key) => metricDisplayNames[key] || key;
+
 const buildProgress = (consumedTotals, metrics = {}) => {
   const progress = {};
 
@@ -134,6 +147,64 @@ const computeTrendData = (days, metrics) => {
   };
 };
 
+const computeStreak = (dailySummaries, rangeStart, rangeEnd) => {
+  if (!dailySummaries || dailySummaries.length === 0) return 0;
+
+  const dateMap = new Map();
+  dailySummaries.forEach(summary => {
+    dateMap.set(summary.date, summary.mealCount);
+  });
+
+  const endDate = new Date(rangeEnd);
+  const startDate = new Date(rangeStart);
+  if (Number.isNaN(endDate.getTime()) || Number.isNaN(startDate.getTime())) {
+    return 0;
+  }
+
+  let streak = 0;
+  const current = new Date(endDate);
+
+  while (current >= startDate) {
+    const key = current.toISOString().split('T')[0];
+    const mealCount = dateMap.get(key) || 0;
+    if (mealCount > 0) {
+      streak += 1;
+    } else {
+      break;
+    }
+    current.setDate(current.getDate() - 1);
+  }
+
+  return streak;
+};
+
+const buildCallToAction = (day, metrics) => {
+  if (!day || !metrics) return null;
+
+  const unmet = Object.entries(day.progress || {})
+    .filter(([, metric]) => metric.status === 'below')
+    .map(([key]) => ({
+      key,
+      display: metrics[key]?.displayName || getMetricDisplayName(key),
+    }));
+
+  if (unmet.length === 0) {
+    return null;
+  }
+
+  const macroNames = unmet.map(item => item.display || item.name || item.key);
+  const macroList = macroNames.join(', ');
+  const message =
+    day.mealCount >= 3
+      ? `Tomorrow make sure you hit ${macroList} to close the gap.`
+      : `For your next meal focus on ${macroList} to stay on track.`;
+
+  return {
+    message,
+    macros: macroNames,
+  };
+};
+
 /**
  * Get today's nutrition progress compared to active plan
  * GET /api/nutrition-progress/today
@@ -214,6 +285,15 @@ const getRangeProgress = async (req, res) => {
 
     const metrics = activePlan.metrics || {};
 
+    const metricMetadata = {};
+    Object.entries(metrics).forEach(([key, metric]) => {
+      metricMetadata[key] = {
+        unit: metric.unit,
+        target: metric.target,
+        displayName: getMetricDisplayName(key),
+      };
+    });
+
     const days = dailySummaries.map(summary => {
       const consumed = {
         calories: parseNutrient(summary.totals.calories),
@@ -234,14 +314,20 @@ const getRangeProgress = async (req, res) => {
         totalsFormatted: summary.totals,
         totalsNumeric: consumed,
         progress,
+        callToAction: buildCallToAction(
+          { mealCount: summary.mealCount, progress },
+          metricMetadata
+        ),
       };
     });
 
     const trend = computeTrendData(days, metrics);
+    const streak = computeStreak(dailySummaries, start, end);
 
     res.json({
       hasActivePlan: true,
       planName: activePlan.presetName || 'Custom Plan',
+      planId: activePlan.id,
       range: {
         start,
         end,
@@ -249,6 +335,7 @@ const getRangeProgress = async (req, res) => {
       days,
       meals,
       trend,
+      streak,
     });
   } catch (error) {
     console.error('Error fetching range nutrition progress:', error);
