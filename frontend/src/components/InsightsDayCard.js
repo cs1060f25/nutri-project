@@ -34,6 +34,12 @@ const InsightsDayCard = ({ day }) => {
           </div>
         ))}
       </div>
+      {day.callToAction && (
+        <div className="insights-cta">
+          <strong>Keep in mind:</strong>
+          <span>{day.callToAction.message}</span>
+        </div>
+      )}
     </div>
   );
 };

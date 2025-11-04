@@ -23,6 +23,18 @@
   color: #475569;
 }
 
+.insights-plan-pill {
+  margin-top: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: #ecfdf5;
+  color: #047857;
+  font-size: 14px;
+}
+
 .insights-range-form {
   display: flex;
   align-items: flex-end;
@@ -73,6 +85,15 @@
   border: 1px dashed #cbd5f5;
   color: #475569;
   text-align: center;
+}
+
+.insights-streak-card {
+  padding: 16px 20px;
+  border-radius: 12px;
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  color: #9a3412;
+  font-weight: 600;
 }
 
 .insights-days {
@@ -172,6 +193,17 @@
   justify-content: space-between;
   color: #475569;
   font-size: 13px;
+}
+
+.insights-cta {
+  margin-top: 16px;
+  padding: 12px;
+  border-radius: 10px;
+  background: #f1f5f9;
+  color: #1e293b;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .insights-trend-section {

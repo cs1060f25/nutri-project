@@ -99,6 +99,11 @@ const Insights = () => {
         <div>
           <h1>Insights</h1>
           <p>Compare your nutrition progress across a custom date range.</p>
+          {data?.planName && (
+            <div className="insights-plan-pill">
+              Active plan: <strong>{data.planName}</strong>
+            </div>
+          )}
         </div>
 
         <form className="insights-range-form" onSubmit={handleApplyRange}>
@@ -134,6 +139,14 @@ const Insights = () => {
 
       {loading && !data && (
         <div className="insights-loading">Loading progress...</div>
+      )}
+
+      {!loading && data?.streak !== undefined && (
+        <div className="insights-streak-card">
+          {data.streak > 0
+            ? <>You logged meals {data.streak} day{data.streak === 1 ? '' : 's'} in a row 🔥</>
+            : <>No streak yet. Log today’s meals to start one!</>}
+        </div>
       )}
 
       {data?.hasActivePlan === false && (
