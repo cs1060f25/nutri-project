@@ -7,6 +7,7 @@ const authRoutes = require('./routes/authRoutes');
 const hudsRoutes = require('./routes/hudsRoutes');
 const mealLogRoutes = require('./routes/mealLogRoutes');
 const profileRoutes = require('./routes/profileRoutes');
+const scanRoutes = require('./routes/scanRoutes');
 const nutritionPlanRoutes = require('./routes/nutritionPlanRoutes');
 const nutritionProgressRoutes = require('./routes/nutritionProgressRoutes');
 const { homeData } = require('../data');
@@ -59,6 +60,9 @@ app.use('/api/meals', mealLogRoutes);
 
 // User profile routes
 app.use('/api/profile', profileRoutes);
+
+// Food scanner route
+app.use('/api/scan', scanRoutes);
 
 // Nutrition plan routes
 app.use('/api/nutrition-plan', nutritionPlanRoutes);
