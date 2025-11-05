@@ -5,15 +5,27 @@ const NutritionProgress = ({ progressData }) => {
   if (!progressData || !progressData.hasActivePlan) {
     return (
       <div className="nutrition-progress-card">
-        <h2 className="progress-title">Today's Nutrition</h2>
-        <p className="no-plan-message">
-          No active nutrition plan. Create one in the Nutrition Plan page to track your daily goals!
-        </p>
+        <div className="card-header">
+          <svg className="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+          </svg>
+          <h2 className="progress-title">Today's Progress</h2>
+        </div>
+        <div className="no-plan-content">
+          <svg className="no-plan-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M12 16v-4"/>
+            <path d="M12 8h.01"/>
+          </svg>
+          <p className="no-plan-message">
+            No active nutrition plan. Create one in the Nutrition Plan page to start tracking your daily goals!
+          </p>
+        </div>
       </div>
     );
   }
 
-  const { planName, mealCount, progress } = progressData;
+  const { mealCount, progress } = progressData;
 
   // Helper to format numbers
   const formatNumber = (num) => {
@@ -24,70 +36,112 @@ const NutritionProgress = ({ progressData }) => {
   const getStatusColor = (status) => {
     switch (status) {
       case 'met':
-        return '#4caf50'; // green
+        return '#52b788'; // green
       case 'close':
-        return '#ff9800'; // orange
+        return '#95d5b2'; // light green
       default:
-        return '#2196f3'; // blue
+        return '#b7e4c7'; // very light green
     }
+  };
+
+  // Helper to create SVG circle path
+  const getCircleProps = (percentage) => {
+    const radius = 36;
+    const circumference = 2 * Math.PI * radius;
+    const offset = circumference - (Math.min(percentage, 100) / 100) * circumference;
+    return { circumference, offset };
   };
 
   return (
     <div className="nutrition-progress-card">
-      <div className="progress-header">
-        <h2 className="progress-title">Today's Nutrition</h2>
-        <span className="plan-badge">{planName}</span>
-      </div>
-      
-      <div className="progress-stats">
-        <div className="stat-item">
-          <span className="stat-label">Meals Logged</span>
-          <span className="stat-value">{mealCount}</span>
+      <div className="card-header">
+        <svg className="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+        </svg>
+        <h2 className="progress-title">Today's Progress</h2>
+        <div className="meals-stat">
+          <svg className="meal-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2M7 2v20M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3z"/>
+          </svg>
+          <div className="meal-info">
+            <span className="meal-count">{mealCount}</span>
+            <span className="meal-label">Meals</span>
+          </div>
         </div>
       </div>
 
-      <div className="progress-metrics">
-        {Object.keys(progress).length === 0 ? (
+      {Object.keys(progress).length === 0 ? (
+        <div className="no-meals-content">
+          <svg className="no-meals-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M12 8v4M12 16h.01"/>
+          </svg>
           <p className="no-meals-message">
             No meals logged today. Use the + button to log your meals!
           </p>
-        ) : (
-          Object.entries(progress).map(([key, metric]) => (
-            <div key={key} className="metric-row">
-              <div className="metric-header">
-                <span className="metric-name">{formatMetricName(key)}</span>
-                <span className="metric-values">
-                  <strong>{formatNumber(metric.current)}</strong>
-                  <span className="metric-separator">/</span>
-                  <span>{formatNumber(metric.target)} {metric.unit}</span>
-                </span>
-              </div>
-              
-              <div className="progress-bar-container">
-                <div
-                  className="progress-bar-fill"
-                  style={{
-                    width: `${Math.min(metric.percentage, 100)}%`,
-                    backgroundColor: getStatusColor(metric.status),
-                  }}
-                />
-              </div>
-              
-              <div className="metric-footer">
-                <span className="percentage-text">{metric.percentage}%</span>
-                {metric.remaining > 0 && (
-                  <span className="remaining-text">
-                    {formatNumber(metric.remaining)} {metric.unit} remaining
+        </div>
+      ) : (
+        <div className="progress-circles-grid">
+          {Object.entries(progress).map(([key, metric]) => {
+            const { circumference, offset } = getCircleProps(metric.percentage);
+            const color = getStatusColor(metric.status);
+            
+            return (
+              <div key={key} className="circle-metric">
+                <div className="circle-container">
+                  <svg className="progress-circle" viewBox="0 0 80 80">
+                    {/* Background circle */}
+                    <circle
+                      className="circle-bg"
+                      cx="40"
+                      cy="40"
+                      r="36"
+                      fill="none"
+                      stroke="#e8f5e9"
+                      strokeWidth="6"
+                    />
+                    {/* Progress circle */}
+                    <circle
+                      className="circle-progress"
+                      cx="40"
+                      cy="40"
+                      r="36"
+                      fill="none"
+                      stroke={color}
+                      strokeWidth="6"
+                      strokeDasharray={circumference}
+                      strokeDashoffset={offset}
+                      strokeLinecap="round"
+                      transform="rotate(-90 40 40)"
+                    />
+                  </svg>
+                  <div className="circle-center">
+                    <span className="circle-percentage">{metric.percentage}%</span>
+                  </div>
+                </div>
+                <div className="metric-details">
+                  <span className="metric-name">{formatMetricName(key)}</span>
+                  <span className="metric-values">
+                    <strong>{formatNumber(metric.current)}</strong>
+                    <span className="separator">/</span>
+                    <span className="target">{formatNumber(metric.target)}</span>
+                    <span className="unit">{metric.unit}</span>
                   </span>
-                )}
-                {metric.status === 'met' && (
-                  <span className="status-badge status-met">✓ Goal met!</span>
-                )}
+                  {metric.remaining > 0 ? (
+                    <span className="remaining-badge">
+                      {formatNumber(metric.remaining)} {metric.unit} left
+                    </span>
+                  ) : (
+                    <span className="goal-met-badge">
+                      ✓ Goal met!
+                    </span>
+                  )}
+                </div>
               </div>
-            </div>
-          ))
-        )}
-      </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 };
