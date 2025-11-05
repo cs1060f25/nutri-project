@@ -710,12 +710,41 @@ const Home = () => {
       }
 
       const response = await generateMealSuggestion(menuItems, suggestionMealType, accessToken);
-      setSuggestionData(response.suggestion);
+      
+      // The backend returns { success: true, suggestion: {...}, rawResponse: "..." }
+      // The backend now validates and returns the correct structure
+      const parsedSuggestion = response.suggestion;
+      
+      // Validate the response structure
+      if (!parsedSuggestion || typeof parsedSuggestion !== 'object' || Array.isArray(parsedSuggestion)) {
+        console.error('Invalid suggestion format:', parsedSuggestion);
+        setSuggestionError('Invalid AI suggestion format. Please try again.');
+        return;
+      }
+      
+      // Ensure we have the expected fields
+      if (!parsedSuggestion.explanation || typeof parsedSuggestion.explanation !== 'string') {
+        console.error('Suggestion missing explanation field:', parsedSuggestion);
+        setSuggestionError('Invalid AI suggestion format. Please try again.');
+        return;
+      }
+      
+      if (!Array.isArray(parsedSuggestion.suggestedItems)) {
+        console.error('Suggestion missing suggestedItems array:', parsedSuggestion);
+        parsedSuggestion.suggestedItems = [];
+      }
+      
+      if (!parsedSuggestion.expectedNutrition || typeof parsedSuggestion.expectedNutrition !== 'object') {
+        console.error('Suggestion missing expectedNutrition:', parsedSuggestion);
+        parsedSuggestion.expectedNutrition = {};
+      }
+      
+      setSuggestionData(parsedSuggestion);
 
       // Match suggested items with actual menu items
       const matchedItems = [];
-      if (response.suggestion.suggestedItems && Array.isArray(response.suggestion.suggestedItems)) {
-        response.suggestion.suggestedItems.forEach(suggested => {
+      if (parsedSuggestion.suggestedItems && Array.isArray(parsedSuggestion.suggestedItems)) {
+        parsedSuggestion.suggestedItems.forEach(suggested => {
           // Try to find matching menu item by name
           const matched = menuItems.find(item => {
             const itemName = (item.Recipe_Print_As_Name || item.Recipe_Name || '').toLowerCase();
@@ -752,8 +781,8 @@ const Home = () => {
         }
       };
 
-      if (response.suggestion.expectedNutrition) {
-        const expected = response.suggestion.expectedNutrition;
+      if (parsedSuggestion.expectedNutrition) {
+        const expected = parsedSuggestion.expectedNutrition;
         const hypotheticalMeal = {
           calories: evaluateFormula(expected.calories || 0),
           protein: evaluateFormula(expected.protein || 0),
@@ -1152,15 +1181,19 @@ const Home = () => {
               )}
 
               {/* Suggestion Results - Displayed within the same card */}
-              {suggestionData && (
+              {suggestionData && typeof suggestionData === 'object' && !Array.isArray(suggestionData) && (
                 <div className="suggestion-results-in-card">
                   <div className="suggestion-divider"></div>
                   
-                  {/* AI Summary */}
-                  {suggestionData.explanation && (
+                  {/* AI Summary - Show a concise 2-3 sentence summary */}
+                  {suggestionData.explanation && typeof suggestionData.explanation === 'string' && (
                     <div className="suggestion-summary">
                       <h4 className="suggestion-summary-title">AI Recommendation</h4>
-                      <p className="suggestion-summary-text">{suggestionData.explanation}</p>
+                      <p className="suggestion-summary-text">
+                        {suggestionData.explanation.length > 500 
+                          ? suggestionData.explanation.substring(0, 500) + '...' 
+                          : suggestionData.explanation}
+                      </p>
                     </div>
                   )}
 
