@@ -25,7 +25,7 @@ const NutritionProgress = ({ progressData }) => {
     );
   }
 
-  const { planName, mealCount, progress } = progressData;
+  const { mealCount, progress } = progressData;
 
   // Helper to format numbers
   const formatNumber = (num) => {
