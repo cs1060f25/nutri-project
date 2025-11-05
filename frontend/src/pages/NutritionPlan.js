@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import './NutritionPlan.css';
 import { createNutritionPlan, getActiveNutritionPlan, updateNutritionPlan } from '../services/nutritionPlanService';
 
@@ -11,6 +11,8 @@ const NutritionPlan = () => {
   const [error, setError] = useState(null);
   const [isEditMode, setIsEditMode] = useState(false);
   const [justSaved, setJustSaved] = useState(false);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef(null);
 
   // Load existing nutrition plan on component mount
   useEffect(() => {
@@ -136,6 +138,7 @@ const NutritionPlan = () => {
 
   const handlePresetChange = (presetKey) => {
     setSelectedPreset(presetKey);
+    setIsDropdownOpen(false);
     if (presetKey && presets[presetKey]) {
       const newMetrics = {};
       console.log('Loading preset:', presetKey);
@@ -164,6 +167,27 @@ const NutritionPlan = () => {
       console.log('Clearing metrics for custom preset');
       setMetrics({});
     }
+  };
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  // Get display text for selected preset
+  const getSelectedPresetDisplay = () => {
+    if (!selectedPreset) return '✨ Custom - Build from scratch';
+    const preset = presets[selectedPreset];
+    return `${preset.name} - ${preset.description}`;
   };
 
   const handleMetricToggle = (metricId, defaultUnit) => {
@@ -381,26 +405,54 @@ const NutritionPlan = () => {
             <h2 className="section-title">📋 Quick Start with Preset Goals</h2>
             <p className="section-description">Choose a nutrition goal to auto-populate recommended daily targets</p>
             
-            <div className="preset-grid">
-              <div 
-                className={`preset-card ${selectedPreset === '' ? 'selected' : ''}`}
-                onClick={() => handlePresetChange('')}
-              >
-                <div className="preset-icon">✨</div>
-                <h3>Custom</h3>
-                <p>Build from scratch</p>
-              </div>
-              {Object.entries(presets).map(([key, preset]) => (
-                <div
-                  key={key}
-                  className={`preset-card ${selectedPreset === key ? 'selected' : ''}`}
-                  onClick={() => handlePresetChange(key)}
+            <div className="preset-select-container">
+              <label className="preset-label">
+                🎯 Select Preset:
+              </label>
+              <div className="custom-select-wrapper" ref={dropdownRef}>
+                <button
+                  type="button"
+                  className="custom-select-trigger"
+                  onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                  aria-haspopup="listbox"
+                  aria-expanded={isDropdownOpen}
                 >
-                  <div className="preset-icon">{preset.name.split(' ')[0]}</div>
-                  <h3>{preset.name.substring(2)}</h3>
-                  <p>{preset.description}</p>
-                </div>
-              ))}
+                  <span className="selected-value">{getSelectedPresetDisplay()}</span>
+                  <span className={`dropdown-arrow ${isDropdownOpen ? 'open' : ''}`}>▼</span>
+                </button>
+                
+                {isDropdownOpen && (
+                  <div className="custom-select-dropdown" role="listbox">
+                    <div
+                      className={`custom-select-option ${selectedPreset === '' ? 'selected' : ''}`}
+                      onClick={() => handlePresetChange('')}
+                      role="option"
+                      aria-selected={selectedPreset === ''}
+                    >
+                      <span className="option-icon">✨</span>
+                      <div className="option-content">
+                        <div className="option-title">Custom</div>
+                        <div className="option-description">Build from scratch</div>
+                      </div>
+                    </div>
+                    {Object.entries(presets).map(([key, preset]) => (
+                      <div
+                        key={key}
+                        className={`custom-select-option ${selectedPreset === key ? 'selected' : ''}`}
+                        onClick={() => handlePresetChange(key)}
+                        role="option"
+                        aria-selected={selectedPreset === key}
+                      >
+                        <span className="option-icon">{preset.name.split(' ')[0]}</span>
+                        <div className="option-content">
+                          <div className="option-title">{preset.name.substring(2)}</div>
+                          <div className="option-description">{preset.description}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
