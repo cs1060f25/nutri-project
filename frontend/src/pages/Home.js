@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { getTodaysMenu, getLocations } from '../services/hudsService';
 import { saveMealLog } from '../services/mealLogService';
 import { getTodayProgress } from '../services/nutritionProgressService';
+import { generateMealSuggestion } from '../services/mealSuggestionService';
 import MealLogger from '../components/MealLogger';
 import NutritionProgress from '../components/NutritionProgress';
 import './Home.css';
@@ -65,6 +66,15 @@ const Home = () => {
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [progressData, setProgressData] = useState(null);
   const [progressLoading, setProgressLoading] = useState(true);
+  const [suggestionLocation, setSuggestionLocation] = useState('');
+  const [suggestionMealType, setSuggestionMealType] = useState('');
+  const [suggestionMenuData, setSuggestionMenuData] = useState([]);
+  const [suggestionMenuLoading, setSuggestionMenuLoading] = useState(false);
+  const [suggestionLoading, setSuggestionLoading] = useState(false);
+  const [suggestionError, setSuggestionError] = useState(null);
+  const [suggestionData, setSuggestionData] = useState(null);
+  const [suggestedItems, setSuggestedItems] = useState([]);
+  const [hypotheticalMeals, setHypotheticalMeals] = useState([]);
   const { accessToken } = useAuth();
 
   // Fetch locations on mount and expand paired houses
@@ -228,6 +238,98 @@ const Home = () => {
 
     fetchMenu();
   }, [selectedLocation, expandedLocations, findLocationById, parseLocationId]);
+
+  // Fetch menu for suggestion location when it's selected
+  useEffect(() => {
+    const fetchSuggestionMenu = async () => {
+      if (!suggestionLocation || expandedLocations.length === 0) {
+        setSuggestionMenuData([]);
+        setSuggestionMealType(''); // Reset meal type when location changes
+        return;
+      }
+
+      try {
+        setSuggestionMenuLoading(true);
+        
+        // Find the selected location details
+        const selectedLocationObj = findLocationById(suggestionLocation);
+        
+        if (!selectedLocationObj) {
+          setSuggestionMenuData([]);
+          return;
+        }
+
+        // Check if this is one of the 11 shared-menu houses (excluding Quincy)
+        const isSharedMenuHouse = SHARED_MENU_HOUSES.some(house => 
+          selectedLocationObj.location_name.includes(house) || 
+          selectedLocationObj.original_name.includes(house)
+        );
+
+        let allMenus = [];
+        
+        if (isSharedMenuHouse) {
+          // For shared-menu houses, fetch menus for ALL 11 of them
+          const sharedHouseLocationNumbers = new Set();
+          
+          expandedLocations.forEach(loc => {
+            const isShared = SHARED_MENU_HOUSES.some(house => 
+              loc.location_name.includes(house) || 
+              loc.original_name.includes(house)
+            );
+            if (isShared) {
+              sharedHouseLocationNumbers.add(loc.location_number);
+            }
+          });
+
+          // Fetch menus for all shared houses in parallel
+          const menuPromises = Array.from(sharedHouseLocationNumbers).map(locNum => 
+            getTodaysMenu(locNum).catch(err => {
+              console.warn(`Failed to fetch menu for location ${locNum}:`, err);
+              return []; // Return empty array on error
+            })
+          );
+          
+          const menuResults = await Promise.all(menuPromises);
+          
+          // Flatten and aggregate all menus
+          allMenus = menuResults.flat();
+          
+          // Remove duplicates by locationNumber
+          const uniqueMenus = new Map();
+          allMenus.forEach(location => {
+            const key = location.locationNumber;
+            if (!uniqueMenus.has(key)) {
+              uniqueMenus.set(key, location);
+            } else {
+              // Merge meals if location already exists
+              const existing = uniqueMenus.get(key);
+              if (location.meals && existing.meals) {
+                existing.meals = { ...existing.meals, ...location.meals };
+              }
+            }
+          });
+          
+          allMenus = Array.from(uniqueMenus.values());
+        } else {
+          // For non-shared houses (like Quincy), just fetch their specific menu
+          const parsed = parseLocationId(suggestionLocation);
+          const locationNumber = parsed ? parsed.location_number : suggestionLocation;
+          const menu = await getTodaysMenu(locationNumber);
+          allMenus = menu;
+        }
+
+        setSuggestionMenuData(allMenus);
+        setSuggestionMealType(''); // Reset meal type when new menu loads
+      } catch (err) {
+        console.error('Error fetching suggestion menu:', err);
+        setSuggestionMenuData([]);
+      } finally {
+        setSuggestionMenuLoading(false);
+      }
+    };
+
+    fetchSuggestionMenu();
+  }, [suggestionLocation, expandedLocations, findLocationById, parseLocationId]);
 
   // Fetch nutrition progress
   useEffect(() => {
@@ -450,6 +552,380 @@ const Home = () => {
 
   const filteredMenu = getFilteredMenu();
 
+  // Get available meal types for suggestion card
+  const getSuggestionMealTypes = () => {
+    if (!suggestionLocation || !suggestionMenuData.length) return [];
+
+    // Find the selected location details
+    const selectedLocationObj = findLocationById(suggestionLocation);
+    
+    if (!selectedLocationObj) return [];
+
+    const isSharedMenuHouse = SHARED_MENU_HOUSES.some(house => 
+      selectedLocationObj.location_name.includes(house) || 
+      selectedLocationObj.original_name.includes(house)
+    );
+
+    if (isSharedMenuHouse) {
+      // For shared menu houses, get meals from ALL aggregated menus
+      const allSharedHousesMeals = new Set();
+      
+      suggestionMenuData.forEach(location => {
+        if (location.meals) {
+          Object.values(location.meals).forEach(meal => {
+            const normalized = normalizeMealName(meal.mealName);
+            allSharedHousesMeals.add(normalized);
+          });
+        }
+      });
+
+      // Convert to array and standardize names
+      const meals = Array.from(allSharedHousesMeals);
+      const standardMeals = [];
+      
+      if (meals.some(m => m === 'breakfast')) standardMeals.push('Breakfast');
+      if (meals.some(m => m === 'lunch')) standardMeals.push('Lunch');
+      if (meals.some(m => m === 'dinner')) standardMeals.push('Dinner');
+      if (meals.some(m => m === 'brunch')) standardMeals.push('Brunch');
+      
+      return standardMeals;
+    } else {
+      // For non-shared houses, get meals from their specific menu
+      const mealsSet = new Set();
+      const parsed = parseLocationId(suggestionLocation);
+      const locationNumber = parsed ? parsed.location_number : null;
+      
+      suggestionMenuData.forEach(location => {
+        if (location.locationNumber === locationNumber && location.meals) {
+          Object.values(location.meals).forEach(meal => {
+            const normalized = normalizeMealName(meal.mealName);
+            mealsSet.add(normalized);
+          });
+        }
+      });
+
+      const meals = Array.from(mealsSet);
+      const standardMeals = [];
+      
+      if (meals.some(m => m === 'breakfast')) standardMeals.push('Breakfast');
+      if (meals.some(m => m === 'lunch')) standardMeals.push('Lunch');
+      if (meals.some(m => m === 'dinner')) standardMeals.push('Dinner');
+      if (meals.some(m => m === 'brunch')) standardMeals.push('Brunch');
+      
+      return standardMeals.length > 0 ? standardMeals : [];
+    }
+  };
+
+  // Get menu items for suggestion
+  const getMenuItemsForSuggestion = () => {
+    if (!suggestionLocation || !suggestionMealType || !suggestionMenuData.length) return [];
+    
+    const normalizedSelected = normalizeMealName(suggestionMealType);
+    
+    // Find the selected location details
+    const selectedLocationObj = findLocationById(suggestionLocation);
+    
+    if (!selectedLocationObj) return [];
+    
+    const isSharedMenuHouse = SHARED_MENU_HOUSES.some(house => 
+      selectedLocationObj.location_name.includes(house) || 
+      selectedLocationObj.original_name.includes(house)
+    );
+    
+    const allItems = [];
+    
+    if (isSharedMenuHouse) {
+      // For shared houses, aggregate all meals from all locations
+      suggestionMenuData.forEach(location => {
+        if (location.meals) {
+          Object.values(location.meals).forEach(meal => {
+            const normalizedMealName = normalizeMealName(meal.mealName);
+            if (normalizedMealName === normalizedSelected && meal.categories) {
+              Object.values(meal.categories).forEach(category => {
+                if (category.recipes) {
+                  category.recipes.forEach(recipe => {
+                    // Avoid duplicates by recipe ID
+                    if (!allItems.some(item => item.ID === recipe.ID)) {
+                      allItems.push(recipe);
+                    }
+                  });
+                }
+              });
+            }
+          });
+        }
+      });
+    } else {
+      // For non-shared houses, use the specific location's menu
+      const parsed = parseLocationId(suggestionLocation);
+      const locationNumber = parsed ? parsed.location_number : null;
+      
+      suggestionMenuData.forEach(location => {
+        if (location.locationNumber === locationNumber && location.meals) {
+          Object.values(location.meals).forEach(meal => {
+            const normalizedMealName = normalizeMealName(meal.mealName);
+            if (normalizedMealName === normalizedSelected && meal.categories) {
+              Object.values(meal.categories).forEach(category => {
+                if (category.recipes) {
+                  category.recipes.forEach(recipe => {
+                    if (!allItems.some(item => item.ID === recipe.ID)) {
+                      allItems.push(recipe);
+                    }
+                  });
+                }
+              });
+            }
+          });
+        }
+      });
+    }
+    
+    return allItems;
+  };
+
+  // Handle getting meal suggestion
+  const handleGetSuggestion = async () => {
+    if (!suggestionLocation || !suggestionMealType) {
+      setSuggestionError('Please select both dining hall and meal type');
+      return;
+    }
+
+    if (!accessToken) {
+      setSuggestionError('Please log in to get meal suggestions');
+      return;
+    }
+
+    try {
+      setSuggestionLoading(true);
+      setSuggestionError(null);
+      setSuggestionData(null);
+      setSuggestedItems([]);
+
+      const menuItems = getMenuItemsForSuggestion();
+      if (menuItems.length === 0) {
+        setSuggestionError('No menu items available for this selection');
+        setSuggestionLoading(false);
+        return;
+      }
+
+      const response = await generateMealSuggestion(menuItems, suggestionMealType, accessToken);
+      
+      // The backend returns { success: true, suggestion: {...}, rawResponse: "..." }
+      // The backend now validates and returns the correct structure
+      const parsedSuggestion = response.suggestion;
+      
+      // Validate the response structure
+      if (!parsedSuggestion || typeof parsedSuggestion !== 'object' || Array.isArray(parsedSuggestion)) {
+        console.error('Invalid suggestion format:', parsedSuggestion);
+        setSuggestionError('Invalid AI suggestion format. Please try again.');
+        return;
+      }
+      
+      // Ensure we have the expected fields
+      if (!parsedSuggestion.explanation || typeof parsedSuggestion.explanation !== 'string') {
+        console.error('Suggestion missing explanation field:', parsedSuggestion);
+        setSuggestionError('Invalid AI suggestion format. Please try again.');
+        return;
+      }
+      
+      if (!Array.isArray(parsedSuggestion.suggestedItems)) {
+        console.error('Suggestion missing suggestedItems array:', parsedSuggestion);
+        parsedSuggestion.suggestedItems = [];
+      }
+      
+      if (!parsedSuggestion.expectedNutrition || typeof parsedSuggestion.expectedNutrition !== 'object') {
+        console.error('Suggestion missing expectedNutrition:', parsedSuggestion);
+        parsedSuggestion.expectedNutrition = {};
+      }
+      
+      setSuggestionData(parsedSuggestion);
+
+      // Match suggested items with actual menu items
+      const matchedItems = [];
+      if (parsedSuggestion.suggestedItems && Array.isArray(parsedSuggestion.suggestedItems)) {
+        parsedSuggestion.suggestedItems.forEach(suggested => {
+          // Try to find matching menu item by name
+          const matched = menuItems.find(item => {
+            const itemName = (item.Recipe_Print_As_Name || item.Recipe_Name || '').toLowerCase();
+            const suggestedName = (suggested.itemName || '').toLowerCase();
+            return itemName.includes(suggestedName) || suggestedName.includes(itemName);
+          });
+          
+          if (matched) {
+            matchedItems.push({
+              ...matched,
+              suggestedPortion: suggested.portion,
+              reasoning: suggested.reasoning,
+            });
+          }
+        });
+      }
+      
+      setSuggestedItems(matchedItems);
+
+      // Calculate hypothetical nutrition
+      // Helper function to evaluate formulas like "156 + 38 + 19 + 90"
+      const evaluateFormula = (value) => {
+        if (typeof value === 'number') return value;
+        if (typeof value !== 'string') return 0;
+        try {
+          // Remove any non-numeric, non-operator characters except + and -
+          const cleaned = value.replace(/[^0-9+\-.\s]/g, '');
+          // Safely evaluate simple addition/subtraction by splitting and summing
+          const parts = cleaned.split(/[\s+]+/).filter(part => part.trim());
+          let result = 0;
+          for (const part of parts) {
+            const trimmed = part.trim();
+            if (trimmed) {
+              const num = parseFloat(trimmed);
+              if (!isNaN(num)) {
+                result += num;
+              }
+            }
+          }
+          return result;
+        } catch (e) {
+          // If evaluation fails, try to parse as number
+          const num = parseFloat(value);
+          return isNaN(num) ? 0 : num;
+        }
+      };
+
+      if (parsedSuggestion.expectedNutrition) {
+        const expected = parsedSuggestion.expectedNutrition;
+        const hypotheticalMeal = {
+          calories: evaluateFormula(expected.calories || 0),
+          protein: evaluateFormula(expected.protein || 0),
+          totalFat: evaluateFormula(expected.totalFat || 0),
+          saturatedFat: evaluateFormula(expected.saturatedFat || 0),
+          totalCarb: evaluateFormula(expected.totalCarbs || expected.totalCarb || 0),
+          dietaryFiber: evaluateFormula(expected.fiber || expected.dietaryFiber || 0),
+          sugars: evaluateFormula(expected.sugars || 0),
+          sodium: evaluateFormula(expected.sodium || 0),
+        };
+        setHypotheticalMeals([hypotheticalMeal]);
+      }
+    } catch (err) {
+      console.error('Error getting meal suggestion:', err);
+      setSuggestionError(err.message || 'Failed to generate meal suggestion');
+    } finally {
+      setSuggestionLoading(false);
+    }
+  };
+
+  // Clear hypothetical meals
+  const handleClearHypothetical = () => {
+    setHypotheticalMeals([]);
+    setSuggestionData(null);
+    setSuggestedItems([]);
+  };
+
+  // Calculate progress with hypothetical meals
+  const getProgressWithHypothetical = () => {
+    if (!progressData || !progressData.hasActivePlan || hypotheticalMeals.length === 0) {
+      return progressData;
+    }
+
+    const parseNutrient = (value) => {
+      if (!value) return 0;
+      if (typeof value === 'number') return value;
+      if (typeof value !== 'string') return 0;
+      
+      // Check if it's a formula (contains + or -)
+      if (value.includes('+') || value.includes('-')) {
+        try {
+          // Remove any non-numeric, non-operator characters except + and -
+          const cleaned = value.replace(/[^0-9+\-.\s]/g, '');
+          // Safely evaluate simple addition/subtraction by splitting and summing
+          const parts = cleaned.split(/[\s+]+/).filter(part => part.trim());
+          let result = 0;
+          for (const part of parts) {
+            const trimmed = part.trim();
+            if (trimmed) {
+              const num = parseFloat(trimmed);
+              if (!isNaN(num)) {
+                result += num;
+              }
+            }
+          }
+          return result;
+        } catch (e) {
+          // If evaluation fails, try to parse as number
+          const num = parseFloat(value);
+          return isNaN(num) ? 0 : num;
+        }
+      }
+      
+      // Regular number parsing
+      const num = parseFloat(value.toString().replace(/[^0-9.]/g, ''));
+      return isNaN(num) ? 0 : num;
+    };
+
+    // Sum up hypothetical nutrition
+    const hypotheticalTotals = hypotheticalMeals.reduce((acc, meal) => {
+      // Use parseNutrient which handles both numbers and strings
+      acc.calories += parseNutrient(meal.calories);
+      acc.protein += parseNutrient(meal.protein);
+      acc.totalFat += parseNutrient(meal.totalFat);
+      acc.saturatedFat += parseNutrient(meal.saturatedFat);
+      acc.totalCarbs += parseNutrient(meal.totalCarb);
+      acc.fiber += parseNutrient(meal.dietaryFiber);
+      acc.sugars += parseNutrient(meal.sugars);
+      acc.sodium += parseNutrient(meal.sodium);
+      return acc;
+    }, {
+      calories: 0,
+      protein: 0,
+      totalFat: 0,
+      saturatedFat: 0,
+      totalCarbs: 0,
+      fiber: 0,
+      sugars: 0,
+      sodium: 0,
+    });
+
+    // Combine with current progress
+    // Map our keys to the progress keys
+    const keyMapping = {
+      calories: 'calories',
+      protein: 'protein',
+      totalFat: 'totalFat',
+      saturatedFat: 'saturatedFat',
+      totalCarbs: 'totalCarbs',
+      fiber: 'fiber',
+      sugars: 'sugars',
+      sodium: 'sodium',
+    };
+
+    const updatedProgress = { ...progressData.progress };
+    Object.keys(updatedProgress).forEach(key => {
+      const current = updatedProgress[key].current || 0;
+      // Map the key to our hypothetical totals key
+      const hypotheticalKey = keyMapping[key];
+      const hypothetical = hypotheticalKey ? (hypotheticalTotals[hypotheticalKey] || 0) : 0;
+      const newCurrent = current + hypothetical;
+      const target = updatedProgress[key].target || 0;
+      const percentage = target > 0 ? Math.round((newCurrent / target) * 100) : 0;
+
+      updatedProgress[key] = {
+        ...updatedProgress[key],
+        current: newCurrent,
+        percentage,
+        remaining: Math.max(0, target - newCurrent),
+        status: percentage >= 100 ? 'met' : percentage >= 80 ? 'close' : 'below',
+      };
+    });
+
+    return {
+      ...progressData,
+      progress: updatedProgress,
+      isHypothetical: true,
+    };
+  };
+
+
+  const progressWithHypothetical = getProgressWithHypothetical();
+
   return (
     <div className="home-page">
       {saveSuccess && (
@@ -498,11 +974,11 @@ const Home = () => {
           {/* Nutrition Progress Card */}
           {!progressLoading && (
             <div className="progress-card-wrapper">
-              <NutritionProgress progressData={progressData} />
+              <NutritionProgress progressData={progressWithHypothetical || progressData} />
             </div>
           )}
 
-          {/* Menu Selector Card */}
+          {/* Explore Menu Card */}
           <div className="menu-selector-card">
             <div className="card-header">
               <svg className="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -584,6 +1060,240 @@ const Home = () => {
                     <line x1="9" y1="9" x2="15" y2="15"/>
                   </svg>
                   <p>No meals available for this dining hall today</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* AI Meal Suggestion Card */}
+          <div className="menu-selector-card">
+            <div className="card-header">
+              <svg className="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                <path d="M2 17l10 5 10-5M2 12l10 5 10-5"/>
+              </svg>
+              <h2 className="card-title">AI Meal Suggestion</h2>
+            </div>
+            
+            <div className="selector-content">
+              <div className="selector-group">
+                <label htmlFor="suggestion-location-select" className="selector-label">
+                  <svg className="label-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                    <circle cx="12" cy="10" r="3"/>
+                  </svg>
+                  Dining Hall
+                </label>
+                <select
+                  id="suggestion-location-select"
+                  className="selector-input"
+                  value={suggestionLocation}
+                  onChange={(e) => {
+                    setSuggestionLocation(e.target.value);
+                    setSuggestionMealType('');
+                  }}
+                  disabled={locationsLoading}
+                >
+                  <option value="">Select a dining hall</option>
+                  {expandedLocations.map((loc, idx) => {
+                    const uniqueId = `${loc.location_number}|${loc.location_name}`;
+                    return (
+                      <option key={`suggestion-${loc.location_number}-${idx}`} value={uniqueId}>
+                        {loc.location_name}
+                      </option>
+                    );
+                  })}
+                </select>
+              </div>
+
+              <div className="selector-group">
+                <label htmlFor="suggestion-meal-select" className="selector-label">
+                  <svg className="label-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <polyline points="12 6 12 12 16 14"/>
+                  </svg>
+                  Meal Time
+                </label>
+                <select
+                  id="suggestion-meal-select"
+                  className="selector-input"
+                  value={suggestionMealType}
+                  onChange={(e) => setSuggestionMealType(e.target.value)}
+                  disabled={!suggestionLocation || suggestionMenuLoading}
+                >
+                  <option value="">Select a meal</option>
+                  {getSuggestionMealTypes().map(mealType => (
+                    <option key={mealType} value={mealType}>
+                      {mealType}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {hypotheticalMeals.length > 0 && (
+                <button
+                  className="clear-hypothetical-btn"
+                  onClick={handleClearHypothetical}
+                >
+                  <svg className="clear-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="15" y1="9" x2="9" y2="15"/>
+                    <line x1="9" y1="9" x2="15" y2="15"/>
+                  </svg>
+                  Clear Hypothetical Meal
+                </button>
+              )}
+
+              <button
+                className="get-suggestion-btn"
+                onClick={handleGetSuggestion}
+                disabled={!suggestionLocation || !suggestionMealType || suggestionLoading || !accessToken}
+              >
+                {suggestionLoading ? (
+                  <>
+                    <svg className="loading-spinner-small" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <circle cx="12" cy="12" r="10" strokeOpacity="0.25"/>
+                      <path d="M12 2 A10 10 0 0 1 22 12" strokeLinecap="round"/>
+                    </svg>
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <svg className="suggestion-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                      <path d="M2 17l10 5 10-5M2 12l10 5 10-5"/>
+                    </svg>
+                    Get Suggestion
+                  </>
+                )}
+              </button>
+
+              {suggestionError && (
+                <div className="suggestion-error">
+                  <svg className="error-icon-small" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="12" y1="8" x2="12" y2="12"/>
+                    <line x1="12" y1="16" x2="12.01" y2="16"/>
+                  </svg>
+                  {suggestionError}
+                </div>
+              )}
+
+              {!suggestionLocation && (
+                <div className="selector-hint">
+                  <svg className="hint-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <path d="M12 16v-4"/>
+                    <path d="M12 8h.01"/>
+                  </svg>
+                  <p>Select a dining hall and meal type to get AI-powered meal suggestions based on your nutrition goals</p>
+                </div>
+              )}
+
+              {suggestionLocation && !suggestionMenuLoading && !suggestionMealType && getSuggestionMealTypes().length === 0 && (
+                <div className="selector-hint">
+                  <svg className="hint-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="15" y1="9" x2="9" y2="15"/>
+                    <line x1="9" y1="9" x2="15" y2="15"/>
+                  </svg>
+                  <p>No meals available for this dining hall today</p>
+                </div>
+              )}
+
+              {/* Suggestion Results - Displayed within the same card */}
+              {suggestionData && typeof suggestionData === 'object' && !Array.isArray(suggestionData) && (
+                <div className="suggestion-results-in-card">
+                  <div className="suggestion-divider"></div>
+                  
+                  {/* AI Summary - Show a concise 2-3 sentence summary */}
+                  {suggestionData.explanation && typeof suggestionData.explanation === 'string' && (
+                    <div className="suggestion-summary">
+                      <h4 className="suggestion-summary-title">AI Recommendation</h4>
+                      <p className="suggestion-summary-text">
+                        {suggestionData.explanation.length > 500 
+                          ? suggestionData.explanation.substring(0, 500) + '...' 
+                          : suggestionData.explanation}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Suggested Items */}
+                  {suggestedItems.length > 0 && (
+                    <div className="suggested-items-section">
+                      <h4 className="suggested-items-title">Suggested Items</h4>
+                      <div className="recipes-grid">
+                        {suggestedItems.map((item, idx) => (
+                          <div 
+                            key={`${item.ID}-${idx}`} 
+                            className="recipe-card suggestion-recipe-card"
+                            onClick={() => openNutritionModal(item)}
+                            role="button"
+                            tabIndex={0}
+                            onKeyPress={(e) => e.key === 'Enter' && openNutritionModal(item)}
+                          >
+                            <div className="recipe-header">
+                              <h5 className="recipe-name">{item.Recipe_Print_As_Name || item.Recipe_Name}</h5>
+                              {item.Recipe_Web_Codes && (
+                                <div className="recipe-badges">
+                                  {item.Recipe_Web_Codes.split(' ').filter(code => code).map(code => (
+                                    <span key={code} className="recipe-badge">{code}</span>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                            
+                            {item.suggestedPortion && (
+                              <div className="suggested-portion">
+                                <svg className="portion-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                  <circle cx="12" cy="12" r="10"/>
+                                  <path d="M12 6v6l4 2"/>
+                                </svg>
+                                <strong>Recommended:</strong> {item.suggestedPortion}
+                              </div>
+                            )}
+
+                            {item.reasoning && (
+                              <div className="suggestion-reasoning">
+                                <p>{item.reasoning}</p>
+                              </div>
+                            )}
+                            
+                            <div className="recipe-quick-info">
+                              <span className="calorie-badge">
+                                <svg className="cal-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                                  <circle cx="9" cy="7" r="4"/>
+                                  <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                                  <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                                </svg>
+                                {item.Calories} cal
+                              </span>
+                              {item.Allergens && item.Allergens.trim() && (
+                                <span className="allergen-indicator" title={`Contains: ${item.Allergens}`}>
+                                  <svg className="allergen-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                                    <line x1="12" y1="9" x2="12" y2="13"/>
+                                    <line x1="12" y1="17" x2="12.01" y2="17"/>
+                                  </svg>
+                                  Allergens
+                                </span>
+                              )}
+                            </div>
+                            
+                            <div className="recipe-footer">
+                              <span className="view-nutrition">
+                                View Details
+                                <svg className="arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                  <path d="M5 12h14M12 5l7 7-7 7"/>
+                                </svg>
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

@@ -52,13 +52,26 @@ const NutritionProgress = ({ progressData }) => {
     return { circumference, offset };
   };
 
+  const isHypothetical = progressData?.isHypothetical || false;
+
   return (
     <div className="nutrition-progress-card">
       <div className="card-header">
         <svg className="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
         </svg>
-        <h2 className="progress-title">Today's Progress</h2>
+        <h2 className="progress-title">
+          Today's Progress
+          {isHypothetical && (
+            <span className="hypothetical-badge" title="Shows hypothetical progress if suggested meal is added">
+              <svg className="hypothetical-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                <path d="M2 17l10 5 10-5M2 12l10 5 10-5"/>
+              </svg>
+              Hypothetical
+            </span>
+          )}
+        </h2>
         <div className="meals-stat">
           <svg className="meal-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2M7 2v20M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3z"/>
