@@ -10,7 +10,6 @@ const NutritionPlan = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [isEditMode, setIsEditMode] = useState(false);
-  const [justSaved, setJustSaved] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
 
@@ -28,7 +27,6 @@ const NutritionPlan = () => {
           setMetrics(plan.metrics || {});
           setShowSummary(true);
           setIsEditMode(true);
-          setJustSaved(false); // Don't show success banner when loading existing plan
         }
       } catch (err) {
         console.error('Error loading nutrition plan:', err);
@@ -237,7 +235,6 @@ const NutritionPlan = () => {
       setSavedPlan(response.plan);
       setShowSummary(true);
       setIsEditMode(true);
-      setJustSaved(true); // Show success banner only after saving
     } catch (err) {
       console.error('Error saving nutrition plan:', err);
       setError(err.message || 'Failed to save nutrition plan. Please try again.');
@@ -253,13 +250,11 @@ const NutritionPlan = () => {
     setMetrics({});
     setIsEditMode(false);
     setError(null);
-    setJustSaved(false);
   };
 
   const handleEditPlan = () => {
     setShowSummary(false);
     setError(null);
-    setJustSaved(false);
   };
 
   // Helper function to get metric label from ID
@@ -295,8 +290,6 @@ const NutritionPlan = () => {
 
   // Show summary view
   if (showSummary && savedPlan) {
-    const enabledMetricsCount = Object.keys(savedPlan.metrics).length;
-
     return (
       <div className="nutrition-plan-page">
         <div className="nutrition-plan-container">
@@ -306,14 +299,6 @@ const NutritionPlan = () => {
           </div>
 
           <div className="summary-container">
-            {justSaved && (
-              <div className="success-banner">
-                <div className="success-icon">✓</div>
-                <h2>Nutrition Plan {isEditMode ? 'Updated' : 'Created'} Successfully!</h2>
-                <p>You're tracking {enabledMetricsCount} nutrition metrics</p>
-              </div>
-            )}
-
             <div className="summary-metrics">
               <h3>Your Tracking Goals</h3>
               {savedPlan.presetName && (

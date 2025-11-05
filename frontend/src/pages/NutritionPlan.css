@@ -380,6 +380,8 @@
   border-radius: 16px;
   text-align: center;
   box-shadow: 0 4px 16px rgba(45, 106, 79, 0.2);
+  max-width: 720px;
+  margin: 0 auto 2rem;
 }
 
 .success-icon {
