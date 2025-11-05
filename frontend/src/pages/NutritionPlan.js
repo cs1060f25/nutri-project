@@ -187,7 +187,7 @@ const NutritionPlan = () => {
   const getSelectedPresetDisplay = () => {
     if (!selectedPreset) return '✨ Custom - Build from scratch';
     const preset = presets[selectedPreset];
-    return `${preset.name} - ${preset.description}`;
+    return `${preset.name}: ${preset.description}`;
   };
 
   const handleMetricToggle = (metricId, defaultUnit) => {
@@ -314,15 +314,14 @@ const NutritionPlan = () => {
               </div>
             )}
 
-            {savedPlan.presetName && (
-              <div className="summary-preset">
-                <h3>Selected Preset</h3>
-                <div className="preset-badge">{savedPlan.presetName}</div>
-              </div>
-            )}
-
             <div className="summary-metrics">
               <h3>Your Tracking Goals</h3>
+              {savedPlan.presetName && (
+                <div className="preset-subtitle">
+                  <span className="preset-label-text">Preset Selected:</span>
+                  <span className="preset-badge-inline">{savedPlan.presetName}</span>
+                </div>
+              )}
               
               {Object.entries(savedPlan.metrics).length > 0 && (
                 <div className="metrics-summary-grid">
@@ -346,9 +345,9 @@ const NutritionPlan = () => {
             </div>
 
             <div className="summary-meta">
-              <p>Created: {formatTimestamp(savedPlan.createdAt)}</p>
+              
               {savedPlan.updatedAt && savedPlan.createdAt !== savedPlan.updatedAt && (
-                <p>Last Updated: {formatTimestamp(savedPlan.updatedAt)}</p>
+                <p> Created: {formatTimestamp(savedPlan.createdAt)} | Last Updated: {formatTimestamp(savedPlan.updatedAt)}</p>
               )}
             </div>
 
@@ -407,7 +406,7 @@ const NutritionPlan = () => {
             
             <div className="preset-select-container">
               <label className="preset-label">
-                🎯 Select Preset:
+                Select Preset:
               </label>
               <div className="custom-select-wrapper" ref={dropdownRef}>
                 <button

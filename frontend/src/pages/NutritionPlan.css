@@ -415,32 +415,6 @@
   opacity: 0.95;
 }
 
-.summary-preset {
-  background: #ffffff;
-  padding: 1.5rem;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(26, 95, 63, 0.06);
-  border: 1px solid #d1e7dd;
-  text-align: center;
-}
-
-.summary-preset h3 {
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: #1a5f3f;
-  margin: 0 0 0.75rem 0;
-}
-
-.preset-badge {
-  display: inline-block;
-  background: linear-gradient(135deg, #2d6a4f 0%, #1a5f3f 100%);
-  color: #ffffff;
-  padding: 0.75rem 1.5rem;
-  border-radius: 8px;
-  font-size: 1.125rem;
-  font-weight: 600;
-}
-
 .summary-metrics {
   background: #ffffff;
   padding: 2rem;
@@ -453,7 +427,30 @@
   font-size: 1.5rem;
   font-weight: 600;
   color: #1a5f3f;
+  margin: 0 0 0.5rem 0;
+}
+
+.preset-subtitle {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.95rem;
   margin: 0 0 1.5rem 0;
+}
+
+.preset-label-text {
+  color: #2d6a4f;
+  font-weight: 500;
+}
+
+.preset-badge-inline {
+  display: inline-block;
+  background: #2d6a4f;
+  color: #f8fcfa;
+  padding: 0.4rem 1rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
 }
 
 .summary-metrics h4 {
@@ -500,7 +497,7 @@
 }
 
 .target-value {
-  font-size: 2rem;
+  font-size: 1.5rem;
   font-weight: 700;
   color: #1a5f3f;
   line-height: 1;
