@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { sendPasswordResetEmail } from 'firebase/auth';
-import { auth } from '../config/firebase';
 import { useAuth } from '../context/AuthContext';
 import './Auth.css';
 
@@ -71,7 +69,7 @@ const Auth = () => {
     setSuccess('');
 
     if (isForgotPassword) {
-      // Handle forgot password using Firebase client SDK
+      // Handle forgot password - request reset token from backend
       if (!email) {
         setError('Please enter your email address');
         return;
@@ -79,27 +77,27 @@ const Auth = () => {
 
       setLoading(true);
       try {
-        // Configure the action code settings to use our custom reset page
-        const actionCodeSettings = {
-          url: `${window.location.origin}/reset-password`,
-          handleCodeInApp: false,
-        };
-        
-        await sendPasswordResetEmail(auth, email, actionCodeSettings);
-        setSuccess('Password reset email sent! Check your inbox and spam folder.');
+        const response = await fetch('/auth/reset-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error?.message || 'Failed to generate reset token');
+        }
+
+        // Show success message - email has been sent
+        setSuccess('If an account exists with this email, a password reset link has been sent. Please check your inbox and spam folder.');
         setTimeout(() => {
           setIsForgotPassword(false);
           setSuccess('');
-        }, 5000);
+        }, 8000);
       } catch (err) {
         console.error('Password reset error:', err);
-        if (err.code === 'auth/user-not-found') {
-          setError('No account found with this email address.');
-        } else if (err.code === 'auth/invalid-email') {
-          setError('Invalid email address.');
-        } else {
-          setError('Failed to send reset email. Please try again.');
-        }
+        setError(err.message || 'Failed to generate reset token. Please try again.');
       } finally {
         setLoading(false);
       }
