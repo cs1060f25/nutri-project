@@ -1,46 +1,150 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { getTodaysMenu, getLocations } from '../services/hudsService';
 import './MealLogger.css';
 
+// Houses that share menus (11 houses, excluding Quincy)
+const SHARED_MENU_HOUSES = [
+  'Pforzheimer House',
+  'Cabot House',
+  'Currier House',
+  'Kirkland House',
+  'Leverett House',
+  'Lowell House',
+  'Eliot House',
+  'Adams House',
+  'Mather House',
+  'Dunster House',
+  'Winthrop House'
+];
+
+// All 12 houses (including Quincy which has its own menu)
+const ALL_HOUSES = [
+  ...SHARED_MENU_HOUSES,
+  'Quincy House'
+];
+
+// Helper to ensure house names have "House" suffix
+const normalizeHouseName = (houseName) => {
+  const trimmed = houseName.trim();
+  
+  // Extract base name (remove "House" if present)
+  const baseName = trimmed.replace(/\s+House\s*$/i, '').trim();
+  
+  // Check if this is one of the 12 houses by comparing base names
+  const houseBaseNames = ALL_HOUSES.map(h => 
+    h.replace(/\s+House\s*$/i, '').trim()
+  );
+  
+  const isHouse = houseBaseNames.some(base => 
+    base.toLowerCase() === baseName.toLowerCase()
+  );
+  
+  // If it's a house and doesn't end with "House", add it
+  if (isHouse && !trimmed.endsWith('House')) {
+    return `${trimmed} House`;
+  }
+  
+  return trimmed;
+};
+
 const MealLogger = ({ isOpen, onClose, onSave }) => {
   const [step, setStep] = useState(1); // 1: metadata, 2: select items
-  const [locations, setLocations] = useState([]);
+  const [expandedLocations, setExpandedLocations] = useState([]);
   const [menuData, setMenuData] = useState([]);
   
-  // Pre-defined meal types from HUDS API documentation
-  const mealTypes = [
-    { value: 'breakfast', label: 'Breakfast' },
-    { value: 'lunch', label: 'Lunch' },
-    { value: 'dinner', label: 'Dinner' },
-    { value: 'brunch', label: 'Brunch' },
-  ];
+  // Helper to normalize meal names (remove "Menu", trim, lowercase)
+  const normalizeMealName = (mealName) => {
+    return (mealName || '')
+      .toLowerCase()
+      .trim()
+      .replace(/\s+menu\s*$/i, '') // Remove " Menu" or " menu" at the end
+      .trim();
+  };
   
   // Form state - ALWAYS use today's date (HUDS API only provides current data)
   const today = new Date().toISOString().split('T')[0];
   const [mealTime, setMealTime] = useState(new Date().toTimeString().slice(0, 5)); // HH:MM format
-  const [mealType, setMealType] = useState('breakfast');
-  const [mealName, setMealName] = useState('Breakfast');
+  const [mealType, setMealType] = useState('');
+  const [mealName, setMealName] = useState('');
   const [selectedLocation, setSelectedLocation] = useState('');
   const [selectedLocationName, setSelectedLocationName] = useState('');
   const [selectedItems, setSelectedItems] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   
   const [loading, setLoading] = useState(false);
+  const [locationsLoading, setLocationsLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // Load locations on mount
+  // Helper to parse the unique location identifier
+  const parseLocationId = useCallback((locationId) => {
+    if (!locationId) return null;
+    const parts = locationId.split('|');
+    if (parts.length === 2) {
+      return {
+        location_number: parts[0],
+        location_name: parts[1]
+      };
+    }
+    return null;
+  }, []);
+
+  // Helper to find location object from unique ID
+  const findLocationById = useCallback((locationId) => {
+    if (!locationId) return null;
+    const parsed = parseLocationId(locationId);
+    if (!parsed) return null;
+    
+    return expandedLocations.find(
+      loc => loc.location_number === parsed.location_number && 
+             loc.location_name === parsed.location_name
+    );
+  }, [expandedLocations, parseLocationId]);
+
+  // Load locations on mount and expand paired houses
   useEffect(() => {
     const fetchLocations = async () => {
       try {
+        setLocationsLoading(true);
         const locs = await getLocations();
-        setLocations(locs);
-        if (locs.length > 0 && !selectedLocation) {
-          setSelectedLocation(locs[0].location_number);
-          setSelectedLocationName(locs[0].location_name);
+        
+        // Expand locations that contain multiple houses
+        const expanded = [];
+        locs.forEach(loc => {
+          const locationName = loc.location_name;
+          
+          // Check if this location contains " and " (paired houses)
+          if (locationName.includes(' and ')) {
+            const houses = locationName.split(' and ').map(h => h.trim());
+            houses.forEach(house => {
+              expanded.push({
+                location_number: loc.location_number,
+                location_name: normalizeHouseName(house),
+                original_name: locationName
+              });
+            });
+          } else {
+            expanded.push({
+              location_number: loc.location_number,
+              location_name: normalizeHouseName(locationName),
+              original_name: locationName
+            });
+          }
+        });
+        
+        setExpandedLocations(expanded);
+        
+        // Set default location if none selected
+        if (expanded.length > 0 && !selectedLocation) {
+          const defaultLoc = expanded[0];
+          const uniqueId = `${defaultLoc.location_number}|${defaultLoc.location_name}`;
+          setSelectedLocation(uniqueId);
+          setSelectedLocationName(defaultLoc.location_name);
         }
       } catch (err) {
         console.error('Error loading locations:', err);
         setError('Failed to load dining hall locations');
+      } finally {
+        setLocationsLoading(false);
       }
     };
     
@@ -50,30 +154,179 @@ const MealLogger = ({ isOpen, onClose, onSave }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
-  // Load menu when location or step changes (use same method as home page)
+  // Get available meal types for the selected location
+  const getAvailableMealTypes = () => {
+    if (!menuData.length || !selectedLocation) return [];
+
+    // Find the selected location details
+    const selectedLocationObj = findLocationById(selectedLocation);
+    
+    if (!selectedLocationObj) return [];
+
+    const isSharedMenuHouse = SHARED_MENU_HOUSES.some(house => 
+      selectedLocationObj.location_name.includes(house) || 
+      selectedLocationObj.original_name.includes(house)
+    );
+
+    if (isSharedMenuHouse) {
+      // For shared menu houses, get meals from ALL aggregated menus
+      const allSharedHousesMeals = new Set();
+      
+      menuData.forEach(location => {
+        if (location.meals) {
+          Object.values(location.meals).forEach(meal => {
+            const normalized = normalizeMealName(meal.mealName);
+            allSharedHousesMeals.add(normalized);
+          });
+        }
+      });
+
+      // Convert to array and standardize names
+      const meals = Array.from(allSharedHousesMeals);
+      const standardMeals = [];
+      
+      if (meals.some(m => m === 'breakfast')) standardMeals.push({ value: 'breakfast', label: 'Breakfast' });
+      if (meals.some(m => m === 'lunch')) standardMeals.push({ value: 'lunch', label: 'Lunch' });
+      if (meals.some(m => m === 'dinner')) standardMeals.push({ value: 'dinner', label: 'Dinner' });
+      if (meals.some(m => m === 'brunch')) standardMeals.push({ value: 'brunch', label: 'Brunch' });
+      
+      return standardMeals;
+    } else {
+      // For non-shared houses, get meals from their specific menu
+      const mealsSet = new Set();
+      const parsed = parseLocationId(selectedLocation);
+      const locationNumber = parsed ? parsed.location_number : null;
+      
+      menuData.forEach(location => {
+        if (location.locationNumber === locationNumber && location.meals) {
+          Object.values(location.meals).forEach(meal => {
+            const normalized = normalizeMealName(meal.mealName);
+            mealsSet.add(normalized);
+          });
+        }
+      });
+
+      const meals = Array.from(mealsSet);
+      const standardMeals = [];
+      
+      if (meals.some(m => m === 'breakfast')) standardMeals.push({ value: 'breakfast', label: 'Breakfast' });
+      if (meals.some(m => m === 'lunch')) standardMeals.push({ value: 'lunch', label: 'Lunch' });
+      if (meals.some(m => m === 'dinner')) standardMeals.push({ value: 'dinner', label: 'Dinner' });
+      if (meals.some(m => m === 'brunch')) standardMeals.push({ value: 'brunch', label: 'Brunch' });
+      
+      return standardMeals;
+    }
+  };
+
+  // Load menu when location changes (fetch for step 2 or when selecting meal type)
   useEffect(() => {
     const fetchMenu = async () => {
-      if (!selectedLocation) return;
-      
+      if (!selectedLocation || expandedLocations.length === 0) {
+        setMenuData([]);
+        setMealType('');
+        setMealName('');
+        return;
+      }
+
       try {
         setLoading(true);
-        console.log('Fetching today\'s menu for location:', selectedLocation);
-        const menu = await getTodaysMenu(selectedLocation);
-        console.log('Menu data received:', menu);
-        setMenuData(menu);
+        
+        // Find the selected location details
+        const selectedLocationObj = findLocationById(selectedLocation);
+        
+        if (!selectedLocationObj) {
+          setMenuData([]);
+          return;
+        }
+
+        // Check if this is one of the 11 shared-menu houses (excluding Quincy)
+        const isSharedMenuHouse = SHARED_MENU_HOUSES.some(house => 
+          selectedLocationObj.location_name.includes(house) || 
+          selectedLocationObj.original_name.includes(house)
+        );
+
+        let allMenus = [];
+        
+        if (isSharedMenuHouse) {
+          // For shared-menu houses, fetch menus for ALL 11 of them
+          // Get unique location numbers for all 11 shared houses
+          const sharedHouseLocationNumbers = new Set();
+          
+          expandedLocations.forEach(loc => {
+            const isShared = SHARED_MENU_HOUSES.some(house => 
+              loc.location_name.includes(house) || 
+              loc.original_name.includes(house)
+            );
+            if (isShared) {
+              sharedHouseLocationNumbers.add(loc.location_number);
+            }
+          });
+
+          // Fetch menus for all shared houses in parallel
+          const menuPromises = Array.from(sharedHouseLocationNumbers).map(locNum => 
+            getTodaysMenu(locNum).catch(err => {
+              console.warn(`Failed to fetch menu for location ${locNum}:`, err);
+              return []; // Return empty array on error
+            })
+          );
+          
+          const menuResults = await Promise.all(menuPromises);
+          
+          // Flatten and aggregate all menus
+          allMenus = menuResults.flat();
+          
+          // Remove duplicates by locationNumber (in case API returns same location multiple times)
+          const uniqueMenus = new Map();
+          allMenus.forEach(location => {
+            const key = location.locationNumber;
+            if (!uniqueMenus.has(key)) {
+              uniqueMenus.set(key, location);
+            } else {
+              // Merge meals if location already exists
+              const existing = uniqueMenus.get(key);
+              if (location.meals && existing.meals) {
+                existing.meals = { ...existing.meals, ...location.meals };
+              }
+            }
+          });
+          
+          allMenus = Array.from(uniqueMenus.values());
+        } else {
+          // For non-shared houses (like Quincy), just fetch their specific menu
+          const parsed = parseLocationId(selectedLocation);
+          const locationNumber = parsed ? parsed.location_number : selectedLocation;
+          const menu = await getTodaysMenu(locationNumber);
+          allMenus = menu;
+        }
+
+        setMenuData(allMenus);
         setError(null);
       } catch (err) {
         console.error('Error loading menu:', err);
         setError('Failed to load today\'s menu. Make sure HUDS has published the menu for today.');
+        setMenuData([]);
       } finally {
         setLoading(false);
       }
     };
 
-    if (step === 2 && selectedLocation) {
+    if (isOpen && selectedLocation) {
       fetchMenu();
     }
-  }, [step, selectedLocation]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedLocation, expandedLocations, isOpen, findLocationById, parseLocationId]);
+
+  // Auto-select first available meal type when menu data loads
+  useEffect(() => {
+    if (menuData.length > 0 && !mealType) {
+      const availableMeals = getAvailableMealTypes();
+      if (availableMeals.length > 0) {
+        setMealType(availableMeals[0].value);
+        setMealName(availableMeals[0].label);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [menuData]);
 
   const handleNext = () => {
     if (!selectedLocation) {
@@ -165,12 +418,16 @@ const MealLogger = ({ isOpen, onClose, onSave }) => {
       // Combine today's date and selected time into a single timestamp
       const timestamp = new Date(`${today}T${mealTime}`).toISOString();
       
+      // Parse location ID to get the actual location number
+      const parsed = parseLocationId(selectedLocation);
+      const locationNumber = parsed ? parsed.location_number : selectedLocation;
+      
       await onSave({
         mealDate: today,
         mealType,
         mealName,
         timestamp,
-        locationId: selectedLocation,
+        locationId: locationNumber,
         locationName: selectedLocationName,
         items: selectedItems,
       });
@@ -179,8 +436,8 @@ const MealLogger = ({ isOpen, onClose, onSave }) => {
       setStep(1);
       setSelectedItems([]);
       setSearchTerm('');
-      setMealType('breakfast');
-      setMealName('Breakfast');
+      setMealType('');
+      setMealName('');
       onClose();
     } catch (err) {
       console.error('Error saving meal:', err);
@@ -191,39 +448,60 @@ const MealLogger = ({ isOpen, onClose, onSave }) => {
   };
 
   const getFilteredRecipes = () => {
-    if (!menuData.length) return [];
+    if (!menuData.length || !mealType) return [];
+    
+    const normalizedSelected = normalizeMealName(mealType);
     
     // Get recipes for selected meal type
     const recipes = [];
     menuData.forEach(location => {
-      Object.values(location.meals).forEach(meal => {
-        if (meal.mealName.toLowerCase().includes(mealType)) {
-          Object.values(meal.categories).forEach(category => {
-            recipes.push(...category.recipes);
-          });
-        }
-      });
+      if (location.meals) {
+        Object.values(location.meals).forEach(meal => {
+          const normalizedMealName = normalizeMealName(meal.mealName);
+          if (normalizedMealName === normalizedSelected && meal.categories) {
+            Object.values(meal.categories).forEach(category => {
+              if (category.recipes) {
+                recipes.push(...category.recipes);
+              }
+            });
+          }
+        });
+      }
     });
+
+    // Remove duplicates by recipe ID
+    const uniqueRecipes = new Map();
+    recipes.forEach(recipe => {
+      if (!uniqueRecipes.has(recipe.ID)) {
+        uniqueRecipes.set(recipe.ID, recipe);
+      }
+    });
+
+    const uniqueRecipesArray = Array.from(uniqueRecipes.values());
 
     // Filter by search term
     if (searchTerm) {
-      return recipes.filter(recipe =>
+      return uniqueRecipesArray.filter(recipe =>
         (recipe.Recipe_Print_As_Name || recipe.Recipe_Name).toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
-    return recipes;
+    return uniqueRecipesArray;
   };
 
-  const handleLocationChange = (locationNumber) => {
-    const loc = locations.find(l => l.location_number === locationNumber);
-    setSelectedLocation(locationNumber);
+  const handleLocationChange = (locationId) => {
+    const loc = findLocationById(locationId);
+    setSelectedLocation(locationId);
     setSelectedLocationName(loc ? loc.location_name : '');
+    // Reset meal type when location changes
+    setMealType('');
+    setMealName('');
   };
 
   const handleMealTypeChange = (mealTypeValue) => {
     setMealType(mealTypeValue);
-    const mealTypeObj = mealTypes.find(m => m.value === mealTypeValue);
+    const availableMeals = getAvailableMealTypes();
+    const mealTypeObj = availableMeals.find(m => m.value === mealTypeValue);
     setMealName(mealTypeObj ? mealTypeObj.label : mealTypeValue);
   };
 
@@ -278,12 +556,18 @@ const MealLogger = ({ isOpen, onClose, onSave }) => {
                 id="location"
                 value={selectedLocation}
                 onChange={(e) => handleLocationChange(e.target.value)}
+                disabled={locationsLoading}
               >
-                {locations.map(loc => (
-                  <option key={loc.location_number} value={loc.location_number}>
-                    {loc.location_name}
-                  </option>
-                ))}
+                <option value="">Select a dining hall</option>
+                {expandedLocations.map((loc, idx) => {
+                  // Create unique identifier for each location
+                  const uniqueId = `${loc.location_number}|${loc.location_name}`;
+                  return (
+                    <option key={`${loc.location_number}-${idx}`} value={uniqueId}>
+                      {loc.location_name}
+                    </option>
+                  );
+                })}
               </select>
             </div>
 
@@ -293,8 +577,10 @@ const MealLogger = ({ isOpen, onClose, onSave }) => {
                 id="mealType"
                 value={mealType}
                 onChange={(e) => handleMealTypeChange(e.target.value)}
+                disabled={!selectedLocation || loading}
               >
-                {mealTypes.map(type => (
+                <option value="">Select a meal</option>
+                {getAvailableMealTypes().map(type => (
                   <option key={type.value} value={type.value}>
                     {type.label}
                   </option>
