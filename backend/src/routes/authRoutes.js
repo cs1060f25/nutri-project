@@ -8,6 +8,7 @@ router.post('/register', authController.register);
 router.post('/login', authController.login);
 router.post('/refresh', authController.refresh);
 router.post('/reset-password', authController.resetPassword);
+router.post('/confirm-reset-password', authController.confirmResetPassword);
 
 // Protected routes (require authentication)
 router.post('/logout', verifyToken, authController.logout);

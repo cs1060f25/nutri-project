@@ -331,6 +331,16 @@
   cursor: not-allowed;
 }
 
+.auth-button.secondary {
+  background: #718096;
+}
+
+.auth-button.secondary:hover:not(:disabled) {
+  background: #4a5568;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(74, 85, 104, 0.4);
+}
+
 .loading-spinner {
   display: inline-block;
   width: 20px;
