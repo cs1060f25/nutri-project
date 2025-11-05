@@ -2,6 +2,7 @@ const { admin } = require('../config/firebase');
 const { mapFirebaseError, createErrorResponse } = require('../utils/errorMapper');
 const { signInWithPassword, refreshIdToken } = require('../services/firebaseAuthService');
 const { createUserProfile } = require('../services/userProfileService');
+const { sendPasswordResetEmail } = require('../services/emailService');
 
 /**
  * POST /auth/register
@@ -245,7 +246,7 @@ const getCurrentUser = async (req, res) => {
 
 /**
  * POST /auth/reset-password
- * Send password reset email
+ * Request password reset - generates a temporary reset token
  */
 const resetPassword = async (req, res) => {
   try {
@@ -257,23 +258,142 @@ const resetPassword = async (req, res) => {
       );
     }
 
-    // Generate password reset link using Firebase Admin
-    const link = await admin.auth().generatePasswordResetLink(email);
+    // Check if user exists
+    let userRecord;
+    try {
+      userRecord = await admin.auth().getUserByEmail(email);
+    } catch (error) {
+      // If user not found, still return success (security: don't reveal if email exists)
+      return res.status(200).json({
+        message: 'If an account exists with this email, a reset token has been generated.',
+        resetToken: null, // Don't return token if user doesn't exist
+      });
+    }
 
-    console.log('✅ Password reset link generated for:', email);
-    console.log('🔗 Reset link:', link);
-
-    // In production, you would send this link via email service
-    // For now, we'll return success (Firebase will send the email if configured)
+    // Generate a secure random token
+    const crypto = require('crypto');
+    const resetToken = crypto.randomBytes(32).toString('hex');
     
+    // Store token in Firestore with 15-minute expiry
+    const db = admin.firestore();
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
+    
+    await db.collection('passwordResets').doc(resetToken).set({
+      email: email,
+      uid: userRecord.uid,
+      expiresAt: expiresAt,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      used: false,
+    });
+
+    // Get frontend URL from request headers or environment variable
+    const frontendUrl = process.env.FRONTEND_URL || 
+                       req.headers.origin || 
+                       req.headers.referer?.split('/').slice(0, 3).join('/') ||
+                       'http://localhost:3001';
+
+    // Send password reset email
+    const emailResult = await sendPasswordResetEmail(email, resetToken, frontendUrl);
+
+    console.log('✅ Password reset token generated for:', email);
+    if (emailResult.sent) {
+      console.log('✅ Password reset email sent successfully');
+    } else {
+      console.log('⚠️ Password reset email not sent (SMTP not configured or error occurred)');
+    }
+
     return res.status(200).json({
-      message: 'Password reset email sent successfully.',
-      // In development, include the link
-      ...(process.env.NODE_ENV !== 'production' && { resetLink: link })
+      message: 'If an account exists with this email, a password reset link has been sent.',
+      emailSent: emailResult.sent,
+      // In development, optionally include the token for testing
+      ...(process.env.NODE_ENV !== 'production' && { resetToken: resetToken }),
     });
 
   } catch (error) {
     console.error('Password reset error:', error.code, error.message);
+
+    // Map Firebase error to our error format
+    const mappedError = mapFirebaseError(error.code);
+    return res.status(mappedError.statusCode).json(
+      createErrorResponse(mappedError.errorCode, mappedError.message)
+    );
+  }
+};
+
+/**
+ * POST /auth/confirm-reset-password
+ * Confirm password reset with token and set new password
+ */
+const confirmResetPassword = async (req, res) => {
+  try {
+    const { email, resetToken, newPassword } = req.body;
+
+    if (!email || !resetToken || !newPassword) {
+      return res.status(400).json(
+        createErrorResponse('INVALID_INPUT', 'Email, reset token, and new password are required.')
+      );
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json(
+        createErrorResponse('WEAK_PASSWORD', 'Password must be at least 6 characters.')
+      );
+    }
+
+    // Validate token from Firestore
+    const db = admin.firestore();
+    const tokenDoc = await db.collection('passwordResets').doc(resetToken).get();
+
+    if (!tokenDoc.exists) {
+      return res.status(400).json(
+        createErrorResponse('INVALID_TOKEN', 'Invalid or expired reset token.')
+      );
+    }
+
+    const tokenData = tokenDoc.data();
+
+    // Check if token is expired
+    if (tokenData.expiresAt.toDate() < new Date()) {
+      // Delete expired token
+      await db.collection('passwordResets').doc(resetToken).delete();
+      return res.status(400).json(
+        createErrorResponse('EXPIRED_TOKEN', 'Reset token has expired. Please request a new one.')
+      );
+    }
+
+    // Check if token has been used
+    if (tokenData.used) {
+      return res.status(400).json(
+        createErrorResponse('USED_TOKEN', 'This reset token has already been used.')
+      );
+    }
+
+    // Verify email matches
+    if (tokenData.email.toLowerCase() !== email.toLowerCase()) {
+      return res.status(400).json(
+        createErrorResponse('INVALID_EMAIL', 'Email does not match the reset token.')
+      );
+    }
+
+    // Update password using Firebase Admin SDK
+    await admin.auth().updateUser(tokenData.uid, {
+      password: newPassword,
+    });
+
+    // Mark token as used
+    await db.collection('passwordResets').doc(resetToken).update({
+      used: true,
+      usedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    console.log('✅ Password reset successful for:', email);
+
+    return res.status(200).json({
+      message: 'Password has been reset successfully.',
+    });
+
+  } catch (error) {
+    console.error('Confirm password reset error:', error.code, error.message);
 
     // Map Firebase error to our error format
     const mappedError = mapFirebaseError(error.code);
@@ -290,4 +410,5 @@ module.exports = {
   logout,
   getCurrentUser,
   resetPassword,
+  confirmResetPassword,
 };
