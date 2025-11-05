@@ -65,7 +65,7 @@ const generateMealSuggestion = async ({ menuItems, currentProgress, nutritionGoa
       }).filter(Boolean).join('\n')
     : 'No nutrition goals available';
 
-  // Create the prompt
+  // Create the prompt with a clear example
   const prompt = `You are a nutrition advisor helping a student choose a meal from their dining hall menu to meet their daily nutrition goals.
 
 AVAILABLE MENU ITEMS FOR ${mealType.toUpperCase()}:
@@ -77,37 +77,61 @@ ${progressText}
 DAILY NUTRITION GOALS:
 ${goalsText}
 
-Based on the menu items above, the student's current progress, and their daily goals, suggest a specific meal combination that will help them achieve their nutrition goals. Consider:
-1. What items to select from the menu
-2. Recommended portions/serving sizes
-3. How this meal will help them meet their remaining goals for the day
+Based on the menu items above, the student's current progress, and their daily goals, suggest a specific meal combination that will help them achieve their nutrition goals.
 
-Please respond in a clear, helpful format with:
-- A brief explanation of why these items were chosen
-- Specific items with their recommended portions
-- Expected nutritional contribution from the suggested meal
+IMPORTANT INSTRUCTIONS:
+1. Use EXACT item names from the menu list above (match them exactly as shown)
+2. Recommend realistic portions (e.g., "1 EACH", "4 OZ", "1 CUP")
+3. Calculate expectedNutrition as NUMBERS (sum of all selected items' nutrition values)
+4. Provide a brief, clear explanation (2-3 sentences)
 
-Format your response as JSON with the following structure:
+You MUST respond with ONLY valid JSON in this exact format (no markdown, no code blocks, no additional text):
+
 {
-  "explanation": "Brief explanation of the recommendation",
+  "explanation": "Brief explanation of why these items were chosen and how they help meet nutrition goals",
   "suggestedItems": [
     {
-      "itemName": "Exact name of the menu item",
-      "portion": "Recommended portion/serving size",
-      "reasoning": "Why this item was chosen"
+      "itemName": "Exact menu item name from the list above",
+      "portion": "Recommended portion like '1 EACH' or '4 OZ'",
+      "reasoning": "Brief reason why this item was selected"
     }
   ],
   "expectedNutrition": {
-    "calories": 0,
-    "protein": 0,
-    "totalFat": 0,
-    "totalCarbs": 0,
-    "fiber": 0,
-    "sodium": 0
+    "calories": 450,
+    "protein": 35.5,
+    "totalFat": 15.2,
+    "totalCarbs": 45.8,
+    "fiber": 8.3,
+    "sodium": 650.4
   }
 }
 
-IMPORTANT: Use the EXACT item names from the menu list above. Be specific about portions.`;
+EXAMPLE OUTPUT:
+{
+  "explanation": "This meal combination focuses on high protein to help meet the daily goal while keeping calories moderate. The grilled chicken provides lean protein, and the vegetables add fiber and essential nutrients.",
+  "suggestedItems": [
+    {
+      "itemName": "Grilled Chicken Breast",
+      "portion": "1 EACH",
+      "reasoning": "High in protein (25g) with low fat, helping meet protein goals"
+    },
+    {
+      "itemName": "Steamed Broccoli",
+      "portion": "4 OZ",
+      "reasoning": "Provides fiber (3.6g) and essential nutrients with minimal calories"
+    }
+  ],
+  "expectedNutrition": {
+    "calories": 194,
+    "protein": 27.6,
+    "totalFat": 6.2,
+    "totalCarbs": 7.8,
+    "fiber": 3.6,
+    "sodium": 218.4
+  }
+}
+
+Remember: Return ONLY the JSON object, nothing else.`;
 
   try {
     const response = await axios.post(
@@ -118,7 +142,7 @@ IMPORTANT: Use the EXACT item names from the menu list above. Be specific about 
         messages: [
           {
             role: 'system',
-            content: 'You are a helpful nutrition advisor. Always respond with valid JSON only, no additional text before or after the JSON.'
+            content: 'You are a helpful nutrition advisor. You MUST respond with ONLY valid JSON in the exact format specified. Do not include any markdown code blocks, explanations before or after the JSON, or any other text. Return ONLY the raw JSON object.'
           },
           {
             role: 'user',
@@ -138,26 +162,77 @@ IMPORTANT: Use the EXACT item names from the menu list above. Be specific about 
 
     const aiResponse = response.data.choices[0]?.message?.content || '';
     
+    console.log('Raw AI response:', aiResponse);
+    console.log('AI response type:', typeof aiResponse);
+    
     // Try to parse JSON from the response
     let suggestionData;
     try {
+      // Clean the response - remove markdown code blocks if present
+      let cleanedResponse = aiResponse.trim();
+      
+      // Remove markdown code blocks (```json ... ```)
+      cleanedResponse = cleanedResponse.replace(/^```json\s*/i, '').replace(/^```\s*/i, '');
+      cleanedResponse = cleanedResponse.replace(/\s*```$/i, '');
+      cleanedResponse = cleanedResponse.trim();
+      
       // Extract JSON from response (in case there's extra text)
-      const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
+      const jsonMatch = cleanedResponse.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         suggestionData = JSON.parse(jsonMatch[0]);
+        console.log('Parsed suggestionData successfully');
+        console.log('suggestionData keys:', Object.keys(suggestionData));
       } else {
         throw new Error('No JSON found in response');
       }
     } catch (parseError) {
       // If parsing fails, return the raw response with a fallback structure
       console.error('Failed to parse AI response as JSON:', parseError);
-      suggestionData = {
-        explanation: aiResponse || 'AI suggestion generated successfully.',
-        suggestedItems: [],
-        expectedNutrition: {},
-      };
+      console.error('Parse error details:', parseError.message);
+      throw new Error(`Failed to parse AI response: ${parseError.message}. Raw response: ${aiResponse.substring(0, 200)}`);
     }
 
+    // Validate and ensure suggestionData has the correct structure
+    if (!suggestionData || typeof suggestionData !== 'object' || Array.isArray(suggestionData)) {
+      console.error('Invalid suggestionData after parsing:', suggestionData);
+      throw new Error('Invalid suggestion data structure: expected an object');
+    }
+
+    // Ensure required fields exist with correct types
+    if (!suggestionData.explanation || typeof suggestionData.explanation !== 'string') {
+      suggestionData.explanation = suggestionData.explanation || 'AI suggestion generated successfully.';
+    }
+    
+    if (!Array.isArray(suggestionData.suggestedItems)) {
+      suggestionData.suggestedItems = [];
+    }
+    
+    if (!suggestionData.expectedNutrition || typeof suggestionData.expectedNutrition !== 'object') {
+      suggestionData.expectedNutrition = {};
+    }
+
+    // Ensure expectedNutrition values are numbers, not strings
+    const nutritionFields = ['calories', 'protein', 'totalFat', 'totalCarbs', 'fiber', 'sodium'];
+    nutritionFields.forEach(field => {
+      if (suggestionData.expectedNutrition[field] !== undefined) {
+        const value = suggestionData.expectedNutrition[field];
+        if (typeof value === 'string') {
+          // Try to evaluate formulas like "156 + 38 + 19"
+          try {
+            const cleaned = value.replace(/[^0-9+\-.\s]/g, '');
+            suggestionData.expectedNutrition[field] = Function('"use strict"; return (' + cleaned + ')')();
+          } catch (e) {
+            // If evaluation fails, try to parse as number
+            suggestionData.expectedNutrition[field] = parseFloat(value) || 0;
+          }
+        } else if (typeof value !== 'number') {
+          suggestionData.expectedNutrition[field] = 0;
+        }
+      }
+    });
+
+    console.log('Returning validated suggestionData');
+    
     return {
       success: true,
       data: suggestionData,

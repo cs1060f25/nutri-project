@@ -114,10 +114,23 @@ const generateSuggestion = async (req, res) => {
     });
     
     console.log('Suggestion generated successfully');
+    console.log('Suggestion object:', JSON.stringify(suggestion, null, 2));
+    console.log('Suggestion.data type:', typeof suggestion.data);
+    console.log('Suggestion.data keys:', suggestion.data ? Object.keys(suggestion.data) : 'null');
 
+    // The service returns { success: true, data: {...}, rawResponse: "..." }
+    // We want to return the parsed data directly
+    const parsedSuggestion = suggestion.data;
+    
+    // Ensure it's an object
+    if (!parsedSuggestion || typeof parsedSuggestion !== 'object') {
+      console.error('Invalid suggestion data:', parsedSuggestion);
+      throw new Error('Invalid suggestion data format');
+    }
+    
     res.json({
       success: true,
-      suggestion: suggestion.data,
+      suggestion: parsedSuggestion,
       rawResponse: suggestion.rawResponse,
     });
   } catch (error) {
