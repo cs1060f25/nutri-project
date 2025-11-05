@@ -82,7 +82,7 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
                 className={`nav-item ${location.pathname === item.path ? 'active' : ''}`}
               >
                 <span className="nav-icon">{item.iconSvg}</span>
-                {!isCollapsed && <span className="nav-label">{item.label}</span>}
+                <span className="nav-label">{item.label}</span>
               </Link>
             </li>
           ))}
@@ -107,7 +107,7 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
             <polyline points="16 17 21 12 16 7"></polyline>
             <line x1="21" y1="12" x2="9" y2="12"></line>
           </svg>
-          {!isCollapsed && <span>Logout</span>}
+          <span className="logout-text">Logout</span>
         </button>
       </div>
     </div>
