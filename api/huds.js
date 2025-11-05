@@ -28,19 +28,51 @@ module.exports = async (req, res) => {
 
   try {
     // Extract path from req.url
-    // With the fixed rewrite rule, req.url should contain the full path including /api/huds/:path*
+    // In Vercel, req.url typically contains the ORIGINAL request URL even after rewrite
+    // So /api/huds/locations should have req.url = '/api/huds/locations'
     let path = req.url || '';
+    
+    // Log for debugging
+    console.log('HUDS API request:', {
+      url: req.url,
+      method: req.method,
+      query: req.query,
+      headers: {
+        'x-vercel-rewrite-path': req.headers['x-vercel-rewrite-path'],
+        'x-invoke-path': req.headers['x-invoke-path']
+      }
+    });
     
     // Remove query string if present
     path = path.split('?')[0];
     
-    // Remove /api/huds prefix to get just the path segment
-    path = path.replace('/api/huds', '');
+    // Check if this is the original path or rewritten path
+    // If path is just '/api/huds', the rewrite stripped it - check headers
+    if (path === '/api/huds' || path === '/api/huds/') {
+      // Try to get original path from Vercel headers
+      const originalPath = req.headers['x-vercel-rewrite-path'] || 
+                          req.headers['x-invoke-path'] ||
+                          req.headers['x-original-url'];
+      
+      if (originalPath) {
+        path = originalPath.split('?')[0]; // Remove query string
+      }
+    }
     
-    // Ensure path starts with / if it exists and doesn't already
-    if (path && !path.startsWith('/') && path !== '') {
+    // Remove /api/huds prefix to get just the path segment
+    path = path.replace('/api/huds', '').replace(/^\/+/, '') || '';
+    
+    // Ensure path starts with / if it exists
+    if (path && !path.startsWith('/')) {
       path = '/' + path;
     }
+    
+    // Handle empty path (request to /api/huds itself)
+    if (!path || path === '') {
+      path = '/';
+    }
+    
+    console.log('Extracted path:', path);
     
     // Route: GET /api/huds/locations
     if (path === '/locations' || path === 'locations') {
