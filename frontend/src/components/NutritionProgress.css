@@ -1,175 +1,392 @@
+/* ===== Nutrition Progress Card ===== */
 .nutrition-progress-card {
   background: white;
-  border-radius: 12px;
-  padding: 1.5rem;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  margin-bottom: 2rem;
+  border-radius: 20px;
+  padding: 2rem;
+  box-shadow: 0 4px 20px rgba(40, 167, 69, 0.08);
+  border: 1px solid #e8f5e9;
+  transition: all 0.3s ease;
 }
 
-.progress-header {
+.nutrition-progress-card:hover {
+  box-shadow: 0 8px 32px rgba(40, 167, 69, 0.12);
+}
+
+/* ===== Card Header ===== */
+.card-header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin-bottom: 1.5rem;
-  padding-bottom: 1rem;
-  border-bottom: 2px solid #f0f0f0;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 2px solid #e8f5e9;
+  flex-wrap: wrap;
+}
+
+.card-icon {
+  width: 28px;
+  height: 28px;
+  color: #52b788;
+  flex-shrink: 0;
 }
 
 .progress-title {
   font-size: 1.5rem;
-  font-weight: 600;
-  color: #333;
-  margin: 0;
-}
-
-.plan-badge {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  padding: 0.5rem 1rem;
-  border-radius: 20px;
-  font-size: 0.9rem;
-  font-weight: 500;
-}
-
-.progress-stats {
-  display: flex;
-  gap: 1.5rem;
-  margin-bottom: 1.5rem;
-}
-
-.stat-item {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.stat-label {
-  font-size: 0.85rem;
-  color: #666;
-}
-
-.stat-value {
-  font-size: 1.5rem;
   font-weight: 700;
-  color: #333;
+  color: #1b4332;
+  margin: 0;
+  letter-spacing: -0.02em;
+  flex: 1;
 }
 
-.progress-metrics {
+/* ===== Meals Stat ===== */
+.meals-stat {
   display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-}
-
-.no-plan-message,
-.no-meals-message {
-  text-align: center;
-  color: #666;
-  padding: 2rem 1rem;
-  background: #f9f9f9;
-  border-radius: 8px;
-  font-size: 0.95rem;
-}
-
-.metric-row {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.metric-header {
-  display: flex;
-  justify-content: space-between;
   align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1.25rem;
+  background: linear-gradient(135deg, #f1f8f4 0%, #e8f5e9 100%);
+  border-radius: 16px;
+  border: 1px solid #d8f3dc;
+}
+
+.meal-icon {
+  width: 28px;
+  height: 28px;
+  color: #52b788;
+  flex-shrink: 0;
+}
+
+.meal-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.meal-count {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #1b4332;
+  line-height: 1;
+}
+
+.meal-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #52b788;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* ===== No Plan State ===== */
+.no-plan-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 2rem;
+  text-align: center;
+  background: linear-gradient(135deg, #f8fdf9 0%, #f1f8f4 100%);
+  border-radius: 16px;
+  border: 2px dashed #d8f3dc;
+}
+
+.no-plan-icon {
+  width: 64px;
+  height: 64px;
+  color: #95d5b2;
+  margin-bottom: 1rem;
+}
+
+.no-plan-message {
+  font-size: 1rem;
+  color: #2d6a4f;
+  margin: 0;
+  max-width: 500px;
+  line-height: 1.6;
+}
+
+/* ===== No Meals State ===== */
+.no-meals-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 2rem;
+  text-align: center;
+  background: linear-gradient(135deg, #f8fdf9 0%, #f1f8f4 100%);
+  border-radius: 16px;
+  border: 2px dashed #d8f3dc;
+}
+
+.no-meals-icon {
+  width: 56px;
+  height: 56px;
+  color: #95d5b2;
+  margin-bottom: 1rem;
+}
+
+.no-meals-message {
+  font-size: 1rem;
+  color: #2d6a4f;
+  margin: 0;
+  max-width: 400px;
+  line-height: 1.6;
+}
+
+/* ===== Progress Circles Grid ===== */
+.progress-circles-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 2rem 1.5rem;
+  padding: 1rem 0;
+}
+
+/* ===== Circle Metric ===== */
+.circle-metric {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+/* ===== Circle Container ===== */
+.circle-container {
+  position: relative;
+  width: 120px;
+  height: 120px;
+}
+
+.progress-circle {
+  width: 100%;
+  height: 100%;
+  transform: rotate(0deg);
+}
+
+.circle-bg {
+  transition: stroke 0.3s ease;
+}
+
+.circle-progress {
+  transition: stroke-dashoffset 0.6s cubic-bezier(0.4, 0, 0.2, 1),
+              stroke 0.3s ease;
+}
+
+.circle-center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.circle-percentage {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #1b4332;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+/* ===== Metric Details ===== */
+.metric-details {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  text-align: center;
 }
 
 .metric-name {
-  font-weight: 600;
-  color: #333;
-  font-size: 0.95rem;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: #1b4332;
+  text-transform: capitalize;
+  letter-spacing: -0.01em;
 }
 
 .metric-values {
-  font-size: 0.9rem;
-  color: #666;
+  font-size: 0.875rem;
+  color: #2d6a4f;
+  display: flex;
+  align-items: baseline;
+  gap: 0.25rem;
+  flex-wrap: wrap;
+  justify-content: center;
 }
 
 .metric-values strong {
-  color: #333;
-  font-size: 1rem;
+  font-size: 1.125rem;
+  font-weight: 800;
+  color: #1b4332;
 }
 
-.metric-separator {
-  margin: 0 0.25rem;
-  color: #999;
-}
-
-.progress-bar-container {
-  width: 100%;
-  height: 8px;
-  background: #e0e0e0;
-  border-radius: 4px;
-  overflow: hidden;
-}
-
-.progress-bar-fill {
-  height: 100%;
-  border-radius: 4px;
-  transition: width 0.3s ease, background-color 0.3s ease;
-}
-
-.metric-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 0.85rem;
-}
-
-.percentage-text {
+.separator {
+  color: #95d5b2;
   font-weight: 600;
-  color: #333;
+  margin: 0 0.125rem;
 }
 
-.remaining-text {
-  color: #666;
+.target {
+  font-weight: 600;
+  color: #52b788;
 }
 
-.status-badge {
+.unit {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #95d5b2;
+  margin-left: 0.125rem;
+}
+
+.remaining-badge {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #52b788;
+  background: #e8f5e9;
   padding: 0.25rem 0.75rem;
   border-radius: 12px;
-  font-size: 0.8rem;
-  font-weight: 500;
+  border: 1px solid #d8f3dc;
 }
 
-.status-met {
-  background: #e8f5e9;
-  color: #2e7d32;
+.goal-met-badge {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #2d6a4f;
+  background: #d8f3dc;
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  border: 1px solid #95d5b2;
 }
 
-/* Responsive design */
+/* ===== Responsive Design ===== */
+@media (max-width: 1200px) {
+  .progress-circles-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+  }
+}
+
+@media (max-width: 900px) {
+  .progress-circles-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+  }
+}
+
 @media (max-width: 768px) {
   .nutrition-progress-card {
-    padding: 1rem;
+    padding: 1.5rem;
+    border-radius: 16px;
   }
 
-  .progress-header {
-    flex-direction: column;
-    align-items: flex-start;
+  .card-header {
     gap: 0.75rem;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
   }
 
   .progress-title {
     font-size: 1.25rem;
   }
 
-  .plan-badge {
-    font-size: 0.85rem;
-    padding: 0.4rem 0.8rem;
+  .meals-stat {
+    padding: 0.625rem 1rem;
   }
 
-  .metric-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.25rem;
+  .meal-count {
+    font-size: 1.25rem;
+  }
+
+  .circle-container {
+    width: 100px;
+    height: 100px;
+  }
+
+  .metric-icon {
+    width: 32px;
+    height: 32px;
+  }
+
+  .check-badge {
+    width: 18px;
+    height: 18px;
+  }
+
+  .metric-name {
+    font-size: 0.875rem;
+  }
+
+  .metric-values {
+    font-size: 0.8125rem;
+  }
+
+  .metric-values strong {
+    font-size: 1rem;
+  }
+
+  .remaining-badge,
+  .goal-met-badge {
+    font-size: 0.75rem;
+    padding: 0.2rem 0.625rem;
+  }
+
+  .circle-percentage {
+    font-size: 1.25rem;
   }
 }
 
+@media (max-width: 480px) {
+  .nutrition-progress-card {
+    padding: 1.25rem;
+  }
+
+  .progress-circles-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.25rem 1rem;
+  }
+
+  .circle-container {
+    width: 90px;
+    height: 90px;
+  }
+
+  .metric-icon {
+    width: 28px;
+    height: 28px;
+  }
+
+  .no-plan-content,
+  .no-meals-content {
+    padding: 2rem 1rem;
+  }
+
+  .no-plan-icon,
+  .no-meals-icon {
+    width: 48px;
+    height: 48px;
+  }
+
+  .no-plan-message,
+  .no-meals-message {
+    font-size: 0.9375rem;
+  }
+}
+
+/* ===== Animation for Progress Circles ===== */
+@keyframes progressFill {
+  from {
+    stroke-dashoffset: var(--circumference);
+  }
+  to {
+    stroke-dashoffset: var(--final-offset);
+  }
+}
+
+.circle-progress {
+  animation: progressFill 1s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
