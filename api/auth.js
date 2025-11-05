@@ -85,10 +85,21 @@ const refreshIdToken = async (refreshToken) => {
 
 // Parse URL to extract path
 const parsePath = (url) => {
-  const urlObj = new URL(url, 'http://localhost');
-  const pathParts = urlObj.pathname.split('/').filter(Boolean);
-  // Remove 'auth' to get the operation
-  return pathParts[pathParts.length - 1]; // Get last segment (login, register, etc.)
+  try {
+    // Handle both absolute and relative URLs
+    const urlString = url.startsWith('http') ? url : `http://localhost${url}`;
+    const urlObj = new URL(urlString);
+    const pathParts = urlObj.pathname.split('/').filter(Boolean);
+    // Get last segment (login, register, reset-password, confirm-reset-password, etc.)
+    const operation = pathParts[pathParts.length - 1];
+    console.log('Parsed path:', url, '->', operation);
+    return operation;
+  } catch (error) {
+    console.error('Error parsing path:', url, error);
+    // Fallback: try to extract from pathname directly
+    const match = url.match(/\/([^/?]+)(?:\?|$)/);
+    return match ? match[1] : null;
+  }
 };
 
 // Handler for /auth/login
