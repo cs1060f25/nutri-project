@@ -194,13 +194,15 @@
 
 .sidebar-logout-button svg {
   flex-shrink: 0;
+  transition: transform 0.3s ease;
+  transform: translateX(0);
 }
 
 .logout-text {
   opacity: 1;
   width: auto;
   max-width: 200px;
-  transition: opacity 0.3s ease, width 0.3s ease, max-width 0.3s ease;
+  transition: opacity 0.3s ease, width 0.3s ease, max-width 0.3s ease, margin 0.3s ease;
   white-space: nowrap;
   overflow: hidden;
 }
@@ -213,5 +215,11 @@
   opacity: 0;
   width: 0;
   max-width: 0;
+  margin-left: 0;
   overflow: hidden;
+}
+
+/* Center the logout icon when collapsed - accounting for the gap */
+.sidebar.collapsed .sidebar-logout-button svg {
+  transform: translateX(4px);
 }
