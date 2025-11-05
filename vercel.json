@@ -7,6 +7,7 @@
     { "source": "/api/nutrition-plan/:path*", "destination": "/api/nutrition-plan/index" },
     { "source": "/api/huds/:path*", "destination": "/api/huds" },
     { "source": "/api/meals/:path*", "destination": "/api/meals" },
-    { "source": "/test-env", "destination": "/api/test-env" }
+    { "source": "/test-env", "destination": "/api/test-env" },
+    { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
