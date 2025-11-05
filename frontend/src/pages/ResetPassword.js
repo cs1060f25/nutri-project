@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { confirmPasswordReset, verifyPasswordResetCode } from 'firebase/auth';
-import { auth } from '../config/firebase';
 import './Auth.css';
 
 const ResetPassword = () => {
@@ -14,34 +12,28 @@ const ResetPassword = () => {
   const [loading, setLoading] = useState(false);
   const [verifying, setVerifying] = useState(true);
   const [email, setEmail] = useState('');
-
-  const oobCode = searchParams.get('oobCode');
+  const [resetToken, setResetToken] = useState('');
 
   useEffect(() => {
-    // Verify the reset code is valid
-    if (!oobCode) {
-      setError('Invalid or missing reset code.');
+    // Get token and email from URL params or sessionStorage
+    const tokenFromUrl = searchParams.get('token');
+    const emailFromUrl = searchParams.get('email');
+    const tokenFromStorage = sessionStorage.getItem('resetToken');
+    const emailFromStorage = sessionStorage.getItem('resetEmail');
+
+    const token = tokenFromUrl || tokenFromStorage;
+    const userEmail = emailFromUrl || emailFromStorage;
+
+    if (!token || !userEmail) {
+      setError('Invalid or missing reset token. Please request a new password reset.');
       setVerifying(false);
       return;
     }
 
-    verifyPasswordResetCode(auth, oobCode)
-      .then((userEmail) => {
-        setEmail(userEmail);
-        setVerifying(false);
-      })
-      .catch((err) => {
-        console.error('Reset code verification error:', err);
-        if (err.code === 'auth/expired-action-code') {
-          setError('This password reset link has expired. Please request a new one.');
-        } else if (err.code === 'auth/invalid-action-code') {
-          setError('This password reset link is invalid or has already been used.');
-        } else {
-          setError('Unable to verify reset link. Please try again.');
-        }
-        setVerifying(false);
-      });
-  }, [oobCode]);
+    setResetToken(token);
+    setEmail(userEmail);
+    setVerifying(false);
+  }, [searchParams]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -63,25 +55,41 @@ const ResetPassword = () => {
       return;
     }
 
+    if (!resetToken || !email) {
+      setError('Missing reset token or email. Please request a new password reset.');
+      return;
+    }
+
     setLoading(true);
 
     try {
-      await confirmPasswordReset(auth, oobCode, password);
+      const response = await fetch('/auth/confirm-reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: email,
+          resetToken: resetToken,
+          newPassword: password,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error?.message || 'Failed to reset password');
+      }
+
+      // Clear session storage
+      sessionStorage.removeItem('resetToken');
+      sessionStorage.removeItem('resetEmail');
+
       setSuccess('Password reset successful! Redirecting to login...');
       setTimeout(() => {
         navigate('/');
       }, 2000);
     } catch (err) {
       console.error('Password reset error:', err);
-      if (err.code === 'auth/expired-action-code') {
-        setError('This reset link has expired. Please request a new one.');
-      } else if (err.code === 'auth/invalid-action-code') {
-        setError('This reset link is invalid or has already been used.');
-      } else if (err.code === 'auth/weak-password') {
-        setError('Password is too weak. Please use a stronger password.');
-      } else {
-        setError('Failed to reset password. Please try again.');
-      }
+      setError(err.message || 'Failed to reset password. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -90,16 +98,16 @@ const ResetPassword = () => {
   if (verifying) {
     return (
       <div className="auth-container">
-        <div className="auth-blobs">
-          <div className="blob-1"></div>
-          <div className="blob-2"></div>
-          <div className="blob-3"></div>
+        <div className="auth-background">
+          <div className="auth-blob blob-1"></div>
+          <div className="auth-blob blob-2"></div>
+          <div className="auth-blob blob-3"></div>
         </div>
 
         <div className="auth-card">
           <div className="auth-header">
             <h1 className="auth-logo">HUDS Nutrition Analyzer</h1>
-            <h2 className="auth-title">Verifying Reset Link...</h2>
+            <h2 className="auth-title">Verifying Reset Token...</h2>
           </div>
           <div style={{ textAlign: 'center', padding: '20px' }}>
             <div className="spinner"></div>
@@ -112,10 +120,10 @@ const ResetPassword = () => {
   if (error && !email) {
     return (
       <div className="auth-container">
-        <div className="auth-blobs">
-          <div className="blob-1"></div>
-          <div className="blob-2"></div>
-          <div className="blob-3"></div>
+        <div className="auth-background">
+          <div className="auth-blob blob-1"></div>
+          <div className="auth-blob blob-2"></div>
+          <div className="auth-blob blob-3"></div>
         </div>
 
         <div className="auth-card">
@@ -127,7 +135,7 @@ const ResetPassword = () => {
           <div className="error-message">{error}</div>
 
           <button
-            className="auth-button"
+            className="auth-button secondary"
             onClick={() => navigate('/')}
             style={{ marginTop: '20px' }}
           >
@@ -140,10 +148,10 @@ const ResetPassword = () => {
 
   return (
     <div className="auth-container">
-      <div className="auth-blobs">
-        <div className="blob-1"></div>
-        <div className="blob-2"></div>
-        <div className="blob-3"></div>
+      <div className="auth-background">
+        <div className="auth-blob blob-1"></div>
+        <div className="auth-blob blob-2"></div>
+        <div className="auth-blob blob-3"></div>
       </div>
 
       <div className="auth-card">
@@ -191,22 +199,23 @@ const ResetPassword = () => {
             />
           </div>
 
-          <button
-            type="submit"
-            className="auth-button"
-            disabled={loading}
-          >
-            {loading ? 'Resetting Password...' : 'Reset Password'}
-          </button>
-
-          <div className="auth-footer">
+          <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
             <button
               type="button"
-              className="auth-link"
+              className="auth-button secondary"
               onClick={() => navigate('/')}
               disabled={loading}
+              style={{ flex: 1 }}
             >
-              ← Back to Login
+              Back to Login
+            </button>
+            <button
+              type="submit"
+              className="auth-button"
+              disabled={loading}
+              style={{ flex: 1 }}
+            >
+              {loading ? 'Resetting Password...' : 'Reset Password'}
             </button>
           </div>
         </form>
