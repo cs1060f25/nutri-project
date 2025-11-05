@@ -217,10 +217,22 @@ Remember: Return ONLY the JSON object, nothing else.`;
       if (suggestionData.expectedNutrition[field] !== undefined) {
         const value = suggestionData.expectedNutrition[field];
         if (typeof value === 'string') {
-          // Try to evaluate formulas like "156 + 38 + 19"
+          // Try to evaluate formulas like "156 + 38 + 19" safely
           try {
             const cleaned = value.replace(/[^0-9+\-.\s]/g, '');
-            suggestionData.expectedNutrition[field] = Function('"use strict"; return (' + cleaned + ')')();
+            // Safely evaluate simple addition/subtraction by splitting and summing
+            const parts = cleaned.split(/[\s+]+/).filter(part => part.trim());
+            let result = 0;
+            for (const part of parts) {
+              const trimmed = part.trim();
+              if (trimmed) {
+                const num = parseFloat(trimmed);
+                if (!isNaN(num)) {
+                  result += num;
+                }
+              }
+            }
+            suggestionData.expectedNutrition[field] = result;
           } catch (e) {
             // If evaluation fails, try to parse as number
             suggestionData.expectedNutrition[field] = parseFloat(value) || 0;

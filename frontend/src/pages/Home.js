@@ -75,7 +75,6 @@ const Home = () => {
   const [suggestionData, setSuggestionData] = useState(null);
   const [suggestedItems, setSuggestedItems] = useState([]);
   const [hypotheticalMeals, setHypotheticalMeals] = useState([]);
-  const [showSuggestionCard, setShowSuggestionCard] = useState(false);
   const { accessToken } = useAuth();
 
   // Fetch locations on mount and expand paired houses
@@ -772,8 +771,19 @@ const Home = () => {
         try {
           // Remove any non-numeric, non-operator characters except + and -
           const cleaned = value.replace(/[^0-9+\-.\s]/g, '');
-          // Evaluate the formula safely
-          return Function('"use strict"; return (' + cleaned + ')')();
+          // Safely evaluate simple addition/subtraction by splitting and summing
+          const parts = cleaned.split(/[\s+]+/).filter(part => part.trim());
+          let result = 0;
+          for (const part of parts) {
+            const trimmed = part.trim();
+            if (trimmed) {
+              const num = parseFloat(trimmed);
+              if (!isNaN(num)) {
+                result += num;
+              }
+            }
+          }
+          return result;
         } catch (e) {
           // If evaluation fails, try to parse as number
           const num = parseFloat(value);
@@ -826,8 +836,19 @@ const Home = () => {
         try {
           // Remove any non-numeric, non-operator characters except + and -
           const cleaned = value.replace(/[^0-9+\-.\s]/g, '');
-          // Evaluate the formula safely
-          return Function('"use strict"; return (' + cleaned + ')')();
+          // Safely evaluate simple addition/subtraction by splitting and summing
+          const parts = cleaned.split(/[\s+]+/).filter(part => part.trim());
+          let result = 0;
+          for (const part of parts) {
+            const trimmed = part.trim();
+            if (trimmed) {
+              const num = parseFloat(trimmed);
+              if (!isNaN(num)) {
+                result += num;
+              }
+            }
+          }
+          return result;
         } catch (e) {
           // If evaluation fails, try to parse as number
           const num = parseFloat(value);
