@@ -27,10 +27,55 @@ module.exports = async (req, res) => {
   }
 
   try {
-    const path = req.url.replace('/api/huds', '');
+    // Extract path from req.url
+    // In Vercel, req.url typically contains the ORIGINAL request URL even after rewrite
+    // So /api/huds/locations should have req.url = '/api/huds/locations'
+    let path = req.url || '';
+    
+    // Log for debugging
+    console.log('HUDS API request:', {
+      url: req.url,
+      method: req.method,
+      query: req.query,
+      headers: {
+        'x-vercel-rewrite-path': req.headers['x-vercel-rewrite-path'],
+        'x-invoke-path': req.headers['x-invoke-path']
+      }
+    });
+    
+    // Remove query string if present
+    path = path.split('?')[0];
+    
+    // Check if this is the original path or rewritten path
+    // If path is just '/api/huds', the rewrite stripped it - check headers
+    if (path === '/api/huds' || path === '/api/huds/') {
+      // Try to get original path from Vercel headers
+      const originalPath = req.headers['x-vercel-rewrite-path'] || 
+                          req.headers['x-invoke-path'] ||
+                          req.headers['x-original-url'];
+      
+      if (originalPath) {
+        path = originalPath.split('?')[0]; // Remove query string
+      }
+    }
+    
+    // Remove /api/huds prefix to get just the path segment
+    path = path.replace('/api/huds', '').replace(/^\/+/, '') || '';
+    
+    // Ensure path starts with / if it exists
+    if (path && !path.startsWith('/')) {
+      path = '/' + path;
+    }
+    
+    // Handle empty path (request to /api/huds itself)
+    if (!path || path === '') {
+      path = '/';
+    }
+    
+    console.log('Extracted path:', path);
     
     // Route: GET /api/huds/locations
-    if (path === '/locations') {
+    if (path === '/locations' || path === 'locations') {
       const response = await axios.get(`${BASE_URL}/locations`, {
         headers: {
           'X-Api-Key': API_KEY,
@@ -41,7 +86,7 @@ module.exports = async (req, res) => {
     }
     
     // Route: GET /api/huds/events
-    if (path.startsWith('/events')) {
+    if (path.startsWith('/events') || path.startsWith('events')) {
       const { date, locationId } = req.query;
       const params = {};
       if (date) params.date = formatDate(date);
@@ -58,7 +103,7 @@ module.exports = async (req, res) => {
     }
     
     // Route: GET /api/huds/menu/today
-    if (path === '/menu/today') {
+    if (path === '/menu/today' || path === 'menu/today') {
       const { locationId } = req.query;
       const today = formatDate(new Date());
       const params = { date: today };
@@ -114,7 +159,7 @@ module.exports = async (req, res) => {
     }
     
     // Route: GET /api/huds/menu/date
-    if (path === '/menu/date') {
+    if (path === '/menu/date' || path === 'menu/date') {
       const { date, locationId } = req.query;
       
       if (!date) {
