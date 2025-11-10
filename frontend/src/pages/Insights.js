@@ -27,6 +27,7 @@ const Insights = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [selectedMetric, setSelectedMetric] = useState('');
+  const [trendView, setTrendView] = useState('line');
 
   const activeRange = useMemo(() => ({
     start: range.start,
@@ -163,24 +164,43 @@ const Insights = () => {
               <h2>Progress & Trends</h2>
               <p>Track how your goals are trending across this range.</p>
             </div>
-            <label className="insights-metric-select">
-              Metric
-              <select
-                value={selectedMetric}
-                onChange={(event) => setSelectedMetric(event.target.value)}
-              >
-                {metricOptions.map(option => (
-                  <option key={option} value={option}>
-                    {getMetricName(option)}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <div className="insights-trend-actions">
+              <label className="insights-metric-select">
+                Metric
+                <select
+                  value={selectedMetric}
+                  onChange={(event) => setSelectedMetric(event.target.value)}
+                >
+                  {metricOptions.map(option => (
+                    <option key={option} value={option}>
+                      {getMetricName(option)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <div className="insights-view-toggle">
+                <button
+                  type="button"
+                  className={trendView === 'line' ? 'active' : ''}
+                  onClick={() => setTrendView('line')}
+                >
+                  Line
+                </button>
+                <button
+                  type="button"
+                  className={trendView === 'stacked' ? 'active' : ''}
+                  onClick={() => setTrendView('stacked')}
+                >
+                  Stacked
+                </button>
+              </div>
+            </div>
           </div>
           <InsightsTrendChart
             series={data?.trend?.series || []}
             metricKey={selectedMetric}
             trendMetrics={data?.trend?.metrics}
+            viewMode={trendView}
           />
           <InsightsTrendSummary
             metricKey={selectedMetric}
