@@ -211,9 +211,13 @@ const Insights = () => {
 
       {hasData ? (
         <section className="insights-days">
-          {data.days.map(day => (
-            <InsightsDayCard key={day.date} day={day} />
-          ))}
+          <InsightsDayCard
+            day={(() => {
+              const today = data?.range?.end;
+              return data.days.find(day => day.date === today)
+                || data.days[data.days.length - 1];
+            })()}
+          />
         </section>
       ) : (
         !loading &&
