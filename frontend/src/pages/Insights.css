@@ -251,6 +251,34 @@
   min-width: 160px;
 }
 
+.insights-trend-actions {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.insights-view-toggle {
+  display: inline-flex;
+  border: 1px solid #cbd5f5;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.insights-view-toggle button {
+  padding: 8px 14px;
+  border: none;
+  background: transparent;
+  font-size: 14px;
+  color: #475569;
+  cursor: pointer;
+}
+
+.insights-view-toggle button.active {
+  background: #e0f2fe;
+  color: #0369a1;
+  font-weight: 600;
+}
+
 .insights-chart {
   display: flex;
   flex-direction: column;
@@ -435,5 +463,18 @@
 
   .insights-metric-select select {
     width: 100%;
+  }
+
+  .insights-trend-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .insights-view-toggle {
+    width: 100%;
+  }
+
+  .insights-view-toggle button {
+    flex: 1;
   }
 }
