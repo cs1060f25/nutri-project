@@ -10,6 +10,7 @@ const profileRoutes = require('./routes/profileRoutes');
 const scanRoutes = require('./routes/scanRoutes');
 const nutritionPlanRoutes = require('./routes/nutritionPlanRoutes');
 const nutritionProgressRoutes = require('./routes/nutritionProgressRoutes');
+const geminiRoutes = require('./routes/geminiRoutes');
 const { homeData } = require('../data');
 
 // Initialize Express app
@@ -31,8 +32,9 @@ app.use((req, res, next) => {
 try {
   initializeFirebase();
 } catch (error) {
-  console.error('Failed to initialize Firebase:', error);
-  process.exit(1);
+  console.warn('⚠️  Firebase not initialized:', error.message);
+  console.warn('⚠️  Authentication features will not work, but Gemini analyzer will work!');
+  // process.exit(1); // Commented out for testing Gemini feature
 }
 
 // Health check endpoint
@@ -69,6 +71,9 @@ app.use('/api/nutrition-plan', nutritionPlanRoutes);
 
 // Nutrition progress routes
 app.use('/api/nutrition-progress', nutritionProgressRoutes);
+
+// Gemini meal analysis routes
+app.use('/api', geminiRoutes);
 
 // Home endpoint - returns app data
 app.get('/home', (req, res) => {

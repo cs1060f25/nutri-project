@@ -137,6 +137,48 @@ const getTodaysMenu = async (locationId = null) => {
   return getMenuByDate(today, locationId);
 };
 
+/**
+ * Get combined menus from multiple dining halls
+ * Covers all unique menus: Annenberg, Quincy, and Winthrop
+ */
+const getCombinedMenus = async () => {
+  const today = new Date();
+  
+  try {
+    // Fetch ALL dining hall menus
+    const allMenus = await getMenuByDate(today, null);
+    
+    if (!allMenus || allMenus.length === 0) {
+      console.log('⚠️  No menu data available');
+      return [];
+    }
+    
+    // Log all available locations first for debugging
+    console.log('🔍 Available dining halls:');
+    allMenus.forEach(m => console.log(`   - ${m.locationName} (${m.locationNumber})`));
+    
+    // Target dining halls by name (more reliable than numbers)
+    const targetNames = ['annenberg', 'quincy', 'winthrop'];
+    
+    // Filter to halls that contain our target names
+    const filteredMenus = allMenus.filter(location => {
+      const name = location.locationName.toLowerCase();
+      return targetNames.some(target => name.includes(target));
+    });
+    
+    // If we found our target halls, use them. Otherwise use first 3.
+    const finalMenus = filteredMenus.length > 0 ? filteredMenus : allMenus.slice(0, 3);
+    
+    console.log(`\n📋 Selected ${finalMenus.length} dining hall(s) for analysis:`);
+    finalMenus.forEach(m => console.log(`   ✓ ${m.locationName} (${m.locationNumber})`));
+    
+    return finalMenus;
+  } catch (error) {
+    console.error('Error fetching combined menus:', error.message);
+    return [];
+  }
+};
+
 module.exports = {
   getLocations,
   getEvents,
@@ -144,6 +186,7 @@ module.exports = {
   getRecipeById,
   getTodaysMenu,
   getMenuByDate,
+  getCombinedMenus,
   formatDate, // Export for use in controllers
 };
 

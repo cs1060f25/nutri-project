@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { getTodaysMenu, getLocations } from '../services/hudsService';
+import { analyzeMealImage } from '../services/geminiService';
 import './MealLogger.css';
 
 const MealLogger = ({ isOpen, onClose, onSave }) => {
@@ -27,6 +28,14 @@ const MealLogger = ({ isOpen, onClose, onSave }) => {
   
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  
+  // Image analysis state
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
+  const [analyzing, setAnalyzing] = useState(false);
+  const [predictions, setPredictions] = useState([]);
+  const [nutritionTotals, setNutritionTotals] = useState(null);
+  const [matchedItems, setMatchedItems] = useState([]);
 
   // Load locations on mount
   useEffect(() => {
@@ -227,6 +236,55 @@ const MealLogger = ({ isOpen, onClose, onSave }) => {
     setMealName(mealTypeObj ? mealTypeObj.label : mealTypeValue);
   };
 
+  // Handle image selection
+  const handleImageSelect = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setSelectedImage(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+      setPredictions([]); // Clear previous predictions
+    }
+  };
+
+  // Analyze image with Gemini
+  const handleAnalyzeImage = async () => {
+    if (!selectedImage) {
+      setError('Please select an image first');
+      return;
+    }
+
+    try {
+      setAnalyzing(true);
+      setError(null);
+      const result = await analyzeMealImage(selectedImage);
+      setPredictions(result.predictions || []);
+      setNutritionTotals(result.nutritionTotals || null);
+      setMatchedItems(result.matchedItems || []);
+      
+      if (!result.predictions || result.predictions.length === 0) {
+        setError('No dishes from today\'s menu were detected in the image. Try uploading a clearer photo or proceed to manually select items.');
+      }
+    } catch (err) {
+      console.error('Error analyzing image:', err);
+      setError(`Image analysis failed: ${err.message}`);
+    } finally {
+      setAnalyzing(false);
+    }
+  };
+
+  // Clear image and predictions
+  const handleClearImage = () => {
+    setSelectedImage(null);
+    setImagePreview(null);
+    setPredictions([]);
+    setNutritionTotals(null);
+    setMatchedItems([]);
+  };
+
   if (!isOpen) return null;
 
   const totals = calculateTotals();
@@ -300,6 +358,168 @@ const MealLogger = ({ isOpen, onClose, onSave }) => {
                   </option>
                 ))}
               </select>
+            </div>
+
+            {/* Image Upload Section */}
+            <div className="image-upload-section" style={{ 
+              marginTop: '1.5rem', 
+              padding: '1rem', 
+              background: '#f8f9fa', 
+              borderRadius: '8px',
+              border: '2px dashed #dee2e6'
+            }}>
+              <h4 style={{ marginBottom: '0.75rem', fontSize: '1rem' }}>
+                📸 AI Meal Recognition (Optional)
+              </h4>
+              <p style={{ fontSize: '0.85rem', color: '#666', marginBottom: '1rem' }}>
+                Upload a photo of your meal and let AI identify dishes from today's menu
+              </p>
+              
+              {!imagePreview ? (
+                <div>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageSelect}
+                    style={{ display: 'none' }}
+                    id="meal-image-input"
+                  />
+                  <label 
+                    htmlFor="meal-image-input" 
+                    style={{
+                      display: 'inline-block',
+                      padding: '0.5rem 1rem',
+                      background: '#007bff',
+                      color: 'white',
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                      fontSize: '0.9rem'
+                    }}
+                  >
+                    Choose Image
+                  </label>
+                </div>
+              ) : (
+                <div>
+                  <div style={{ position: 'relative', marginBottom: '0.75rem' }}>
+                    <img 
+                      src={imagePreview} 
+                      alt="Meal preview" 
+                      style={{ 
+                        maxWidth: '100%', 
+                        maxHeight: '200px', 
+                        borderRadius: '4px',
+                        objectFit: 'contain'
+                      }} 
+                    />
+                  </div>
+                  <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                    <button
+                      type="button"
+                      onClick={handleAnalyzeImage}
+                      disabled={analyzing}
+                      style={{
+                        padding: '0.5rem 1rem',
+                        background: '#28a745',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '4px',
+                        cursor: analyzing ? 'not-allowed' : 'pointer',
+                        fontSize: '0.9rem',
+                        opacity: analyzing ? 0.6 : 1
+                      }}
+                    >
+                      {analyzing ? '🔍 Analyzing...' : '🔍 Analyze Image'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleClearImage}
+                      style={{
+                        padding: '0.5rem 1rem',
+                        background: '#6c757d',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        fontSize: '0.9rem'
+                      }}
+                    >
+                      Clear
+                    </button>
+                  </div>
+                  
+                  {predictions.length > 0 && (
+                    <div style={{ 
+                      marginTop: '0.75rem', 
+                      padding: '0.75rem', 
+                      background: 'white',
+                      borderRadius: '4px',
+                      border: '1px solid #dee2e6'
+                    }}>
+                      <h5 style={{ margin: '0 0 0.5rem 0', fontSize: '0.9rem', color: '#28a745' }}>
+                        ✓ Detected Dishes:
+                      </h5>
+                      <ul style={{ margin: 0, paddingLeft: '1.25rem', fontSize: '0.85rem' }}>
+                        {predictions.map((pred, idx) => (
+                          <li key={idx} style={{ marginBottom: '0.25rem' }}>
+                            <strong>{pred.dish}</strong> 
+                            <span style={{ color: '#666', fontSize: '0.8rem' }}>
+                              {' '}({Math.round(pred.confidence * 100)}% confident)
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                      
+                      {nutritionTotals && (
+                        <div style={{
+                          marginTop: '0.75rem',
+                          padding: '0.75rem',
+                          background: '#f8f9fa',
+                          borderRadius: '4px',
+                          border: '1px solid #dee2e6'
+                        }}>
+                          <h6 style={{ margin: '0 0 0.5rem 0', fontSize: '0.85rem', fontWeight: 'bold' }}>
+                            📊 Nutrition Summary:
+                          </h6>
+                          <div style={{ 
+                            display: 'grid', 
+                            gridTemplateColumns: '1fr 1fr', 
+                            gap: '0.5rem',
+                            fontSize: '0.8rem'
+                          }}>
+                            <div>
+                              <strong>Calories:</strong> {nutritionTotals.totalCalories}
+                            </div>
+                            <div>
+                              <strong>Protein:</strong> {nutritionTotals.totalProtein}g
+                            </div>
+                            <div>
+                              <strong>Carbs:</strong> {nutritionTotals.totalCarbs}g
+                            </div>
+                            <div>
+                              <strong>Fat:</strong> {nutritionTotals.totalFat}g
+                            </div>
+                          </div>
+                          {matchedItems.length > 0 && (
+                            <div style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: '#666' }}>
+                              <em>Based on {matchedItems.length} matched dish{matchedItems.length !== 1 ? 'es' : ''} from today's menu</em>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      
+                      <p style={{ 
+                        margin: '0.5rem 0 0 0', 
+                        fontSize: '0.8rem', 
+                        color: '#666',
+                        fontStyle: 'italic'
+                      }}>
+                        Click "Next" to review and add these items to your meal log
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             <div className="meal-logger-actions">
