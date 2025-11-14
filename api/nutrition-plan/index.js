@@ -21,6 +21,355 @@ const createErrorResponse = (errorCode, message) => {
   return { error: { code: errorCode, message: message } };
 };
 
+// Calculate age from birthday
+const calculateAgeFromBirthday = (birthday) => {
+  if (!birthday) return null;
+  const birthDate = new Date(birthday);
+  const today = new Date();
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const monthDiff = today.getMonth() - birthDate.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+    age--;
+  }
+  return age;
+};
+
+// Calculate BMR (Basal Metabolic Rate) using Mifflin-St Jeor Equation
+const calculateBMR = (age, gender, heightFeet, heightInches, weight) => {
+  // Validate inputs - ensure we have valid numeric values
+  if (!age || age <= 0 || !weight || weight <= 0 || !heightFeet || heightFeet <= 0) {
+    console.error('Invalid BMR inputs:', { age, gender, heightFeet, heightInches, weight });
+    return null;
+  }
+
+  const heightInchesTotal = (heightFeet || 0) * 12 + (heightInches || 0);
+  const heightCm = heightInchesTotal * 2.54;
+  const weightKg = weight * 0.453592;
+
+  let bmr;
+  if (gender === 'male') {
+    bmr = 10 * weightKg + 6.25 * heightCm - 5 * age + 5;
+  } else if (gender === 'female') {
+    bmr = 10 * weightKg + 6.25 * heightCm - 5 * age - 161;
+  } else {
+    const maleBMR = 10 * weightKg + 6.25 * heightCm - 5 * age + 5;
+    const femaleBMR = 10 * weightKg + 6.25 * heightCm - 5 * age - 161;
+    bmr = (maleBMR + femaleBMR) / 2;
+  }
+
+  return Math.round(bmr);
+};
+
+// Calculate TDEE (Total Daily Energy Expenditure)
+const calculateTDEE = (bmr, activityLevel) => {
+  if (!bmr || bmr <= 0) return null;
+  
+  const activityMultipliers = {
+    'sedentary': 1.2,
+    'lightly-active': 1.375,
+    'moderately-active': 1.55,
+    'very-active': 1.725,
+    'extremely-active': 1.9
+  };
+  const multiplier = activityMultipliers[activityLevel] || 1.2;
+  return Math.round(bmr * multiplier);
+};
+
+// Adjust calories based on primary goal
+const adjustCaloriesForGoal = (tdee, goal) => {
+  if (!tdee || tdee <= 0) return 2000; // Default fallback
+  
+  const goalAdjustments = {
+    'weight-loss': -500,
+    'weight-gain': 300,
+    'weight-maintenance': 0,
+    'muscle-gain': 300,
+    'general-wellness': 0,
+    'energy-levels': -200,
+    'better-digestion': 0
+  };
+  const adjustment = goalAdjustments[goal] || 0;
+  return Math.max(1200, tdee + adjustment);
+};
+
+// Calculate protein target
+const calculateProteinTarget = (weight, goal, gender) => {
+  if (!weight || weight <= 0) return 50; // Default fallback
+  
+  const weightKg = weight * 0.453592;
+  let proteinPerKg = 1.6;
+  
+  if (goal === 'muscle-gain') {
+    proteinPerKg = 2.2;
+  } else if (goal === 'weight-loss') {
+    proteinPerKg = 2.0;
+  } else if (goal === 'weight-gain') {
+    proteinPerKg = 1.8;
+  }
+
+  return Math.round(weightKg * proteinPerKg);
+};
+
+// Calculate carbohydrate target
+const calculateCarbTarget = (calories, goal, hasDiabetes) => {
+  if (!calories || calories <= 0) return 200; // Default fallback
+  
+  if (hasDiabetes) {
+    const carbCalories = calories * 0.35;
+    return Math.round(carbCalories / 4);
+  }
+
+  let carbPercentage = 0.50;
+  if (goal === 'weight-loss') {
+    carbPercentage = 0.40;
+  } else if (goal === 'muscle-gain') {
+    carbPercentage = 0.45;
+  }
+
+  const carbCalories = calories * carbPercentage;
+  return Math.round(carbCalories / 4);
+};
+
+// Calculate fat target
+const calculateFatTarget = (calories, goal) => {
+  if (!calories || calories <= 0) return 65; // Default fallback
+  
+  const fatPercentage = 0.30;
+  const fatCalories = calories * fatPercentage;
+  return Math.round(fatCalories / 9);
+};
+
+// Calculate sodium target
+const calculateSodiumTarget = (healthConditions) => {
+  const hasHighBloodPressure = healthConditions?.some(condition => 
+    condition.toLowerCase().includes('blood pressure') || condition.toLowerCase().includes('hypertension')
+  );
+  const hasHeartDisease = healthConditions?.some(condition => 
+    condition.toLowerCase().includes('heart') || condition.toLowerCase().includes('cardiovascular')
+  );
+  const hasKidneyDisease = healthConditions?.some(condition => 
+    condition.toLowerCase().includes('kidney')
+  );
+
+  if (hasHighBloodPressure || hasHeartDisease || hasKidneyDisease) {
+    return 1500;
+  }
+  return 2300;
+};
+
+// Calculate cholesterol target
+const calculateCholesterolTarget = (healthConditions) => {
+  const hasHighCholesterol = healthConditions?.some(condition => 
+    condition.toLowerCase().includes('cholesterol')
+  );
+  const hasHeartDisease = healthConditions?.some(condition => 
+    condition.toLowerCase().includes('heart') || condition.toLowerCase().includes('cardiovascular')
+  );
+
+  if (hasHighCholesterol || hasHeartDisease) {
+    return 200;
+  }
+  return 300;
+};
+
+// Calculate fiber target
+const calculateFiberTarget = (gender, age) => {
+  if (!age || age <= 0) return 25; // Default fallback
+  
+  if (gender === 'male') {
+    return age >= 50 ? 30 : 38;
+  } else if (gender === 'female') {
+    return age >= 50 ? 21 : 25;
+  } else {
+    return age >= 50 ? 25 : 31;
+  }
+};
+
+// Generate personalized nutrition plan
+const generatePersonalizedPlan = (userProfile) => {
+  if (!userProfile) {
+    return null;
+  }
+
+  const { birthday, age, gender, height, weight, activityLevel, primaryGoal, healthConditions } = userProfile;
+
+  // Calculate age from birthday if birthday is provided, otherwise use stored age
+  const calculatedAge = birthday ? calculateAgeFromBirthday(birthday) : age;
+
+  // Need essential data to calculate
+  if (!calculatedAge || !gender || !height || !weight || !activityLevel) {
+    console.error('Missing required profile data:', { calculatedAge, gender, height, weight, activityLevel });
+    return null;
+  }
+
+  // Ensure height and weight are properly parsed as numbers
+  const heightFeet = typeof height === 'object' ? parseInt(height.feet) || 5 : parseInt(height) || 5;
+  const heightInches = typeof height === 'object' ? parseInt(height.inches) || 0 : 0;
+  const weightValue = typeof weight === 'number' ? weight : parseFloat(weight) || 0;
+
+  // Validate critical values
+  if (weightValue <= 0 || heightFeet <= 0 || calculatedAge <= 0) {
+    console.error('Invalid profile values:', { weightValue, heightFeet, heightInches, calculatedAge });
+    return null;
+  }
+
+  // Calculate BMR and TDEE
+  const bmr = calculateBMR(calculatedAge, gender, heightFeet, heightInches, weightValue);
+  if (!bmr || bmr <= 0) {
+    console.error('Failed to calculate BMR:', { calculatedAge, gender, heightFeet, heightInches, weightValue });
+    return null;
+  }
+
+  const tdee = calculateTDEE(bmr, activityLevel);
+  if (!tdee || tdee <= 0) {
+    console.error('Failed to calculate TDEE:', { bmr, activityLevel });
+    return null;
+  }
+
+  // Adjust calories for goal
+  const targetCalories = adjustCaloriesForGoal(tdee, primaryGoal || 'weight-maintenance');
+
+  // Calculate macronutrients
+  const targetProtein = calculateProteinTarget(weightValue, primaryGoal, gender);
+  const hasDiabetes = healthConditions?.some(condition => 
+    condition.toLowerCase().includes('diabetes') || condition.toLowerCase().includes('blood sugar')
+  );
+  const targetCarbs = calculateCarbTarget(targetCalories, primaryGoal, hasDiabetes);
+  const targetFat = calculateFatTarget(targetCalories, primaryGoal);
+
+  // Calculate other nutrients
+  const targetSodium = calculateSodiumTarget(healthConditions);
+  const targetCholesterol = calculateCholesterolTarget(healthConditions);
+  const targetFiber = calculateFiberTarget(gender, calculatedAge);
+
+  // Determine suggested preset
+  let suggestedPreset = 'balanced';
+  let presetReason = 'A balanced approach covering all major nutrients.';
+  
+  if (healthConditions?.some(c => c.toLowerCase().includes('blood pressure'))) {
+    suggestedPreset = 'low-sodium';
+    presetReason = 'Selected because you indicated high blood pressure or hypertension concerns.';
+  } else if (healthConditions?.some(c => c.toLowerCase().includes('heart') || c.toLowerCase().includes('cholesterol'))) {
+    suggestedPreset = 'heart-healthy';
+    presetReason = 'Selected because you indicated heart or cholesterol concerns.';
+  } else if (primaryGoal === 'muscle-gain') {
+    suggestedPreset = 'high-protein';
+    presetReason = 'Selected to support your muscle gain and athletic performance goals.';
+  }
+
+  // Build explanation
+  const explanations = [];
+  explanations.push(`Your daily calorie target of ${targetCalories} kcal is based on:`);
+  explanations.push(`• Basal Metabolic Rate (BMR): ${bmr} kcal/day - the energy your body needs at rest`);
+  explanations.push(`• Activity Level: ${activityLevel.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())} (TDEE: ${tdee} kcal/day)`);
+  
+  if (primaryGoal) {
+    const goalMap = {
+      'weight-loss': 'a 500 kcal deficit for safe weight loss (~1 lb/week)',
+      'weight-gain': 'a 300 kcal surplus for gradual weight gain',
+      'weight-maintenance': 'maintaining your current weight',
+      'muscle-gain': 'a 300 kcal surplus to support muscle building',
+      'general-wellness': 'maintaining overall health',
+      'energy-levels': 'a slight calorie adjustment for better energy',
+      'better-digestion': 'supporting digestive health'
+    };
+    const goalExplanation = goalMap[primaryGoal] || 'your personal goals';
+    explanations.push(`• Goal Adjustment: ${goalExplanation}`);
+  }
+  
+  explanations.push(`\nProtein target of ${targetProtein}g is calculated from your weight (${weightValue} lbs) and supports ${primaryGoal === 'muscle-gain' ? 'muscle building and recovery' : primaryGoal === 'weight-loss' ? 'muscle preservation during weight loss' : 'daily maintenance needs'}.`);
+  
+  if (hasDiabetes) {
+    explanations.push(`Carbohydrates limited to ${targetCarbs}g (35% of calories) to help manage blood sugar levels.`);
+  } else {
+    explanations.push(`Carbohydrates set at ${targetCarbs}g (${Math.round((targetCarbs * 4 / targetCalories) * 100)}% of calories) to ${primaryGoal === 'weight-loss' ? 'support weight loss while maintaining energy' : 'provide sustainable energy'}.`);
+  }
+  
+  explanations.push(`Fat target of ${targetFat}g (30% of calories) provides essential fatty acids and helps with nutrient absorption.`);
+  
+  if (healthConditions && healthConditions.length > 0) {
+    const hasBloodPressure = healthConditions.some(c => c.toLowerCase().includes('blood pressure') || c.toLowerCase().includes('hypertension'));
+    const hasHeart = healthConditions.some(c => c.toLowerCase().includes('heart') || c.toLowerCase().includes('cardiovascular'));
+    const hasCholesterol = healthConditions.some(c => c.toLowerCase().includes('cholesterol'));
+    
+    if (hasBloodPressure || hasHeart) {
+      explanations.push(`\nSodium limited to ${targetSodium}mg/day (vs. standard 2300mg) due to ${hasBloodPressure ? 'blood pressure' : 'heart health'} concerns.`);
+    }
+    if (hasCholesterol || hasHeart) {
+      explanations.push(`Cholesterol limited to ${targetCholesterol}mg/day (vs. standard 300mg) for heart health.`);
+      explanations.push(`Saturated and trans fats are tracked to support cardiovascular health.`);
+    }
+  }
+  
+  explanations.push(`Fiber target of ${targetFiber}g supports digestive health and meets recommendations for ${gender === 'male' ? 'men' : gender === 'female' ? 'women' : 'your age group'}${calculatedAge >= 50 ? ' over 50' : ''}.`);
+
+  const explanation = explanations.join('\n');
+
+  return {
+    suggestedPreset,
+    presetReason,
+    explanation,
+    bmr,
+    tdee,
+    metrics: {
+      calories: {
+        enabled: true,
+        unit: 'kcal',
+        target: targetCalories.toString()
+      },
+      protein: {
+        enabled: true,
+        unit: 'g',
+        target: targetProtein.toString()
+      },
+      totalCarbs: {
+        enabled: true,
+        unit: 'g',
+        target: targetCarbs.toString()
+      },
+      totalFat: {
+        enabled: true,
+        unit: 'g',
+        target: targetFat.toString()
+      },
+      fiber: {
+        enabled: true,
+        unit: 'g',
+        target: targetFiber.toString()
+      },
+      sodium: {
+        enabled: true,
+        unit: 'mg',
+        target: targetSodium.toString()
+      },
+      cholesterol: {
+        enabled: true,
+        unit: 'mg',
+        target: targetCholesterol.toString()
+      },
+      ...(hasDiabetes && {
+        sugars: {
+          enabled: true,
+          unit: 'g',
+          target: Math.round(targetCarbs * 0.1).toString()
+        }
+      }),
+      ...((healthConditions?.some(c => c.toLowerCase().includes('heart') || c.toLowerCase().includes('cholesterol'))) && {
+        saturatedFat: {
+          enabled: true,
+          unit: 'g',
+          target: '13'
+        },
+        transFat: {
+          enabled: true,
+          unit: 'g',
+          target: '0'
+        }
+      })
+    }
+  };
+};
+
 // Verify Firebase ID token
 const verifyToken = async (authHeader) => {
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -216,8 +565,37 @@ module.exports = async (req, res) => {
       return res.status(200).json({ plans });
     }
 
+    // Route: GET /api/nutrition-plan/personalized (get personalized recommendation)
+    if (req.method === 'GET' && path === '/personalized') {
+      console.log('✅ Matched personalized route for userId:', userId);
+      
+      // Get user profile
+      const profileDoc = await getDb().collection(USERS_COLLECTION).doc(userId).get();
+      
+      if (!profileDoc.exists) {
+        return res.status(404).json(
+          createErrorResponse('PROFILE_NOT_FOUND', 'User profile not found. Please complete your profile.')
+        );
+      }
+
+      const profile = profileDoc.data();
+      
+      // Generate personalized plan using the service logic
+      const personalizedPlan = generatePersonalizedPlan(profile);
+
+      if (!personalizedPlan) {
+        return res.status(400).json(
+          createErrorResponse('INSUFFICIENT_DATA', 'Insufficient profile data to generate personalized plan. Please complete your profile.')
+        );
+      }
+
+      return res.status(200).json({
+        recommendation: personalizedPlan,
+      });
+    }
+
     // Route: GET /api/nutrition-plan/:planId (get specific plan by ID)
-    if (req.method === 'GET' && path && path !== '' && path !== '/' && path !== '/progress/today' && path !== '/history') {
+    if (req.method === 'GET' && path && path !== '' && path !== '/' && path !== '/progress/today' && path !== '/history' && path !== '/personalized') {
       const planId = path.substring(1); // Remove leading /
       
       const docRef = getDb()
