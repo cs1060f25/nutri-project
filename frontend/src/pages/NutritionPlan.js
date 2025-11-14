@@ -51,21 +51,64 @@ const calculateTDEE = (bmr, activityLevel) => {
 // Calculate personalized presets based on user profile
 const calculatePersonalizedPresets = (profile) => {
   if (!profile || !profile.gender || !profile.height || !profile.weight || !profile.activityLevel) {
+    console.error('Missing required profile data for presets:', { 
+      gender: profile?.gender, 
+      height: profile?.height, 
+      weight: profile?.weight, 
+      activityLevel: profile?.activityLevel 
+    });
     return null; // Return null if insufficient data, will use defaults
   }
 
   const { birthday, age, gender, height, weight, activityLevel, healthConditions } = profile;
   const calculatedAge = birthday ? calculateAgeFromBirthday(birthday) : age;
-  if (!calculatedAge) return null;
+  if (!calculatedAge) {
+    console.error('Could not calculate age from profile:', { birthday, age });
+    return null;
+  }
 
-  const heightFeet = height?.feet || 5;
-  const heightInches = height?.inches || 10;
-  const bmr = calculateBMR(calculatedAge, gender, heightFeet, heightInches, weight);
+  // Ensure height and weight are properly parsed as numbers
+  const heightFeet = typeof height === 'object' && height !== null ? parseInt(height.feet) || 5 : (typeof height === 'number' ? Math.floor(height / 12) : 5);
+  const heightInches = typeof height === 'object' && height !== null ? parseInt(height.inches) || 0 : (typeof height === 'number' ? height % 12 : 0);
+  const weightValue = typeof weight === 'number' ? weight : (weight ? parseFloat(weight) : 0);
+
+  console.log('Frontend - Parsed profile values for presets:', { 
+    originalHeight: height, 
+    originalWeight: weight, 
+    heightFeet, 
+    heightInches, 
+    weightValue, 
+    calculatedAge,
+    gender,
+    activityLevel 
+  });
+
+  // Validate critical values
+  if (weightValue <= 0 || heightFeet <= 0 || calculatedAge <= 0) {
+    console.error('Invalid profile values for presets:', { weightValue, heightFeet, heightInches, calculatedAge });
+    return null;
+  }
+
+  const bmr = calculateBMR(calculatedAge, gender, heightFeet, heightInches, weightValue);
+  if (!bmr || bmr <= 0) {
+    console.error('Failed to calculate BMR for presets:', { calculatedAge, gender, heightFeet, heightInches, weightValue, bmr });
+    return null;
+  }
+
+  console.log('Frontend - BMR calculated for presets:', bmr);
+
   const tdee = calculateTDEE(bmr, activityLevel);
+  if (!tdee || tdee <= 0) {
+    console.error('Failed to calculate TDEE for presets:', { bmr, activityLevel, tdee });
+    return null;
+  }
+
+  console.log('Frontend - TDEE calculated for presets:', tdee);
 
   // Helper functions
   const calculateProtein = (presetType) => {
-    const weightKg = weight * 0.453592;
+    if (!weightValue || weightValue <= 0) return 50; // Default fallback
+    const weightKg = weightValue * 0.453592;
     if (presetType === 'high-protein') {
       return Math.round(weightKg * 2.2); // High protein for muscle building
     }
@@ -199,14 +242,18 @@ const NutritionPlan = () => {
         // Load user profile for personalized presets
         try {
           const profile = await getUserProfile();
+          console.log('Frontend - Loaded user profile:', profile);
           if (profile) {
             const presets = calculatePersonalizedPresets(profile);
             if (presets) {
+              console.log('Frontend - Calculated personalized presets:', presets);
               setPersonalizedPresets(presets);
+            } else {
+              console.warn('Frontend - calculatePersonalizedPresets returned null, will use default presets');
             }
           }
         } catch (profileErr) {
-          console.log('Could not load user profile:', profileErr.message);
+          console.error('Could not load user profile:', profileErr.message);
         }
 
         const plan = await getActiveNutritionPlan();
@@ -254,58 +301,60 @@ const NutritionPlan = () => {
   // Use personalized presets if available, otherwise use defaults
   const getPresets = () => {
     if (personalizedPresets) {
+      console.log('Frontend - Using personalized presets:', personalizedPresets);
       return personalizedPresets;
     }
+    console.log('Frontend - Using default presets (no personalized presets available)');
     // Default presets (fallback if no profile data)
     return {
-      'balanced': {
-        name: '⚖️ Balanced Diet',
-        description: 'Track all major macronutrients for balanced nutrition',
-        metrics: {
-          calories: { target: '2000' },
-          protein: { target: '50' },
-          totalCarbs: { target: '275' },
-          totalFat: { target: '65' },
-          fiber: { target: '25' },
-          sodium: { target: '2300' }
-        }
-      },
-      'high-protein': {
-        name: '🏋️ High Protein',
-        description: 'Focus on protein intake for muscle building',
-        metrics: {
-          calories: { target: '2200' },
-          protein: { target: '150' },
-          totalCarbs: { target: '200' },
-          totalFat: { target: '70' },
-          saturatedFat: { target: '20' }
-        }
-      },
-      'low-sodium': {
-        name: '🧂 Low Sodium',
-        description: 'Monitor and limit sodium intake',
-        metrics: {
-          calories: { target: '2000' },
-          sodium: { target: '1500' },
-          protein: { target: '50' },
-          fiber: { target: '25' },
-          cholesterol: { target: '300' }
-        }
-      },
-      'heart-healthy': {
-        name: '❤️ Heart Healthy',
-        description: 'Track nutrients important for cardiovascular health',
-        metrics: {
-          calories: { target: '2000' },
-          totalFat: { target: '50' },
-          saturatedFat: { target: '13' },
-          transFat: { target: '0' },
-          cholesterol: { target: '300' },
-          sodium: { target: '1500' },
-          fiber: { target: '30' }
-        }
+    'balanced': {
+      name: '⚖️ Balanced Diet',
+      description: 'Track all major macronutrients for balanced nutrition',
+      metrics: {
+        calories: { target: '2000' },
+        protein: { target: '50' },
+        totalCarbs: { target: '275' },
+        totalFat: { target: '65' },
+        fiber: { target: '25' },
+        sodium: { target: '2300' }
       }
-    };
+    },
+    'high-protein': {
+      name: '🏋️ High Protein',
+      description: 'Focus on protein intake for muscle building',
+      metrics: {
+        calories: { target: '2200' },
+        protein: { target: '150' },
+        totalCarbs: { target: '200' },
+        totalFat: { target: '70' },
+        saturatedFat: { target: '20' }
+      }
+    },
+    'low-sodium': {
+      name: '🧂 Low Sodium',
+      description: 'Monitor and limit sodium intake',
+      metrics: {
+        calories: { target: '2000' },
+        sodium: { target: '1500' },
+        protein: { target: '50' },
+        fiber: { target: '25' },
+        cholesterol: { target: '300' }
+      }
+    },
+    'heart-healthy': {
+      name: '❤️ Heart Healthy',
+      description: 'Track nutrients important for cardiovascular health',
+      metrics: {
+        calories: { target: '2000' },
+        totalFat: { target: '50' },
+        saturatedFat: { target: '13' },
+        transFat: { target: '0' },
+        cholesterol: { target: '300' },
+        sodium: { target: '1500' },
+        fiber: { target: '30' }
+      }
+    }
+  };
   };
 
   const presets = getPresets();
@@ -494,10 +543,10 @@ const NutritionPlan = () => {
     e.preventDefault();
     setError(null);
 
-    const enabledMetrics = Object.entries(metrics)
-      .filter(([_, value]) => value.enabled)
-      .reduce((acc, [key, value]) => ({ ...acc, [key]: value }), {});
-    
+      const enabledMetrics = Object.entries(metrics)
+        .filter(([_, value]) => value.enabled)
+        .reduce((acc, [key, value]) => ({ ...acc, [key]: value }), {});
+      
     // Check for safety warnings
     const warnings = validateNutritionSafety(enabledMetrics);
     
