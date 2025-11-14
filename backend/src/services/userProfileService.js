@@ -10,12 +10,30 @@ const getDb = () => admin.firestore();
 /**
  * Build the canonical profile payload we store for each user.
  */
-const buildProfilePayload = ({ email, firstName, lastName, residence }) => ({
-  email: email || null,
-  firstName: firstName || null,
-  lastName: lastName || null,
-  residence: residence || null,
-});
+const buildProfilePayload = (data = {}) => {
+  const payload = {
+    email: data.email || null,
+    firstName: data.firstName || null,
+    lastName: data.lastName || null,
+    residence: data.residence || null,
+  };
+
+  // Add optional fields if they exist
+  if (data.birthday !== undefined) payload.birthday = data.birthday;
+  if (data.age !== undefined) payload.age = data.age;
+  if (data.gender !== undefined) payload.gender = data.gender;
+  if (data.height !== undefined) payload.height = data.height;
+  if (data.weight !== undefined) payload.weight = data.weight;
+  if (data.activityLevel !== undefined) payload.activityLevel = data.activityLevel;
+  if (data.dietaryPattern !== undefined) payload.dietaryPattern = data.dietaryPattern;
+  if (data.isKosher !== undefined) payload.isKosher = data.isKosher;
+  if (data.isHalal !== undefined) payload.isHalal = data.isHalal;
+  if (data.allergies !== undefined) payload.allergies = data.allergies || [];
+  if (data.healthConditions !== undefined) payload.healthConditions = data.healthConditions || [];
+  if (data.primaryGoal !== undefined) payload.primaryGoal = data.primaryGoal;
+
+  return payload;
+};
 
 /**
  * Create or overwrite the profile document for a user when they register.
