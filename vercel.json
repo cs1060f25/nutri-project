@@ -3,8 +3,10 @@
   "outputDirectory": "frontend/build",
   "rewrites": [
     { "source": "/home", "destination": "/api/home" },
-    { "source": "/auth/:path", "destination": "/api/auth" },
+    { "source": "/auth/:path*", "destination": "/api/auth" },
     { "source": "/api/nutrition-plan/:path*", "destination": "/api/nutrition-plan/index" },
+    { "source": "/api/profile", "destination": "/api/profile/index" },
+    { "source": "/api/profile/:path*", "destination": "/api/profile/index" },
     { "source": "/api/huds/:path*", "destination": "/api/huds" },
     { "source": "/api/meals/:path*", "destination": "/api/meals" },
     { "source": "/test-env", "destination": "/api/test-env" },
