@@ -77,7 +77,10 @@ const calculateTDEE = (bmr, activityLevel) => {
 
 // Adjust calories based on primary goal
 const adjustCaloriesForGoal = (tdee, goal) => {
-  if (!tdee || tdee <= 0) return 2000; // Default fallback
+  if (!tdee || tdee <= 0) {
+    console.error('Invalid TDEE in adjustCaloriesForGoal:', tdee);
+    return null; // Return null instead of default to catch errors
+  }
   
   const goalAdjustments = {
     'weight-loss': -500,
@@ -89,7 +92,9 @@ const adjustCaloriesForGoal = (tdee, goal) => {
     'better-digestion': 0
   };
   const adjustment = goalAdjustments[goal] || 0;
-  return Math.max(1200, tdee + adjustment);
+  const result = Math.max(1200, tdee + adjustment);
+  console.log('adjustCaloriesForGoal:', { tdee, goal, adjustment, result });
+  return result;
 };
 
 // Calculate protein target
@@ -203,9 +208,21 @@ const generatePersonalizedPlan = (userProfile) => {
   }
 
   // Ensure height and weight are properly parsed as numbers
-  const heightFeet = typeof height === 'object' ? parseInt(height.feet) || 5 : parseInt(height) || 5;
-  const heightInches = typeof height === 'object' ? parseInt(height.inches) || 0 : 0;
-  const weightValue = typeof weight === 'number' ? weight : parseFloat(weight) || 0;
+  const heightFeet = typeof height === 'object' && height !== null ? parseInt(height.feet) || 5 : (typeof height === 'number' ? Math.floor(height / 12) : 5);
+  const heightInches = typeof height === 'object' && height !== null ? parseInt(height.inches) || 0 : (typeof height === 'number' ? height % 12 : 0);
+  const weightValue = typeof weight === 'number' ? weight : (weight ? parseFloat(weight) : 0);
+
+  console.log('Parsed profile values:', { 
+    originalHeight: height, 
+    originalWeight: weight, 
+    heightFeet, 
+    heightInches, 
+    weightValue, 
+    calculatedAge,
+    gender,
+    activityLevel,
+    primaryGoal 
+  });
 
   // Validate critical values
   if (weightValue <= 0 || heightFeet <= 0 || calculatedAge <= 0) {
@@ -220,14 +237,25 @@ const generatePersonalizedPlan = (userProfile) => {
     return null;
   }
 
+  console.log('BMR calculated:', bmr);
+
   const tdee = calculateTDEE(bmr, activityLevel);
   if (!tdee || tdee <= 0) {
     console.error('Failed to calculate TDEE:', { bmr, activityLevel });
     return null;
   }
 
+  console.log('TDEE calculated:', tdee);
+
   // Adjust calories for goal
   const targetCalories = adjustCaloriesForGoal(tdee, primaryGoal || 'weight-maintenance');
+  
+  if (!targetCalories || targetCalories <= 0) {
+    console.error('Failed to adjust calories for goal:', { tdee, primaryGoal, targetCalories });
+    return null;
+  }
+
+  console.log('Target calories calculated:', targetCalories);
 
   // Calculate macronutrients
   const targetProtein = calculateProteinTarget(weightValue, primaryGoal, gender);
@@ -573,22 +601,26 @@ module.exports = async (req, res) => {
       const profileDoc = await getDb().collection(USERS_COLLECTION).doc(userId).get();
       
       if (!profileDoc.exists) {
+        console.log('❌ Profile not found for userId:', userId);
         return res.status(404).json(
           createErrorResponse('PROFILE_NOT_FOUND', 'User profile not found. Please complete your profile.')
         );
       }
 
       const profile = profileDoc.data();
+      console.log('📋 Raw profile data:', JSON.stringify(profile, null, 2));
       
       // Generate personalized plan using the service logic
       const personalizedPlan = generatePersonalizedPlan(profile);
 
       if (!personalizedPlan) {
+        console.log('❌ Failed to generate personalized plan - insufficient data');
         return res.status(400).json(
           createErrorResponse('INSUFFICIENT_DATA', 'Insufficient profile data to generate personalized plan. Please complete your profile.')
         );
       }
 
+      console.log('✅ Generated personalized plan with calories:', personalizedPlan.metrics?.calories?.target);
       return res.status(200).json({
         recommendation: personalizedPlan,
       });
