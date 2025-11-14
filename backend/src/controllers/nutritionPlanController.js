@@ -6,6 +6,8 @@ const {
   getAllNutritionPlans,
   deleteNutritionPlan,
 } = require('../services/nutritionPlanService');
+const { getUserProfile } = require('../services/userProfileService');
+const { generatePersonalizedPlan } = require('../services/personalizedNutritionService');
 
 /**
  * POST /api/nutrition-plan
@@ -158,6 +160,40 @@ const deletePlan = async (req, res) => {
   }
 };
 
+/**
+ * GET /api/nutrition-plan/personalized
+ * Get personalized nutrition plan recommendations based on user profile
+ */
+const getPersonalizedRecommendation = async (req, res) => {
+  try {
+    const userId = req.user?.uid;
+    const profile = await getUserProfile(userId);
+
+    if (!profile) {
+      return res.status(404).json(
+        createErrorResponse('PROFILE_NOT_FOUND', 'User profile not found. Please complete your profile.')
+      );
+    }
+
+    const personalizedPlan = generatePersonalizedPlan(profile);
+
+    if (!personalizedPlan) {
+      return res.status(400).json(
+        createErrorResponse('INSUFFICIENT_DATA', 'Insufficient profile data to generate personalized plan. Please complete your profile.')
+      );
+    }
+
+    return res.status(200).json({
+      recommendation: personalizedPlan,
+    });
+  } catch (error) {
+    console.error('Error generating personalized recommendation:', error);
+    return res
+      .status(500)
+      .json(createErrorResponse('INTERNAL', 'Failed to generate personalized recommendation.'));
+  }
+};
+
 module.exports = {
   createNutritionPlan,
   getActivePlan,
@@ -165,5 +201,6 @@ module.exports = {
   getPlanById,
   getPlanHistory,
   deletePlan,
+  getPersonalizedRecommendation,
 };
 

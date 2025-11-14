@@ -7,6 +7,7 @@ const {
   getPlanById,
   getPlanHistory,
   deletePlan,
+  getPersonalizedRecommendation,
 } = require('../controllers/nutritionPlanController');
 const { getTodayProgress } = require('../controllers/nutritionProgressController');
 const { verifyToken } = require('../middleware/authMiddleware');
@@ -19,6 +20,9 @@ router.post('/', createNutritionPlan);
 
 // Get active nutrition plan
 router.get('/', getActivePlan);
+
+// Get personalized nutrition plan recommendation
+router.get('/personalized', getPersonalizedRecommendation);
 
 // Get today's nutrition progress (consolidated route)
 router.get('/progress/today', getTodayProgress);

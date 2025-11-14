@@ -189,3 +189,24 @@ export const deleteNutritionPlan = async (planId) => {
   return response.json();
 };
 
+/**
+ * Get personalized nutrition plan recommendation based on user profile
+ */
+export const getPersonalizedRecommendation = async () => {
+  const response = await fetchWithAuth(`${API_BASE}/api/nutrition-plan/personalized`, {
+    method: 'GET',
+  });
+
+  if (response.status === 404) {
+    return null;
+  }
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error?.message || 'Failed to get personalized recommendation');
+  }
+
+  const data = await response.json();
+  return data.recommendation;
+};
+

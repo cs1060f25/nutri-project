@@ -10,7 +10,26 @@ const { sendPasswordResetEmail } = require('../services/emailService');
  */
 const register = async (req, res) => {
   try {
-    const { email, password, firstName, lastName, residence } = req.body;
+    const { 
+      email, 
+      password, 
+      firstName, 
+      lastName, 
+      residence,
+      // Additional profile fields
+      birthday,
+      age,
+      gender,
+      height,
+      weight,
+      activityLevel,
+      dietaryPattern,
+      isKosher,
+      isHalal,
+      allergies,
+      healthConditions,
+      primaryGoal
+    } = req.body;
 
     // Validate input
     if (!email || !password) {
@@ -55,13 +74,30 @@ const register = async (req, res) => {
     };
     await admin.auth().setCustomUserClaims(userRecord.uid, customClaims);
 
-    // Persist profile document in Firestore
-    await createUserProfile(userRecord.uid, {
+    // Build profile data with all fields
+    const profileData = {
       email: userRecord.email,
       firstName,
       lastName,
       residence,
-    });
+    };
+
+    // Add optional fields if provided
+    if (birthday) profileData.birthday = birthday;
+    if (age) profileData.age = parseInt(age); // Store calculated age as well for convenience
+    if (gender) profileData.gender = gender;
+    if (height) profileData.height = height;
+    if (weight) profileData.weight = parseFloat(weight);
+    if (activityLevel) profileData.activityLevel = activityLevel;
+    if (dietaryPattern) profileData.dietaryPattern = dietaryPattern;
+    if (isKosher !== undefined) profileData.isKosher = Boolean(isKosher);
+    if (isHalal !== undefined) profileData.isHalal = Boolean(isHalal);
+    if (allergies && Array.isArray(allergies)) profileData.allergies = allergies;
+    if (healthConditions && Array.isArray(healthConditions)) profileData.healthConditions = healthConditions;
+    if (primaryGoal) profileData.primaryGoal = primaryGoal;
+
+    // Persist profile document in Firestore
+    await createUserProfile(userRecord.uid, profileData);
 
     console.log('✅ User created successfully:', userRecord.uid);
     console.log('   Name:', displayName);

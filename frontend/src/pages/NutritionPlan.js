@@ -1,6 +1,177 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './NutritionPlan.css';
-import { createNutritionPlan, getActiveNutritionPlan, updateNutritionPlan } from '../services/nutritionPlanService';
+import { createNutritionPlan, getActiveNutritionPlan, updateNutritionPlan, getPersonalizedRecommendation } from '../services/nutritionPlanService';
+import { getUserProfile } from '../services/profileService';
+
+// Calculate age from birthday (helper function outside component)
+const calculateAgeFromBirthday = (birthday) => {
+  if (!birthday) return null;
+  const birthDate = new Date(birthday);
+  const today = new Date();
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const monthDiff = today.getMonth() - birthDate.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+    age--;
+  }
+  return age;
+};
+
+// Calculate BMR (Basal Metabolic Rate) using Mifflin-St Jeor Equation
+const calculateBMR = (age, gender, heightFeet, heightInches, weight) => {
+  const heightInchesTotal = heightFeet * 12 + heightInches;
+  const heightCm = heightInchesTotal * 2.54;
+  const weightKg = weight * 0.453592;
+  
+  let bmr;
+  if (gender === 'male') {
+    bmr = 10 * weightKg + 6.25 * heightCm - 5 * age + 5;
+  } else if (gender === 'female') {
+    bmr = 10 * weightKg + 6.25 * heightCm - 5 * age - 161;
+  } else {
+    const maleBMR = 10 * weightKg + 6.25 * heightCm - 5 * age + 5;
+    const femaleBMR = 10 * weightKg + 6.25 * heightCm - 5 * age - 161;
+    bmr = (maleBMR + femaleBMR) / 2;
+  }
+  return Math.round(bmr);
+};
+
+// Calculate TDEE (Total Daily Energy Expenditure)
+const calculateTDEE = (bmr, activityLevel) => {
+  const activityMultipliers = {
+    'sedentary': 1.2,
+    'lightly-active': 1.375,
+    'moderately-active': 1.55,
+    'very-active': 1.725,
+    'extremely-active': 1.9
+  };
+  const multiplier = activityMultipliers[activityLevel] || 1.2;
+  return Math.round(bmr * multiplier);
+};
+
+// Calculate personalized presets based on user profile
+const calculatePersonalizedPresets = (profile) => {
+  if (!profile || !profile.gender || !profile.height || !profile.weight || !profile.activityLevel) {
+    return null; // Return null if insufficient data, will use defaults
+  }
+
+  const { birthday, age, gender, height, weight, activityLevel, healthConditions } = profile;
+  const calculatedAge = birthday ? calculateAgeFromBirthday(birthday) : age;
+  if (!calculatedAge) return null;
+
+  const heightFeet = height?.feet || 5;
+  const heightInches = height?.inches || 10;
+  const bmr = calculateBMR(calculatedAge, gender, heightFeet, heightInches, weight);
+  const tdee = calculateTDEE(bmr, activityLevel);
+
+  // Helper functions
+  const calculateProtein = (presetType) => {
+    const weightKg = weight * 0.453592;
+    if (presetType === 'high-protein') {
+      return Math.round(weightKg * 2.2); // High protein for muscle building
+    }
+    return Math.round(weightKg * 1.6); // Standard protein
+  };
+
+  const calculateCarbs = (calories, presetType) => {
+    let carbPercentage = 0.50; // Default 50%
+    if (presetType === 'high-protein') {
+      carbPercentage = 0.40; // Lower carbs for high protein
+    } else if (presetType === 'low-sodium' || presetType === 'heart-healthy') {
+      carbPercentage = 0.45; // Moderate carbs
+    }
+    return Math.round((calories * carbPercentage) / 4);
+  };
+
+  const calculateFat = (calories, presetType) => {
+    let fatPercentage = 0.30; // Default 30%
+    if (presetType === 'heart-healthy') {
+      fatPercentage = 0.25; // Lower fat for heart health
+    }
+    return Math.round((calories * fatPercentage) / 9);
+  };
+
+  const calculateFiber = (gender, age) => {
+    if (gender === 'male') {
+      return age >= 50 ? 30 : 38;
+    } else if (gender === 'female') {
+      return age >= 50 ? 21 : 25;
+    }
+    return age >= 50 ? 25 : 31;
+  };
+
+  const calculateSodium = (presetType, healthConditions) => {
+    if (presetType === 'low-sodium' || presetType === 'heart-healthy') {
+      return 1500;
+    }
+    const hasHighBP = healthConditions?.some(c => 
+      c.toLowerCase().includes('blood pressure') || c.toLowerCase().includes('hypertension')
+    );
+    return hasHighBP ? 1500 : 2300;
+  };
+
+  const calculateCholesterol = (presetType, healthConditions) => {
+    if (presetType === 'heart-healthy') {
+      return 200;
+    }
+    const hasHighChol = healthConditions?.some(c => 
+      c.toLowerCase().includes('cholesterol') || c.toLowerCase().includes('heart')
+    );
+    return hasHighChol ? 200 : 300;
+  };
+
+  // Calculate base calories (maintenance)
+  const baseCalories = Math.max(1200, tdee);
+
+  return {
+    'balanced': {
+      name: '⚖️ Balanced Diet',
+      description: 'Track all major macronutrients for balanced nutrition',
+      metrics: {
+        calories: { target: baseCalories.toString() },
+        protein: { target: calculateProtein('balanced').toString() },
+        totalCarbs: { target: calculateCarbs(baseCalories, 'balanced').toString() },
+        totalFat: { target: calculateFat(baseCalories, 'balanced').toString() },
+        fiber: { target: calculateFiber(gender, calculatedAge).toString() },
+        sodium: { target: calculateSodium('balanced', healthConditions).toString() }
+      }
+    },
+    'high-protein': {
+      name: '🏋️ High Protein',
+      description: 'Focus on protein intake for muscle building',
+      metrics: {
+        calories: { target: Math.max(1200, tdee + 300).toString() }, // Slight surplus for muscle gain
+        protein: { target: calculateProtein('high-protein').toString() },
+        totalCarbs: { target: calculateCarbs(Math.max(1200, tdee + 300), 'high-protein').toString() },
+        totalFat: { target: calculateFat(Math.max(1200, tdee + 300), 'high-protein').toString() },
+        saturatedFat: { target: '20' }
+      }
+    },
+    'low-sodium': {
+      name: '🧂 Low Sodium',
+      description: 'Monitor and limit sodium intake',
+      metrics: {
+        calories: { target: baseCalories.toString() },
+        sodium: { target: '1500' },
+        protein: { target: calculateProtein('balanced').toString() },
+        fiber: { target: calculateFiber(gender, calculatedAge).toString() },
+        cholesterol: { target: calculateCholesterol('low-sodium', healthConditions).toString() }
+      }
+    },
+    'heart-healthy': {
+      name: '❤️ Heart Healthy',
+      description: 'Track nutrients important for cardiovascular health',
+      metrics: {
+        calories: { target: baseCalories.toString() },
+        totalFat: { target: calculateFat(baseCalories, 'heart-healthy').toString() },
+        saturatedFat: { target: '13' },
+        transFat: { target: '0' },
+        cholesterol: { target: '200' },
+        sodium: { target: '1500' },
+        fiber: { target: Math.max(calculateFiber(gender, calculatedAge), 30).toString() }
+      }
+    }
+  };
+};
 
 const NutritionPlan = () => {
   const [selectedPreset, setSelectedPreset] = useState('');
@@ -12,12 +183,32 @@ const NutritionPlan = () => {
   const [isEditMode, setIsEditMode] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
+  const [personalizedRecommendation, setPersonalizedRecommendation] = useState(null);
+  const [showPersonalizedBanner, setShowPersonalizedBanner] = useState(false);
+  const [planExplanation, setPlanExplanation] = useState(null);
+  const [safetyWarnings, setSafetyWarnings] = useState([]);
+  const [showSafetyConfirm, setShowSafetyConfirm] = useState(false);
+  const [personalizedPresets, setPersonalizedPresets] = useState(null);
 
-  // Load existing nutrition plan on component mount
+  // Load existing nutrition plan and personalized recommendations on component mount
   useEffect(() => {
-    const loadExistingPlan = async () => {
+    const loadData = async () => {
       try {
         setLoading(true);
+        
+        // Load user profile for personalized presets
+        try {
+          const profile = await getUserProfile();
+          if (profile) {
+            const presets = calculatePersonalizedPresets(profile);
+            if (presets) {
+              setPersonalizedPresets(presets);
+            }
+          }
+        } catch (profileErr) {
+          console.log('Could not load user profile:', profileErr.message);
+        }
+
         const plan = await getActiveNutritionPlan();
         
         if (plan) {
@@ -27,6 +218,18 @@ const NutritionPlan = () => {
           setMetrics(plan.metrics || {});
           setShowSummary(true);
           setIsEditMode(true);
+        } else {
+          // No active plan - try to get personalized recommendation
+          try {
+            const recommendation = await getPersonalizedRecommendation();
+            if (recommendation) {
+              setPersonalizedRecommendation(recommendation);
+              setShowPersonalizedBanner(true);
+            }
+          } catch (recErr) {
+            // Don't show error for missing recommendation - just means profile incomplete
+            console.log('No personalized recommendation available:', recErr.message);
+          }
         }
       } catch (err) {
         console.error('Error loading nutrition plan:', err);
@@ -39,7 +242,7 @@ const NutritionPlan = () => {
       }
     };
 
-    loadExistingPlan();
+    loadData();
   }, []);
 
   // Debug: Log when metrics state changes
@@ -48,55 +251,64 @@ const NutritionPlan = () => {
     console.log('Number of enabled metrics:', Object.values(metrics).filter(m => m.enabled).length);
   }, [metrics]);
 
-  const presets = {
-    'balanced': {
-      name: '⚖️ Balanced Diet',
-      description: 'Track all major macronutrients for balanced nutrition',
-      metrics: {
-        calories: { target: '2000' },
-        protein: { target: '50' },
-        totalCarbs: { target: '275' },
-        totalFat: { target: '65' },
-        fiber: { target: '25' },
-        sodium: { target: '2300' }
-      }
-    },
-    'high-protein': {
-      name: '🏋️ High Protein',
-      description: 'Focus on protein intake for muscle building',
-      metrics: {
-        calories: { target: '2200' },
-        protein: { target: '150' },
-        totalCarbs: { target: '200' },
-        totalFat: { target: '70' },
-        saturatedFat: { target: '20' }
-      }
-    },
-    'low-sodium': {
-      name: '🧂 Low Sodium',
-      description: 'Monitor and limit sodium intake',
-      metrics: {
-        calories: { target: '2000' },
-        sodium: { target: '1500' },
-        protein: { target: '50' },
-        fiber: { target: '25' },
-        cholesterol: { target: '300' }
-      }
-    },
-    'heart-healthy': {
-      name: '❤️ Heart Healthy',
-      description: 'Track nutrients important for cardiovascular health',
-      metrics: {
-        calories: { target: '2000' },
-        totalFat: { target: '50' },
-        saturatedFat: { target: '13' },
-        transFat: { target: '0' },
-        cholesterol: { target: '300' },
-        sodium: { target: '1500' },
-        fiber: { target: '30' }
-      }
+  // Use personalized presets if available, otherwise use defaults
+  const getPresets = () => {
+    if (personalizedPresets) {
+      return personalizedPresets;
     }
+    // Default presets (fallback if no profile data)
+    return {
+      'balanced': {
+        name: '⚖️ Balanced Diet',
+        description: 'Track all major macronutrients for balanced nutrition',
+        metrics: {
+          calories: { target: '2000' },
+          protein: { target: '50' },
+          totalCarbs: { target: '275' },
+          totalFat: { target: '65' },
+          fiber: { target: '25' },
+          sodium: { target: '2300' }
+        }
+      },
+      'high-protein': {
+        name: '🏋️ High Protein',
+        description: 'Focus on protein intake for muscle building',
+        metrics: {
+          calories: { target: '2200' },
+          protein: { target: '150' },
+          totalCarbs: { target: '200' },
+          totalFat: { target: '70' },
+          saturatedFat: { target: '20' }
+        }
+      },
+      'low-sodium': {
+        name: '🧂 Low Sodium',
+        description: 'Monitor and limit sodium intake',
+        metrics: {
+          calories: { target: '2000' },
+          sodium: { target: '1500' },
+          protein: { target: '50' },
+          fiber: { target: '25' },
+          cholesterol: { target: '300' }
+        }
+      },
+      'heart-healthy': {
+        name: '❤️ Heart Healthy',
+        description: 'Track nutrients important for cardiovascular health',
+        metrics: {
+          calories: { target: '2000' },
+          totalFat: { target: '50' },
+          saturatedFat: { target: '13' },
+          transFat: { target: '0' },
+          cholesterol: { target: '300' },
+          sodium: { target: '1500' },
+          fiber: { target: '30' }
+        }
+      }
+    };
   };
+
+  const presets = getPresets();
 
   const metricCategories = {
     energy: {
@@ -134,6 +346,23 @@ const NutritionPlan = () => {
 
   const unitOptions = ['g', 'mg', 'kcal'];
 
+  const handleApplyPersonalized = () => {
+    if (!personalizedRecommendation) return;
+    
+    setSelectedPreset(personalizedRecommendation.suggestedPreset || '');
+    setMetrics(personalizedRecommendation.metrics || {});
+    setShowPersonalizedBanner(false);
+    // Set explanation for personalized plan
+    if (personalizedRecommendation.explanation) {
+      setPlanExplanation({
+        isPersonalized: true,
+        explanation: personalizedRecommendation.explanation,
+        presetReason: personalizedRecommendation.presetReason,
+        preset: personalizedRecommendation.suggestedPreset
+      });
+    }
+  };
+
   const handlePresetChange = (presetKey) => {
     setSelectedPreset(presetKey);
     setIsDropdownOpen(false);
@@ -160,10 +389,14 @@ const NutritionPlan = () => {
       
       console.log('Setting metrics to:', newMetrics);
       setMetrics(newMetrics);
+      
+      // Clear explanation when manually selecting a preset (only show for personalized)
+      setPlanExplanation(null);
     } else {
       // Clear metrics for custom
       console.log('Clearing metrics for custom preset');
       setMetrics({});
+      setPlanExplanation(null);
     }
   };
 
@@ -198,23 +431,86 @@ const NutritionPlan = () => {
   };
 
   const handleMetricChange = (metricId, field, value) => {
+    // For number inputs, handle empty string and preserve "0"
+    let processedValue = value;
+    if (field === 'target' && value === '') {
+      processedValue = ''; // Allow empty string
+    } else if (field === 'target' && value === '0') {
+      processedValue = '0'; // Preserve "0" as string
+    }
+    
     setMetrics(prev => ({
       ...prev,
-      [metricId]: { ...prev[metricId], [field]: value }
+      [metricId]: { ...prev[metricId], [field]: processedValue }
     }));
+    // Clear warnings when user edits values
+    if (field === 'target') {
+      setSafetyWarnings([]);
+      setShowSafetyConfirm(false);
+    }
   };
 
+  // Check for dangerously low nutrition values
+  const validateNutritionSafety = (metricsData) => {
+    const warnings = [];
+    
+    // Safe minimum thresholds
+    const safetyThresholds = {
+      calories: { min: 1200, unit: 'kcal', warning: 'Calories below 1200 kcal/day can be dangerous and may lead to nutrient deficiencies, loss of muscle mass, and slowed metabolism. This is below recommended safe minimums for most adults.' },
+      protein: { min: 46, unit: 'g', warning: 'Protein below 46g/day may not meet basic nutritional needs. Adequate protein is essential for muscle maintenance, immune function, and overall health.' },
+      totalCarbs: { min: 130, unit: 'g', warning: 'Carbohydrates below 130g/day may be too low to support brain function and physical activity. Your brain alone requires about 130g of carbohydrates daily.' },
+      totalFat: { min: 20, unit: 'g', warning: 'Fat intake below 20g/day is extremely low and may prevent absorption of fat-soluble vitamins (A, D, E, K) and essential fatty acids needed for hormone production.' },
+      fiber: { min: 14, unit: 'g', warning: 'Fiber below 14g/day may not support digestive health. Low fiber intake can lead to constipation and may not provide prebiotic benefits for gut health. The recommended minimum is typically 14g per 1000 calories consumed.' },
+      sodium: { min: 500, unit: 'mg', warning: 'Sodium below 500mg/day is dangerously low and can lead to hyponatremia, causing symptoms like nausea, headaches, and in severe cases, seizures or coma.' }
+    };
+
+    // Check each enabled metric
+    Object.entries(metricsData).forEach(([metricId, metricValue]) => {
+      if (!metricValue.enabled || !metricValue.target) return;
+      
+      const threshold = safetyThresholds[metricId];
+      if (!threshold) return; // Skip metrics without safety thresholds
+      
+      const targetValue = parseFloat(metricValue.target);
+      if (isNaN(targetValue)) return;
+      
+      // Convert to same unit if needed (for now assuming units match)
+      if (metricValue.unit === threshold.unit && targetValue < threshold.min) {
+        const metricLabel = getMetricLabel(metricId);
+        warnings.push({
+          metric: metricLabel,
+          current: targetValue,
+          minimum: threshold.min,
+          unit: threshold.unit,
+          message: threshold.warning
+        });
+      }
+    });
+
+    return warnings;
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
     setError(null);
 
+    const enabledMetrics = Object.entries(metrics)
+      .filter(([_, value]) => value.enabled)
+      .reduce((acc, [key, value]) => ({ ...acc, [key]: value }), {});
+    
+    // Check for safety warnings
+    const warnings = validateNutritionSafety(enabledMetrics);
+    
+    if (warnings.length > 0 && !showSafetyConfirm) {
+      setSafetyWarnings(warnings);
+      setShowSafetyConfirm(true);
+      return; // Don't submit yet, show warnings first
+    }
+
+    // User confirmed they want to proceed despite warnings, or no warnings
+    setLoading(true);
+
     try {
-      const enabledMetrics = Object.entries(metrics)
-        .filter(([_, value]) => value.enabled)
-        .reduce((acc, [key, value]) => ({ ...acc, [key]: value }), {});
-      
       const planData = {
         preset: selectedPreset,
         presetName: selectedPreset ? presets[selectedPreset]?.name : 'Custom Plan',
@@ -235,6 +531,8 @@ const NutritionPlan = () => {
       setSavedPlan(response.plan);
       setShowSummary(true);
       setIsEditMode(true);
+      setSafetyWarnings([]);
+      setShowSafetyConfirm(false);
     } catch (err) {
       console.error('Error saving nutrition plan:', err);
       setError(err.message || 'Failed to save nutrition plan. Please try again.');
@@ -250,6 +548,11 @@ const NutritionPlan = () => {
     setMetrics({});
     setIsEditMode(false);
     setError(null);
+    setPlanExplanation(null);
+    setPersonalizedRecommendation(null);
+    setShowPersonalizedBanner(false);
+    setSafetyWarnings([]);
+    setShowSafetyConfirm(false);
   };
 
   const handleEditPlan = () => {
@@ -383,6 +686,65 @@ const NutritionPlan = () => {
           </div>
         )}
 
+        {showPersonalizedBanner && personalizedRecommendation && !isEditMode && (
+          <div className="personalized-banner" style={{
+            background: '#f0fdf4',
+            border: '2px solid #1a5f3f',
+            borderRadius: '12px',
+            padding: '20px',
+            marginBottom: '24px',
+            color: '#1a5f3f'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '16px' }}>
+              <div style={{ flex: 1 }}>
+                <h3 style={{ margin: '0 0 8px 0', fontSize: '18px', fontWeight: '600' }}>
+                  ✨ Personalized Plan Available
+                </h3>
+                <p style={{ margin: '0', fontSize: '14px', lineHeight: '1.5' }}>
+                  Based on your profile (age, weight, activity level, health conditions, and goals), 
+                  we've calculated personalized daily nutrition targets. Click below to apply these recommendations.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={handleApplyPersonalized}
+                style={{
+                  padding: '10px 20px',
+                  background: '#1a5f3f',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                Use Personalized Plan
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowPersonalizedBanner(false)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#1a5f3f',
+                  cursor: 'pointer',
+                  fontSize: '20px',
+                  padding: '0',
+                  width: '24px',
+                  height: '24px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                ×
+              </button>
+            </div>
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="nutrition-form">
           {/* Preset Selection */}
           <div className="preset-section">
@@ -468,10 +830,11 @@ const NutritionPlan = () => {
                               <input
                                 type="number"
                                 placeholder={`Target: ${metric.placeholder}`}
-                                value={metrics[metric.id].target}
+                                value={metrics[metric.id].target || ''}
                                 onChange={(e) => handleMetricChange(metric.id, 'target', e.target.value)}
                                 className="metric-input"
                                 step="any"
+                                min="0"
                               />
                               <select
                                 value={metrics[metric.id].unit}
@@ -493,6 +856,221 @@ const NutritionPlan = () => {
               </div>
             ))}
           </div>
+
+          {/* Plan Summary Section */}
+          {planExplanation && (selectedPreset || Object.keys(metrics).some(k => metrics[k].enabled)) && (
+            <div className="plan-explanation-section" style={{
+              background: '#f0fdf4',
+              border: '2px solid #1a5f3f',
+              borderRadius: '12px',
+              padding: '24px',
+              marginTop: '8px',
+              marginBottom: '8px'
+            }}>
+              <h3 style={{
+                margin: '0 0 12px 0',
+                fontSize: '20px',
+                fontWeight: '600',
+                color: '#1a5f3f',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}>
+                How this plan was selected
+              </h3>
+              
+              {planExplanation.isPersonalized ? (
+                <div style={{ color: '#1a5f3f' }}>
+                  {planExplanation.presetReason && (
+                    <p style={{ 
+                      margin: '0 0 12px 0', 
+                      fontSize: '15px', 
+                      fontWeight: '500',
+                      lineHeight: '1.6'
+                    }}>
+                      <strong>Preset Selection:</strong> {planExplanation.presetReason}
+                    </p>
+                  )}
+                  <div style={{
+                    fontSize: '14px',
+                    lineHeight: '1.8',
+                    color: '#1a5f3f',
+                    whiteSpace: 'pre-line'
+                  }}>
+                    {planExplanation.explanation}
+                  </div>
+                </div>
+              ) : (
+                <div style={{ color: '#1a5f3f' }}>
+                  <p style={{ 
+                    margin: '0 0 8px 0', 
+                    fontSize: '15px', 
+                    fontWeight: '500',
+                    lineHeight: '1.6'
+                  }}>
+                    <strong>Preset:</strong> {planExplanation.presetName || planExplanation.preset}
+                  </p>
+                  <p style={{ 
+                    margin: '0', 
+                    fontSize: '14px', 
+                    lineHeight: '1.6',
+                    color: '#1a5f3f'
+                  }}>
+                    {planExplanation.presetDescription || 'This preset has been selected with recommended targets for the chosen nutrition goal.'}
+                  </p>
+                  <p style={{ 
+                    margin: '12px 0 0 0', 
+                    fontSize: '13px', 
+                    lineHeight: '1.6',
+                    color: '#1a5f3f',
+                    fontStyle: 'italic'
+                  }}>
+                    💡 Tip: You can customize individual metric targets above to match your specific needs.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {showSafetyConfirm && safetyWarnings.length > 0 && (
+            <div className="safety-warning-banner" style={{
+              background: '#fff7ed',
+              border: '2px solid #f59e0b',
+              borderRadius: '12px',
+              padding: '20px',
+              marginBottom: '16px'
+            }}>
+              <h3 style={{
+                margin: '0 0 12px 0',
+                fontSize: '18px',
+                fontWeight: '600',
+                color: '#d97706',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}>
+                ⚠️ Safety Warning: Low Nutrition Values Detected
+              </h3>
+              <p style={{
+                margin: '0 0 16px 0',
+                fontSize: '14px',
+                color: '#92400e',
+                lineHeight: '1.6'
+              }}>
+                The following nutrition targets are below recommended safe minimums:
+              </p>
+              <div style={{ marginBottom: '16px' }}>
+                {safetyWarnings.map((warning, index) => (
+                  <div key={index} style={{
+                    background: 'white',
+                    borderRadius: '8px',
+                    padding: '12px',
+                    marginBottom: '12px',
+                    border: '1px solid #fbbf24'
+                  }}>
+                    <div style={{
+                      fontWeight: '600',
+                      color: '#d97706',
+                      marginBottom: '4px',
+                      fontSize: '14px'
+                    }}>
+                      {warning.metric}: {warning.current} {warning.unit} (Minimum recommended: {warning.minimum} {warning.unit})
+                    </div>
+                    <div style={{
+                      fontSize: '13px',
+                      color: '#78350f',
+                      lineHeight: '1.5'
+                    }}>
+                      {warning.message}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div style={{
+                display: 'flex',
+                gap: '12px',
+                flexWrap: 'wrap'
+              }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowSafetyConfirm(false);
+                    setSafetyWarnings([]);
+                  }}
+                  style={{
+                    padding: '10px 20px',
+                    background: '#1a5f3f',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    fontWeight: '600'
+                  }}
+                >
+                  Adjust Values
+                </button>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    // Force submission by setting showSafetyConfirm to false and submitting
+                    setShowSafetyConfirm(false);
+                    setLoading(true);
+                    setError(null);
+
+                    try {
+                      const enabledMetrics = Object.entries(metrics)
+                        .filter(([_, value]) => value.enabled)
+                        .reduce((acc, [key, value]) => ({ ...acc, [key]: value }), {});
+                      
+                      const planData = {
+                        preset: selectedPreset,
+                        presetName: selectedPreset ? presets[selectedPreset]?.name : 'Custom Plan',
+                        metrics: enabledMetrics
+                      };
+                      
+                      let response;
+                      if (isEditMode && savedPlan?.id) {
+                        response = await updateNutritionPlan(savedPlan.id, planData);
+                      } else {
+                        response = await createNutritionPlan(planData);
+                      }
+                      
+                      setSavedPlan(response.plan);
+                      setShowSummary(true);
+                      setIsEditMode(true);
+                      setSafetyWarnings([]);
+                    } catch (err) {
+                      console.error('Error saving nutrition plan:', err);
+                      setError(err.message || 'Failed to save nutrition plan. Please try again.');
+                    } finally {
+                      setLoading(false);
+                    }
+                  }}
+                  style={{
+                    padding: '10px 20px',
+                    background: '#dc2626',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    fontWeight: '600'
+                  }}
+                >
+                  Continue Anyway (Not Recommended)
+                </button>
+              </div>
+              <p style={{
+                margin: '12px 0 0 0',
+                fontSize: '12px',
+                color: '#92400e',
+                fontStyle: 'italic'
+              }}>
+                💡 Recommendation: Please consult with a healthcare provider or registered dietitian before setting nutrition targets below these minimums.
+              </p>
+            </div>
+          )}
 
           <button type="submit" className="submit-plan-button" disabled={loading}>
             {loading ? 'Saving...' : (isEditMode ? 'Update Nutrition Plan' : 'Save Nutrition Plan')}

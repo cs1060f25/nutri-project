@@ -82,15 +82,22 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const register = async (email, password, firstName, lastName, residence) => {
+  const register = async (email, password, firstName, lastName, residence, additionalData = null) => {
     try {
-      await postJson('/auth/register', { 
+      const registrationPayload = { 
         email, 
         password,
         firstName,
         lastName,
         residence
-      });
+      };
+
+      // Merge additional registration data if provided
+      if (additionalData) {
+        Object.assign(registrationPayload, additionalData);
+      }
+
+      await postJson('/auth/register', registrationPayload);
 
       // After registration, automatically log in
       return await login(email, password);
