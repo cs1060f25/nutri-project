@@ -170,7 +170,26 @@ const handleRegister = async (req, res) => {
   }
 
   try {
-    const { email, password, firstName, lastName, residence } = req.body;
+    const { 
+      email, 
+      password, 
+      firstName, 
+      lastName, 
+      residence,
+      // Additional profile fields
+      birthday,
+      age,
+      gender,
+      height,
+      weight,
+      activityLevel,
+      dietaryPattern,
+      isKosher,
+      isHalal,
+      allergies,
+      healthConditions,
+      primaryGoal
+    } = req.body;
 
     if (!email || !password) {
       return res.status(400).json(
@@ -200,7 +219,41 @@ const handleRegister = async (req, res) => {
       roles: []
     });
 
+    // Build profile data with all fields
+    const profileData = {
+      email: userRecord.email,
+      firstName,
+      lastName,
+      residence,
+    };
+
+    // Add optional fields if provided
+    if (birthday) profileData.birthday = birthday;
+    if (age) profileData.age = parseInt(age);
+    if (gender) profileData.gender = gender;
+    if (height) profileData.height = height;
+    if (weight) profileData.weight = parseFloat(weight);
+    if (activityLevel) profileData.activityLevel = activityLevel;
+    if (dietaryPattern) profileData.dietaryPattern = dietaryPattern;
+    if (isKosher !== undefined) profileData.isKosher = Boolean(isKosher);
+    if (isHalal !== undefined) profileData.isHalal = Boolean(isHalal);
+    if (allergies && Array.isArray(allergies)) profileData.allergies = allergies;
+    if (healthConditions && Array.isArray(healthConditions)) profileData.healthConditions = healthConditions;
+    if (primaryGoal) profileData.primaryGoal = primaryGoal;
+
+    // Persist profile document in Firestore
+    const db = admin.firestore();
+    const timestamp = admin.firestore.FieldValue.serverTimestamp();
+    const profileRef = db.collection('users').doc(userRecord.uid);
+    
+    await profileRef.set({
+      ...profileData,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    }, { merge: false });
+
     console.log('✅ User created successfully:', userRecord.uid);
+    console.log('✅ Profile saved to Firestore with fields:', Object.keys(profileData));
 
     return res.status(201).json({
       user: {
