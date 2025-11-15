@@ -1,0 +1,493 @@
+.insights-page {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 24px;
+  color: #0f172a;
+}
+
+.insights-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 24px;
+}
+
+.insights-header h1 {
+  margin: 0;
+  font-size: 28px;
+}
+
+.insights-header p {
+  margin: 6px 0 0;
+  color: #475569;
+}
+
+.insights-plan-pill {
+  margin-top: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: #ecfdf5;
+  color: #047857;
+  font-size: 14px;
+}
+
+.insights-range-form {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.insights-range-form label {
+  display: flex;
+  flex-direction: column;
+  font-size: 14px;
+  color: #475569;
+}
+
+.insights-range-form input {
+  margin-top: 6px;
+  padding: 6px 10px;
+  border: 1px solid #cbd5f5;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.insights-range-form button {
+  padding: 10px 16px;
+  background: #1e8554;
+  border: none;
+  border-radius: 6px;
+  color: white;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.insights-range-form button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.insights-error {
+  padding: 12px 16px;
+  border-radius: 8px;
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.insights-loading,
+.insights-empty {
+  padding: 24px;
+  border-radius: 12px;
+  border: 1px dashed #cbd5f5;
+  color: #475569;
+  text-align: center;
+}
+
+.insights-streak-card {
+  padding: 16px 20px;
+  border-radius: 12px;
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  color: #9a3412;
+  font-weight: 600;
+}
+
+.insights-days {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.insights-day-card {
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  padding: 18px;
+  background: white;
+  box-shadow: 0 4px 8px rgba(15, 23, 42, 0.04);
+}
+
+.insights-day-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 12px;
+}
+
+.insights-day-header h3 {
+  margin: 0;
+  font-size: 20px;
+}
+
+.insights-day-header span {
+  color: #64748b;
+}
+
+.insights-rings-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.insights-ring-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+}
+
+.insights-ring {
+  width: 84px;
+  height: 84px;
+  transform: rotate(-90deg);
+}
+
+.insights-ring text {
+  font-weight: 600;
+  font-size: 14px;
+  fill: #0f172a;
+  transform: rotate(90deg);
+}
+
+.insights-ring-track {
+  fill: none;
+  stroke: #e2e8f0;
+  stroke-width: 8;
+}
+
+.insights-ring-progress {
+  fill: none;
+  stroke: #f43f5e;
+  stroke-width: 8;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.3s ease;
+}
+
+.insights-ring-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.insights-ring-title {
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.insights-status {
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.insights-status-met {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.insights-status-close {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.insights-status-below {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.insights-ring-details {
+  color: #475569;
+  font-size: 13px;
+}
+
+.insights-cta {
+  margin-top: 16px;
+  padding: 12px;
+  border-radius: 10px;
+  background: #f1f5f9;
+  color: #1e293b;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.insights-trend-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 24px;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  box-shadow: 0 6px 12px rgba(15, 23, 42, 0.05);
+}
+
+.insights-trend-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.insights-trend-controls h2 {
+  margin: 0;
+  font-size: 22px;
+}
+
+.insights-trend-controls p {
+  margin: 6px 0 0;
+  color: #64748b;
+}
+
+.insights-metric-select {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 14px;
+  color: #475569;
+}
+
+.insights-metric-select select {
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid #cbd5f5;
+  font-size: 14px;
+  min-width: 160px;
+}
+
+.insights-trend-actions {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.insights-view-toggle {
+  display: inline-flex;
+  border: 1px solid #cbd5f5;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.insights-view-toggle button {
+  padding: 8px 14px;
+  border: none;
+  background: transparent;
+  font-size: 14px;
+  color: #475569;
+  cursor: pointer;
+}
+
+.insights-view-toggle button.active {
+  background: #e0f2fe;
+  color: #0369a1;
+  font-weight: 600;
+}
+
+.insights-chart {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.insights-chart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  color: #475569;
+}
+
+.insights-chart-header h3 {
+  margin: 0;
+  font-size: 18px;
+  color: #0f172a;
+}
+
+.insights-chart-empty {
+  padding: 24px;
+  border-radius: 12px;
+  border: 1px dashed #cbd5f5;
+  text-align: center;
+  color: #475569;
+}
+
+.insights-trend-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 16px;
+  padding-top: 8px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.insights-trend-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: #f8fafc;
+  border-radius: 10px;
+  padding: 12px;
+}
+
+.insights-trend-label {
+  font-size: 13px;
+  color: #64748b;
+}
+
+.insights-trend-change {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border-radius: 10px;
+  padding: 12px;
+  background: #f8fafc;
+}
+
+.insights-trend-change-value {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 16px;
+}
+
+.insights-trend-icon {
+  font-size: 18px;
+}
+
+.insights-trend-change-up {
+  border: 1px solid rgba(34, 197, 94, 0.2);
+}
+
+.insights-trend-change-down {
+  border: 1px solid rgba(248, 113, 113, 0.2);
+}
+
+.insights-trend-change-flat {
+  border: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.insights-trend-narrative {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: #f1f5f9;
+  padding: 12px;
+  border-radius: 10px;
+  color: #334155;
+}
+
+.insights-table-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.insights-table-header h2 {
+  margin: 0;
+  font-size: 22px;
+}
+
+.insights-table-header p {
+  margin: 6px 0 0;
+  color: #64748b;
+}
+
+.insights-table-wrapper {
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 6px 12px rgba(15, 23, 42, 0.05);
+  overflow: hidden;
+}
+
+.insights-table-container {
+  overflow-x: auto;
+  overflow-y: auto;
+  max-height: 360px;
+}
+
+.insights-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  min-width: 880px;
+}
+
+.insights-table thead {
+  position: sticky;
+  top: 0;
+  background: #f8fafc;
+  z-index: 1;
+}
+
+.insights-table th,
+.insights-table td {
+  padding: 12px 16px;
+  border-bottom: 1px solid #e2e8f0;
+  text-align: left;
+  font-size: 14px;
+  color: #1f2937;
+}
+
+.insights-table tr:last-child td {
+  border-bottom: none;
+}
+
+.insights-table th {
+  font-weight: 600;
+  color: #475569;
+  text-transform: uppercase;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+}
+
+.insights-table-number {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.insights-table tbody tr:nth-child(even) {
+  background: #f8fafc;
+}
+
+@media (max-width: 768px) {
+  .insights-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .insights-range-form {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .insights-trend-controls {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .insights-metric-select select {
+    width: 100%;
+  }
+
+  .insights-trend-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .insights-view-toggle {
+    width: 100%;
+  }
+
+  .insights-view-toggle button {
+    flex: 1;
+  }
+}
