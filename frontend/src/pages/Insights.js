@@ -5,6 +5,7 @@ import { getRangeProgress } from '../services/insightsService';
 import InsightsDayCard from '../components/InsightsDayCard';
 import InsightsTrendChart from '../components/InsightsTrendChart';
 import InsightsTrendSummary from '../components/InsightsTrendSummary';
+import InsightsMacroPie from '../components/InsightsMacroPie';
 import InsightsMealTable from '../components/InsightsMealTable';
 import { getMetricName } from '../utils/nutrition';
 
@@ -28,6 +29,7 @@ const Insights = () => {
   const [error, setError] = useState('');
   const [selectedMetric, setSelectedMetric] = useState('');
   const [trendView, setTrendView] = useState('line');
+  const [selectedMacroDay, setSelectedMacroDay] = useState('');
 
   const activeRange = useMemo(() => ({
     start: range.start,
@@ -68,6 +70,17 @@ const Insights = () => {
       setSelectedMetric(metricOptions[0]);
     }
   }, [metricOptions, selectedMetric]);
+
+  useEffect(() => {
+    if (data?.days?.length) {
+      const lastDay = data.days[data.days.length - 1];
+      setSelectedMacroDay((prev) =>
+        prev && data.days.some(day => day.date === prev) ? prev : lastDay.date
+      );
+    } else {
+      setSelectedMacroDay('');
+    }
+  }, [data?.days]);
 
   const handleRangeChange = (event) => {
     const { name, value } = event.target;
@@ -157,7 +170,7 @@ const Insights = () => {
         </div>
       )}
 
-      {metricOptions.length > 0 && (
+      {(metricOptions.length > 0 || data?.days?.length > 0) && (
         <section className="insights-trend-section">
           <div className="insights-trend-controls">
             <div>
@@ -165,19 +178,36 @@ const Insights = () => {
               <p>Track how your goals are trending across this range.</p>
             </div>
             <div className="insights-trend-actions">
-              <label className="insights-metric-select">
-                Metric
-                <select
-                  value={selectedMetric}
-                  onChange={(event) => setSelectedMetric(event.target.value)}
-                >
-                  {metricOptions.map(option => (
-                    <option key={option} value={option}>
-                      {getMetricName(option)}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              {trendView !== 'pie' && metricOptions.length > 0 && (
+                <label className="insights-metric-select">
+                  Metric
+                  <select
+                    value={selectedMetric}
+                    onChange={(event) => setSelectedMetric(event.target.value)}
+                  >
+                    {metricOptions.map(option => (
+                      <option key={option} value={option}>
+                        {getMetricName(option)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
+              {trendView === 'pie' && data?.days?.length > 0 && (
+                <label className="insights-metric-select">
+                  Day
+                  <select
+                    value={selectedMacroDay}
+                    onChange={(event) => setSelectedMacroDay(event.target.value)}
+                  >
+                    {data.days.map(day => (
+                      <option key={day.date} value={day.date}>
+                        {day.date} ({day.mealCount} meals)
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
               <div className="insights-view-toggle">
                 <button
                   type="button"
@@ -193,19 +223,34 @@ const Insights = () => {
                 >
                   Stacked
                 </button>
+                <button
+                  type="button"
+                  className={trendView === 'pie' ? 'active' : ''}
+                  onClick={() => setTrendView('pie')}
+                >
+                  Pie Chart
+                </button>
               </div>
             </div>
           </div>
-          <InsightsTrendChart
-            series={data?.trend?.series || []}
-            metricKey={selectedMetric}
-            trendMetrics={data?.trend?.metrics}
-            viewMode={trendView}
-          />
-          <InsightsTrendSummary
-            metricKey={selectedMetric}
-            trend={data?.trend}
-          />
+          {trendView === 'pie' ? (
+            <InsightsMacroPie
+              day={data?.days?.find(day => day.date === selectedMacroDay)}
+            />
+          ) : (
+            <>
+              <InsightsTrendChart
+                series={data?.trend?.series || []}
+                metricKey={selectedMetric}
+                trendMetrics={data?.trend?.metrics}
+                viewMode={trendView}
+              />
+              <InsightsTrendSummary
+                metricKey={selectedMetric}
+                trend={data?.trend}
+              />
+            </>
+          )}
         </section>
       )}
 
