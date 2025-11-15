@@ -8,6 +8,7 @@ import NutritionPlan from './pages/NutritionPlan';
 import Auth from './pages/Auth';
 import ResetPassword from './pages/ResetPassword';
 import FirebaseActionHandler from './pages/FirebaseActionHandler';
+import Insights from './pages/Insights';
 import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
@@ -46,6 +47,7 @@ function MainLayout() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/nutrition-plan" element={<NutritionPlan />} />
+          <Route path="/insights" element={<Insights />} />
         </Routes>
       </div>
     </div>
@@ -53,4 +55,3 @@ function MainLayout() {
 }
 
 export default App;
-

@@ -265,6 +265,74 @@ const getDailySummary = async (userId, date) => {
   return summary;
 };
 
+/**
+ * Get meals within a date range and aggregate by day
+ */
+const getMealLogsInRange = async (userId, startDate, endDate) => {
+  const mealsRef = getDb()
+    .collection(USERS_COLLECTION)
+    .doc(userId)
+    .collection(MEALS_SUBCOLLECTION);
+
+  let query = mealsRef;
+
+  if (startDate) {
+    query = query.where('mealDate', '>=', startDate);
+  }
+  if (endDate) {
+    query = query.where('mealDate', '<=', endDate);
+  }
+
+  // Firestore requires ordering on the same field used in range filters
+  query = query.orderBy('mealDate', 'asc');
+
+  const snapshot = await query.get();
+
+  const meals = [];
+  const mealsByDate = {};
+
+  snapshot.forEach(doc => {
+    const data = doc.data();
+    const meal = {
+      id: doc.id,
+      ...data,
+      timestamp: data.timestamp?.toDate(),
+      createdAt: data.createdAt?.toDate(),
+      updatedAt: data.updatedAt?.toDate(),
+    };
+
+    meals.push(meal);
+
+    const dateKey = meal.mealDate;
+    if (!mealsByDate[dateKey]) {
+      mealsByDate[dateKey] = {
+        date: dateKey,
+        meals: [],
+      };
+    }
+
+    mealsByDate[dateKey].meals.push(meal);
+  });
+
+  // Build aggregated totals per day using existing helper
+  const dailySummaries = Object.values(mealsByDate).map(entry => {
+    const items = entry.meals.flatMap(m => m.items || []);
+    const totals = calculateTotals(items);
+
+    return {
+      date: entry.date,
+      mealCount: entry.meals.length,
+      totals,
+      meals: entry.meals,
+    };
+  });
+
+  return {
+    meals,
+    dailySummaries,
+  };
+};
+
 module.exports = {
   createMealLog,
   getMealLogs,
@@ -273,5 +341,5 @@ module.exports = {
   deleteMealLog,
   getDailySummary,
   calculateTotals, // Export for testing
+  getMealLogsInRange,
 };
-
