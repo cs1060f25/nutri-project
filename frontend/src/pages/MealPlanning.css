@@ -1,0 +1,801 @@
+.meal-planning {
+  padding: 2rem;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.meal-planning-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 50vh;
+  font-size: 1.2rem;
+  color: #666;
+}
+
+.meal-planning-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 24px;
+  margin-bottom: 55px;
+}
+
+.meal-planning-header h1 {
+  margin: 0;
+  font-size: 28px;
+}
+
+.meal-planning-header p {
+  margin: 6px 0 0;
+  color: #475569;
+}
+
+.week-navigation-container {
+  margin-bottom: 2rem;
+}
+
+.week-navigation {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  justify-content: center;
+}
+
+.week-navigation h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  color: #1a5f3f;
+  min-width: 250px;
+  text-align: center;
+}
+
+.meal-planning-calendar {
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: 80px repeat(7, minmax(0, 1fr));
+  border: 1px solid #e0e0e0;
+  table-layout: fixed;
+  width: 100%;
+}
+
+.calendar-header {
+  display: contents;
+}
+
+.calendar-day-header {
+  padding: 1rem;
+  text-align: center;
+  background: #f8f9fa;
+  border-right: 1px solid #e0e0e0;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.calendar-day-header:last-child {
+  border-right: none;
+}
+
+.day-name {
+  font-size: 0.875rem;
+  color: #666;
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+}
+
+.day-number {
+  font-size: 1.25rem;
+  color: #1a5f3f;
+  font-weight: 600;
+}
+
+.calendar-time-column {
+  padding: 0.5rem;
+  background: #f8f9fa;
+  border-right: 1px solid #e0e0e0;
+  border-bottom: 1px solid #e0e0e0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  color: #1a5f3f;
+  font-size: 0.875rem;
+}
+
+.calendar-row {
+  display: contents;
+}
+
+.calendar-cell {
+  height: 140px;
+  min-height: 140px;
+  max-height: 140px;
+  padding: 0.5rem;
+  border-right: 1px solid #e0e0e0;
+  border-bottom: 1px solid #e0e0e0;
+  position: relative;
+  background: white;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  overflow: hidden;
+  width: 100%;
+  gap: 0.25rem;
+}
+
+.calendar-cell:last-child {
+  border-right: none;
+}
+
+.calendar-row:last-child .calendar-cell {
+  border-bottom: none;
+}
+
+.meal-type-label {
+  font-size: 0.875rem;
+  text-transform: capitalize;
+}
+
+.meal-plan-item {
+  border: 1px solid;
+  border-radius: 8px;
+  padding: 0.5rem;
+  margin-bottom: 0;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  position: relative;
+  flex-shrink: 1;
+  flex-grow: 0;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+  word-wrap: break-word;
+  /* Inline styles will override this - no default colors */
+  background-color: transparent;
+  border-color: transparent;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  max-height: 100%;
+}
+
+.meal-plan-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.meal-plan-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.25rem;
+}
+
+.meal-plan-location {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #1a5f3f;
+  overflow: hidden;
+  word-wrap: break-word;
+  word-break: break-word;
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  line-height: 1.3;
+  flex: 1;
+  min-width: 0;
+  max-height: calc(1.3em * 2);
+}
+
+.meal-plan-delete {
+  background: transparent;
+  border: none;
+  color: #d32f2f;
+  font-size: 1.25rem;
+  cursor: pointer;
+  padding: 0;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.meal-plan-delete:hover {
+  color: #b71c1c;
+  background: rgba(211, 47, 47, 0.1);
+  border-radius: 50%;
+}
+
+.meal-plan-items {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  overflow: hidden;
+  max-width: 100%;
+  flex: 1;
+  min-height: 0;
+  max-height: 100%;
+}
+
+.meal-plan-item-name {
+  font-size: 0.75rem;
+  color: #333;
+  overflow: hidden;
+  word-wrap: break-word;
+  word-break: break-word;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  line-height: 1.3;
+  max-height: calc(1.3em * 2);
+}
+
+.meal-plan-item-more {
+  font-size: 0.7rem;
+  color: #666;
+  font-style: italic;
+}
+
+/* Floating add button */
+.meal-planning-add-btn {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #1a5f3f;
+  color: white;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(26, 95, 63, 0.4);
+  transition: all 0.3s;
+  z-index: 1000;
+}
+
+.meal-planning-add-btn:hover {
+  background: #2d6a4f;
+  transform: scale(1.1);
+  box-shadow: 0 6px 16px rgba(26, 95, 63, 0.5);
+}
+
+.meal-planning-add-btn:active {
+  transform: scale(0.95);
+}
+
+/* Modal */
+.meal-planning-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  padding: 2rem;
+}
+
+.meal-planning-modal {
+  background: white;
+  border-radius: 20px;
+  width: 100%;
+  max-width: 800px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.modal-header h2 {
+  margin: 0;
+  color: #1a5f3f;
+  font-size: 1.5rem;
+}
+
+.modal-close {
+  background: transparent;
+  border: none;
+  font-size: 2rem;
+  color: #666;
+  cursor: pointer;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.modal-close:hover {
+  background: #f0f0f0;
+  color: #333;
+}
+
+/* Center modal content */
+.modal-content {
+    display: flex;
+    flex-direction: column;
+  }
+  
+  /* Center form groups and limit width */
+  .modal-content .form-group {
+    width: 100%;
+    box-sizing: border-box;
+  }
+  
+  /* Make all modal areas the same background */
+  .meal-planning-modal,
+  .modal-header,
+  .modal-footer,
+  .modal-content,
+  .menu-items-list {
+    background: #ffffff !important;
+  }
+  
+
+.modal-content .form-group:first-child {
+  padding-top: .5rem;
+}
+
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  color: #333;
+}
+
+.form-input {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 0;
+  font-size: 1rem;
+  transition: border-color 0.2s;
+  box-sizing: border-box;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: #1a5f3f;
+  box-shadow: 0 0 0 3px rgba(26, 95, 63, 0.1);
+}
+
+.menu-loading {
+  text-align: center;
+  padding: 2rem 2rem;
+  color: #666;
+}
+
+.no-menu-items {
+  text-align: center;
+  padding: 2rem 2rem;
+  color: #999;
+  font-style: italic;
+}
+
+.menu-items-by-category {
+  max-height: 500px;
+  overflow-y: auto;
+  padding: 0;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.menu-category-section {
+  margin-bottom: 2rem;
+  padding: 0 2rem;
+}
+
+.menu-category-section:first-child {
+  padding-top: 0;
+}
+
+.menu-category-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1a5f3f;
+  margin: 0 0 1rem 0;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid #e0e0e0;
+}
+
+.menu-items-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 0.75rem;
+  padding: 0;
+  margin: 0;
+}
+
+.menu-item-card {
+  background: white;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.menu-item-card:hover {
+  border-color: #1a5f3f;
+  box-shadow: 0 2px 8px rgba(26, 95, 63, 0.2);
+}
+
+.menu-item-card.selected {
+  border-color: #1a5f3f;
+  background: #e8f5e9;
+}
+
+.menu-item-name {
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.menu-item-details {
+  display: flex;
+  gap: 0.75rem;
+  font-size: 0.75rem;
+  color: #666;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  padding: 1.5rem;
+  border-top: 1px solid #e0e0e0;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .meal-planning {
+    padding: 1rem;
+  }
+
+  .calendar-grid {
+    grid-template-columns: 80px repeat(7, 1fr);
+    font-size: 0.875rem;
+  }
+
+  .calendar-time-column {
+    padding: 0.5rem;
+  }
+
+  .calendar-cell {
+    min-height: 80px;
+    padding: 0.25rem;
+  }
+
+  .meal-planning-add-btn {
+    bottom: 1rem;
+    right: 1rem;
+    width: 48px;
+    height: 48px;
+  }
+
+  .meal-planning-modal {
+    max-width: 100%;
+    max-height: 100vh;
+  }
+
+  .menu-items-list {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Side Panel Styles */
+.meal-plan-side-panel-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  display: flex;
+  justify-content: flex-end;
+  align-items: stretch;
+}
+
+.meal-plan-side-panel {
+  width: 450px;
+  max-width: 90vw;
+  background: white;
+  box-shadow: -2px 0 10px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow-y: auto;
+}
+
+.side-panel-header {
+  padding: 1.5rem;
+  border-bottom: 1px solid #e0e0e0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #f8f9fa;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.side-panel-header h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  color: #1a5f3f;
+}
+
+.side-panel-close {
+  background: none;
+  border: none;
+  font-size: 2rem;
+  color: #666;
+  cursor: pointer;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+.side-panel-close:hover {
+  background: #e0e0e0;
+}
+
+.side-panel-content {
+  padding: 1.5rem;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.side-panel-footer {
+  padding: 1.5rem;
+  border-top: 1px solid #e0e0e0;
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+  background: #f8f9fa;
+}
+
+.side-panel-footer .btn {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.side-panel-footer .btn-secondary {
+  background: #6c757d;
+  color: white;
+}
+
+.side-panel-footer .btn-secondary:hover {
+  background: #5a6268;
+}
+
+.side-panel-footer .btn-danger {
+  background: #dc3545;
+  color: white;
+}
+
+.side-panel-footer .btn-danger:hover {
+  background: #c82333;
+}
+
+.meal-plan-info-section,
+.meal-items-section,
+.nutrition-totals-section,
+.goals-progress-section {
+  margin-bottom: 2rem;
+}
+
+.meal-plan-info-section h3,
+.meal-items-section h3,
+.nutrition-totals-section h3,
+.goals-progress-section h3 {
+  margin: 0 0 1rem 0;
+  font-size: 1.2rem;
+  color: #1a5f3f;
+  font-weight: 600;
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.info-row:last-child {
+  border-bottom: none;
+}
+
+.info-label {
+  font-weight: 500;
+  color: #666;
+}
+
+.info-value {
+  color: #1a5f3f;
+  font-weight: 600;
+}
+
+.meal-items-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.meal-item-detail {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem;
+  background: #f8f9fa;
+  border-radius: 6px;
+}
+
+.item-name {
+  flex: 1;
+  color: #333;
+  font-weight: 500;
+}
+
+.item-nutrition {
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.nutrition-metrics {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+
+.nutrition-metric {
+  padding: 1rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.metric-label {
+  font-size: 0.875rem;
+  color: #666;
+  font-weight: 500;
+}
+
+.metric-value {
+  font-size: 1.5rem;
+  color: #1a5f3f;
+  font-weight: 700;
+}
+
+.metric-goal {
+  font-size: 0.875rem;
+  color: #999;
+}
+
+.goals-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.goal-progress-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.goal-progress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.goal-label {
+  font-weight: 500;
+  color: #333;
+}
+
+.goal-percentage {
+  font-weight: 600;
+  color: #1a5f3f;
+}
+
+.goal-progress-bar {
+  width: 100%;
+  height: 8px;
+  background: #e0e0e0;
+  border-radius: 4px;
+  overflow: hidden;
+  position: relative;
+}
+
+.goal-progress-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.3s ease, left 0.3s ease;
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.goal-progress-current {
+  background: linear-gradient(90deg, #52b788, #95d5b2);
+  z-index: 1;
+}
+
+.goal-progress-meal {
+  background: repeating-linear-gradient(
+    45deg,
+    #9e9e9e,
+    #9e9e9e 4px,
+    #bdbdbd 4px,
+    #bdbdbd 8px
+  );
+  z-index: 2;
+}
+
+.no-goals-message {
+  padding: 1.5rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+  text-align: center;
+  color: #666;
+}
+
+.no-goals-message p {
+  margin: 0;
+  line-height: 1.6;
+}
+
+@media (max-width: 768px) {
+  .meal-plan-side-panel {
+    width: 100vw;
+    max-width: 100vw;
+  }
+}
+

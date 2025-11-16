@@ -10,6 +10,8 @@ const profileRoutes = require('./routes/profileRoutes');
 const nutritionPlanRoutes = require('./routes/nutritionPlanRoutes');
 const nutritionProgressRoutes = require('./routes/nutritionProgressRoutes');
 const mealSuggestionRoutes = require('./routes/mealSuggestionRoutes');
+const socialRoutes = require('./routes/socialRoutes');
+const mealPlanRoutes = require('./routes/mealPlanRoutes');
 const { homeData } = require('../data');
 
 // Initialize Express app
@@ -69,6 +71,12 @@ app.use('/api/nutrition-progress', nutritionProgressRoutes);
 
 // Meal suggestion routes
 app.use('/api/meal-suggestion', mealSuggestionRoutes);
+
+// Social routes (friends and posts)
+app.use('/api/social', socialRoutes);
+
+// Meal plan routes
+app.use('/api/meal-plans', mealPlanRoutes);
 
 // Home endpoint - returns app data
 app.get('/home', (req, res) => {

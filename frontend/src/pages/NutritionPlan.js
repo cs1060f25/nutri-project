@@ -717,10 +717,10 @@ const NutritionPlan = () => {
   return (
     <div className="nutrition-plan-page">
       <div className="nutrition-plan-container">
-        <div className="hero-section">
-          <h1 className="hero-title">Nutrition Plan</h1>
-          <p className="hero-subtitle">Set daily nutrition goals based on HUDS dining hall meals</p>
-        </div>
+        <header className="nutrition-plan-header">
+          <h1>Nutrition Plan</h1>
+          <p>Set daily nutrition goals based on HUDS dining hall meals</p>
+        </header>
 
         {error && (
           <div className="error-banner" style={{
