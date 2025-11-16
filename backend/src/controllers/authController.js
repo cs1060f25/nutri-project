@@ -19,6 +19,7 @@ const register = async (req, res) => {
       // Additional profile fields
       birthday,
       age,
+      classYear,
       gender,
       height,
       weight,
@@ -85,6 +86,7 @@ const register = async (req, res) => {
     // Add optional fields if provided
     if (birthday) profileData.birthday = birthday;
     if (age) profileData.age = parseInt(age); // Store calculated age as well for convenience
+    if (classYear) profileData.classYear = classYear;
     if (gender) profileData.gender = gender;
     if (height) profileData.height = height;
     if (weight) profileData.weight = parseFloat(weight);

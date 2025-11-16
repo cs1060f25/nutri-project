@@ -11,6 +11,7 @@ import FirebaseActionHandler from './pages/FirebaseActionHandler';
 import Insights from './pages/Insights';
 import Social from './pages/Social';
 import MealPlanning from './pages/MealPlanning';
+import Leaderboard from './pages/Leaderboard';
 import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
@@ -52,6 +53,7 @@ function MainLayout() {
           <Route path="/insights" element={<Insights />} />
           <Route path="/social/*" element={<Social />} />
           <Route path="/meal-planning" element={<MealPlanning />} />
+          <Route path="/leaderboard" element={<Leaderboard />} />
         </Routes>
       </div>
     </div>

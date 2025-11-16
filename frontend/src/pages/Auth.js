@@ -27,6 +27,7 @@ const Auth = () => {
 
   // Additional registration fields
   const [birthday, setBirthday] = useState('');
+  const [classYear, setClassYear] = useState('');
   const [gender, setGender] = useState('');
   const [heightFeet, setHeightFeet] = useState('');
   const [heightInches, setHeightInches] = useState('');
@@ -153,25 +154,25 @@ const Auth = () => {
         }
         return true;
       case 2:
-        if (!birthday || !gender || !heightFeet || !heightInches || !weight || !activityLevel) {
+        if (!birthday || !classYear || !gender || !heightFeet || !heightInches || !weight || !activityLevel) {
           setError('Please fill in all fields');
           return false;
         }
-        // Validate birthday is not in the future
+        // Validate birthday is not in the future and user is at least 16 years old
         const birthDate = new Date(birthday);
         const today = new Date();
         if (birthDate > today) {
           setError('Birthday cannot be in the future');
           return false;
         }
-        // Validate minimum age (13 years old)
+        // Validate minimum age (16 years old)
         const ageInYears = today.getFullYear() - birthDate.getFullYear();
         const monthDiff = today.getMonth() - birthDate.getMonth();
         const actualAge = monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate()) 
           ? ageInYears - 1 
           : ageInYears;
-        if (actualAge < 13) {
-          setError('You must be at least 13 years old to register');
+        if (actualAge < 16) {
+          setError('You must be at least 16 years old to register');
           return false;
         }
         return true;
@@ -242,6 +243,7 @@ const Auth = () => {
         residence,
         birthday,
         age: calculatedAge, // Also store calculated age for convenience
+        classYear,
         gender,
         height: {
           feet: parseInt(heightFeet),
@@ -391,6 +393,7 @@ const Auth = () => {
     // Reset multi-step form
     setRegistrationStep(1);
     setBirthday('');
+    setClassYear('');
     setGender('');
     setHeightFeet('');
     setHeightInches('');
@@ -748,11 +751,36 @@ const Auth = () => {
                         name="birthday"
                         value={birthday}
                         onChange={(e) => setBirthday(e.target.value)}
-                        max={new Date().toISOString().split('T')[0]} // Cannot be in the future
+                        max={new Date(new Date().setFullYear(new Date().getFullYear() - 16)).toISOString().split('T')[0]} // Must be at least 16 years old
                         disabled={loading}
                         required
                       />
                     </div>
+                    <div className="form-group">
+                      <label htmlFor="classYear">Class Year</label>
+                      <select
+                        id="classYear"
+                        name="classYear"
+                        value={classYear}
+                        onChange={(e) => setClassYear(e.target.value)}
+                        disabled={loading}
+                        required
+                        className="residence-select"
+                      >
+                        <option value="">Select...</option>
+                        <option value="2025">2025</option>
+                        <option value="2026">2026</option>
+                        <option value="2027">2027</option>
+                        <option value="2028">2028</option>
+                        <option value="2029">2029</option>
+                        <option value="2030">2030</option>
+                        <option value="2031">2031</option>
+                        <option value="2032">2032</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="form-row">
                     <div className="form-group">
                       <label htmlFor="gender">Gender</label>
                       <select
