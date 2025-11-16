@@ -9,7 +9,6 @@ const SocialFeed = () => {
   const [activeTab, setActiveTab] = useState('friends'); // 'friends' or 'dining-halls'
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
 
   useEffect(() => {
     const fetchFeed = async () => {
@@ -24,10 +23,10 @@ const SocialFeed = () => {
           data = await getDiningHallFeedPosts(50, accessToken);
         }
         setPosts(data.posts || []);
-        setError(null);
       } catch (err) {
+        // Treat errors as no posts instead of showing error message
         console.error('Error fetching feed:', err);
-        setError(err.message);
+        setPosts([]);
       } finally {
         setLoading(false);
       }
@@ -40,14 +39,6 @@ const SocialFeed = () => {
     return (
       <div className="loading">
         <p>Loading feed...</p>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="empty-state">
-        <p>Error loading feed: {error}</p>
       </div>
     );
   }

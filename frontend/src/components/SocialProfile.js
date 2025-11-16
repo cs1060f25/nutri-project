@@ -49,8 +49,16 @@ const SocialProfile = () => {
         if (activeTab === 'posts') {
           const userId = user?.id || user?.uid;
           if (!userId) return;
-          const postsData = await getPostsByUser(userId, 50, accessToken);
-          setPosts(postsData.posts || []);
+          try {
+            const postsData = await getPostsByUser(userId, 50, accessToken);
+            setPosts(postsData.posts || []);
+            setError(null);
+          } catch (err) {
+            // For user's own profile, treat errors as no posts instead of showing error
+            console.error('Error fetching user posts:', err);
+            setPosts([]);
+            setError(null);
+          }
         } else if (activeTab === 'friends') {
           const [friendsData, requestsData] = await Promise.all([
             getFriends(accessToken),
@@ -58,11 +66,12 @@ const SocialProfile = () => {
           ]);
           setFriends(friendsData.friends || []);
           setFriendRequests(requestsData.requests || []);
+          setError(null);
         } else if (activeTab === 'dining-halls') {
           const diningHallsData = await getFollowedDiningHalls(accessToken);
           setFollowedDiningHalls(diningHallsData.diningHalls || []);
+          setError(null);
         }
-        setError(null);
       } catch (err) {
         console.error('Error fetching profile data:', err);
         setError(err.message);
@@ -200,7 +209,6 @@ const SocialProfile = () => {
 
       {activeTab === 'posts' && (
         <div className="profile-posts">
-          {error && <div className="error-message">Error: {error}</div>}
           {posts.length === 0 ? (
             <div className="empty-state">
               <div className="empty-state-icon">📝</div>
