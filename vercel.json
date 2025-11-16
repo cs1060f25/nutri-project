@@ -9,6 +9,7 @@
     { "source": "/api/profile/:path*", "destination": "/api/profile/index" },
     { "source": "/api/huds/:path*", "destination": "/api/huds" },
     { "source": "/api/meals/:path*", "destination": "/api/meals" },
+    { "source": "/api/meal-plans/:path*", "destination": "/api/meal-plans" },
     { "source": "/test-env", "destination": "/api/test-env" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]

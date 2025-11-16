@@ -9,6 +9,8 @@ import Auth from './pages/Auth';
 import ResetPassword from './pages/ResetPassword';
 import FirebaseActionHandler from './pages/FirebaseActionHandler';
 import Insights from './pages/Insights';
+import Social from './pages/Social';
+import MealPlanning from './pages/MealPlanning';
 import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
@@ -48,6 +50,8 @@ function MainLayout() {
           <Route path="/" element={<Home />} />
           <Route path="/nutrition-plan" element={<NutritionPlan />} />
           <Route path="/insights" element={<Insights />} />
+          <Route path="/social/*" element={<Social />} />
+          <Route path="/meal-planning" element={<MealPlanning />} />
         </Routes>
       </div>
     </div>
