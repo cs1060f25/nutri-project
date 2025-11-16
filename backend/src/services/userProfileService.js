@@ -21,6 +21,7 @@ const buildProfilePayload = (data = {}) => {
   // Add optional fields if they exist
   if (data.birthday !== undefined) payload.birthday = data.birthday;
   if (data.age !== undefined) payload.age = data.age;
+  if (data.classYear !== undefined) payload.classYear = data.classYear;
   if (data.gender !== undefined) payload.gender = data.gender;
   if (data.height !== undefined) payload.height = data.height;
   if (data.weight !== undefined) payload.weight = data.weight;
