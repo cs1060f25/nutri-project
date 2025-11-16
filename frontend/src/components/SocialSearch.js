@@ -208,7 +208,7 @@ const SocialSearch = () => {
 
       {searchType === 'users' && users.length > 0 && (
         <div className="search-results">
-          <h3>Users ({users.length})</h3>
+          <h3 style={{ marginBottom: '1rem' }}>Users ({users.length})</h3>
           {users.map((user) => (
             <div key={user.id} className="search-result-card">
               <div className="search-result-header">

@@ -11,8 +11,8 @@ const Social = () => {
 
   const tabs = [
     { id: 'feed', label: 'Feed', path: '/home/social/feed' },
-    { id: 'profile', label: 'My Profile', path: '/home/social/profile' },
     { id: 'search', label: 'Search', path: '/home/social/search' },
+    { id: 'profile', label: 'My Profile', path: '/home/social/profile' },
   ];
 
   // Default to feed if on base social path
