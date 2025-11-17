@@ -899,11 +899,18 @@ module.exports = async (req, res) => {
       
       // Step 1: Get all valid users from Firebase Auth first
       // This ensures we only include users that actually exist in Auth (not deleted)
-      const authUsersResult = await admin.auth().listUsers(1000); // Get up to 1000 users
-      const validAuthUserIds = new Set();
-      authUsersResult.users.forEach(user => {
-        validAuthUserIds.add(user.uid);
-      });
+      // Wrap in try-catch to handle potential timeouts or errors on Vercel
+      let validAuthUserIds = new Set();
+      try {
+        const authUsersResult = await admin.auth().listUsers(1000); // Get up to 1000 users
+        authUsersResult.users.forEach(user => {
+          validAuthUserIds.add(user.uid);
+        });
+      } catch (authError) {
+        console.error('Error fetching users from Firebase Auth, falling back to Firestore-only filter:', authError);
+        // If listUsers fails (e.g., timeout), we'll just filter by email presence
+        // This is a fallback - not ideal but prevents the function from crashing
+      }
 
       // Step 2: Get all users from Firestore and filter by search term
       // Only include users that exist in Firebase Auth (not deleted)
@@ -916,8 +923,14 @@ module.exports = async (req, res) => {
         
         // Only include users that:
         // 1. Have an email (required field for valid users)
-        // 2. Still exist in Firebase Auth (not deleted)
-        if (!userData || !userData.email || !validAuthUserIds.has(userId)) {
+        // 2. Still exist in Firebase Auth (not deleted) - if we successfully got the list
+        if (!userData || !userData.email) {
+          return;
+        }
+        
+        // If we have validAuthUserIds (from successful listUsers call), check it
+        // Otherwise, just check for email (fallback mode)
+        if (validAuthUserIds.size > 0 && !validAuthUserIds.has(userId)) {
           return;
         }
 
