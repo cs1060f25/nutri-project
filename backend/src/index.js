@@ -10,6 +10,7 @@ const profileRoutes = require('./routes/profileRoutes');
 const nutritionPlanRoutes = require('./routes/nutritionPlanRoutes');
 const nutritionProgressRoutes = require('./routes/nutritionProgressRoutes');
 const mealSuggestionRoutes = require('./routes/mealSuggestionRoutes');
+const geminiRoutes = require('./routes/geminiRoutes');
 const { homeData } = require('../data');
 
 // Initialize Express app
@@ -69,6 +70,9 @@ app.use('/api/nutrition-progress', nutritionProgressRoutes);
 
 // Meal suggestion routes
 app.use('/api/meal-suggestion', mealSuggestionRoutes);
+
+// Gemini analyzer route
+app.use('/api', geminiRoutes);
 
 // Home endpoint - returns app data
 app.get('/home', (req, res) => {
