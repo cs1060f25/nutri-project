@@ -363,11 +363,10 @@ const getFeedPosts = async (userId, limit = 50) => {
 
 const getPostsByUser = async (targetUserId, limit = 50) => {
   const db = getDb();
+  // Remove orderBy to avoid requiring composite index - sort in-memory instead
   const snapshot = await db
     .collection(POSTS_COLLECTION)
     .where('userId', '==', targetUserId)
-    .orderBy('timestamp', 'desc')
-    .limit(limit)
     .get();
 
   const posts = [];
@@ -381,16 +380,23 @@ const getPostsByUser = async (targetUserId, limit = 50) => {
     });
   });
 
-  return posts;
+  // Sort by timestamp descending in-memory
+  posts.sort((a, b) => {
+    const aTime = a.timestamp || a.createdAt || new Date(0);
+    const bTime = b.timestamp || b.createdAt || new Date(0);
+    return bTime - aTime;
+  });
+
+  // Return limited results
+  return posts.slice(0, limit);
 };
 
 const getPostsByLocation = async (locationId, limit = 50) => {
   const db = getDb();
+  // Remove orderBy to avoid requiring composite index - sort in-memory instead
   const snapshot = await db
     .collection(POSTS_COLLECTION)
     .where('locationId', '==', locationId)
-    .orderBy('timestamp', 'desc')
-    .limit(limit)
     .get();
 
   const posts = [];
@@ -404,16 +410,23 @@ const getPostsByLocation = async (locationId, limit = 50) => {
     });
   });
 
-  return posts;
+  // Sort by timestamp descending in-memory
+  posts.sort((a, b) => {
+    const aTime = a.timestamp || a.createdAt || new Date(0);
+    const bTime = b.timestamp || b.createdAt || new Date(0);
+    return bTime - aTime;
+  });
+
+  // Return limited results
+  return posts.slice(0, limit);
 };
 
 const getPostsByLocationName = async (locationName, limit = 50) => {
   const db = getDb();
+  // Remove orderBy to avoid requiring composite index - sort in-memory instead
   const snapshot = await db
     .collection(POSTS_COLLECTION)
     .where('locationName', '==', locationName)
-    .orderBy('timestamp', 'desc')
-    .limit(limit)
     .get();
 
   const posts = [];
@@ -427,7 +440,15 @@ const getPostsByLocationName = async (locationName, limit = 50) => {
     });
   });
 
-  return posts;
+  // Sort by timestamp descending in-memory
+  posts.sort((a, b) => {
+    const aTime = a.timestamp || a.createdAt || new Date(0);
+    const bTime = b.timestamp || b.createdAt || new Date(0);
+    return bTime - aTime;
+  });
+
+  // Return limited results
+  return posts.slice(0, limit);
 };
 
 const deletePost = async (userId, postId) => {
@@ -544,13 +565,12 @@ const getDiningHallFeedPosts = async (userId, limit = 50) => {
   const allPosts = [];
 
   // For each followed dining hall, get posts matching both locationId and locationName
+  // Remove orderBy to avoid requiring composite index - sort in-memory instead
   for (const hall of followedHalls) {
     const query = db
       .collection(POSTS_COLLECTION)
       .where('locationId', '==', hall.locationId)
-      .where('locationName', '==', hall.locationName)
-      .orderBy('timestamp', 'desc')
-      .limit(limit);
+      .where('locationName', '==', hall.locationName);
     
     const snapshot = await query.get();
     snapshot.forEach(doc => {
