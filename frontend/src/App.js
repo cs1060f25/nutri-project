@@ -9,6 +9,7 @@ import Auth from './pages/Auth';
 import ResetPassword from './pages/ResetPassword';
 import FirebaseActionHandler from './pages/FirebaseActionHandler';
 import Insights from './pages/Insights';
+import Scanner from './pages/Scanner';
 import Social from './pages/Social';
 import MealPlanning from './pages/MealPlanning';
 import Leaderboard from './pages/Leaderboard';
@@ -54,6 +55,7 @@ function MainLayout() {
           <Route path="/social/*" element={<Social />} />
           <Route path="/meal-planning" element={<MealPlanning />} />
           <Route path="/leaderboard" element={<Leaderboard />} />
+          <Route path="/scanner" element={<Scanner />} />
         </Routes>
       </div>
     </div>

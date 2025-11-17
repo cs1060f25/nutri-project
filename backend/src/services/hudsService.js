@@ -25,10 +25,12 @@ const hudsRequest = async (endpoint, params = {}) => {
   try {
     const response = await axios.get(`${BASE_URL}${endpoint}`, {
       headers: {
-        'X-Api-Key': API_KEY,
         'Accept': 'application/json',
       },
-      params,
+      params: {
+        apikey: API_KEY,
+        ...params,
+      },
     });
     return response.data;
   } catch (error) {
@@ -141,6 +143,18 @@ const getTodaysMenu = async (locationId = null) => {
   return getMenuByDate(today, locationId);
 };
 
+const getCombinedMenus = async () => {
+  const primaryNames = new Set(['Annenberg Hall', 'Quincy House', 'Winthrop House']);
+  const allMenus = await getTodaysMenu();
+
+  const filtered = allMenus.filter((location) => {
+    if (!primaryNames.size) return true;
+    return primaryNames.has(location.locationName);
+  });
+
+  return filtered.length ? filtered : allMenus;
+};
+
 module.exports = {
   getLocations,
   getEvents,
@@ -148,6 +162,7 @@ module.exports = {
   getRecipeById,
   getTodaysMenu,
   getMenuByDate,
+  getCombinedMenus,
   formatDate, // Export for use in controllers
 };
 
