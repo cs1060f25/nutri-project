@@ -24,8 +24,27 @@ const mealPlanRequest = async (endpoint, options = {}, accessToken) => {
   });
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: 'Unknown error' }));
-    throw new Error(error.error || `HTTP error! status: ${response.status}`);
+    let errorMessage = `HTTP error! status: ${response.status}`;
+    try {
+      const errorData = await response.json();
+      errorMessage = errorData.error || errorData.message || errorMessage;
+      // Include details if available (for debugging)
+      if (errorData.details && process.env.NODE_ENV === 'development') {
+        console.error('Error details:', errorData.details);
+      }
+    } catch (jsonError) {
+      // If response is not JSON, try to get text
+      try {
+        const text = await response.text();
+        if (text) {
+          errorMessage = text;
+        }
+      } catch (textError) {
+        // If all else fails, use status-based message
+        console.error('Failed to parse error response:', textError);
+      }
+    }
+    throw new Error(errorMessage);
   }
 
   return response.json();

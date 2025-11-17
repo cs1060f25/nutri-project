@@ -7,28 +7,47 @@ const admin = require('firebase-admin');
 const { initializeFirebase } = require('../backend/src/config/firebase');
 
 // Initialize Firebase if not already initialized
+// This must happen BEFORE requiring the service
 if (!admin.apps.length) {
   try {
     initializeFirebase();
+    console.log('Firebase initialized via config');
   } catch (error) {
     console.error('Error initializing Firebase via config:', error);
     // If initializeFirebase fails, try direct initialization
     if (!admin.apps.length) {
       try {
+        const serviceAccount = {
+          projectId: process.env.FIREBASE_PROJECT_ID,
+          clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+          privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+        };
+        
+        if (!serviceAccount.projectId || !serviceAccount.clientEmail || !serviceAccount.privateKey) {
+          throw new Error('Missing Firebase environment variables. Check FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, and FIREBASE_PRIVATE_KEY.');
+        }
+        
         admin.initializeApp({
-          credential: admin.credential.cert({
-            projectId: process.env.FIREBASE_PROJECT_ID,
-            clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-            privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-          }),
+          credential: admin.credential.cert(serviceAccount),
         });
         console.log('Firebase initialized directly');
       } catch (initError) {
         console.error('Error initializing Firebase directly:', initError);
+        console.error('Init error details:', {
+          hasProjectId: !!process.env.FIREBASE_PROJECT_ID,
+          hasClientEmail: !!process.env.FIREBASE_CLIENT_EMAIL,
+          hasPrivateKey: !!process.env.FIREBASE_PRIVATE_KEY,
+          privateKeyLength: process.env.FIREBASE_PRIVATE_KEY?.length || 0,
+        });
         throw initError;
       }
     }
   }
+}
+
+// Verify Firebase is initialized before loading service
+if (!admin.apps.length) {
+  throw new Error('Firebase Admin SDK failed to initialize');
 }
 
 // Load service after Firebase is initialized
