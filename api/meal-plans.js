@@ -4,18 +4,35 @@
  */
 
 const admin = require('firebase-admin');
-const mealPlanService = require('../backend/src/services/mealPlanService');
+const { initializeFirebase } = require('../backend/src/config/firebase');
 
 // Initialize Firebase if not already initialized
 if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.cert({
-      projectId: process.env.FIREBASE_PROJECT_ID,
-      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-      privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-    }),
-  });
+  try {
+    initializeFirebase();
+  } catch (error) {
+    console.error('Error initializing Firebase via config:', error);
+    // If initializeFirebase fails, try direct initialization
+    if (!admin.apps.length) {
+      try {
+        admin.initializeApp({
+          credential: admin.credential.cert({
+            projectId: process.env.FIREBASE_PROJECT_ID,
+            clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+            privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+          }),
+        });
+        console.log('Firebase initialized directly');
+      } catch (initError) {
+        console.error('Error initializing Firebase directly:', initError);
+        throw initError;
+      }
+    }
+  }
 }
+
+// Load service after Firebase is initialized
+const mealPlanService = require('../backend/src/services/mealPlanService');
 
 // Extract user from JWT token
 const extractUserFromToken = async (req) => {
@@ -56,6 +73,8 @@ module.exports = async (req, res) => {
     // Route handling
     if (method === 'POST' && pathParts.length === 0) {
       // Create meal plan
+      console.log('Creating meal plan for user:', user.uid);
+      console.log('Request body:', JSON.stringify(req.body));
       const mealPlan = await mealPlanService.createMealPlan(user.uid, req.body);
       res.status(201).json(mealPlan);
     } else if (method === 'GET' && pathParts.length === 0) {
@@ -83,9 +102,13 @@ module.exports = async (req, res) => {
     }
   } catch (error) {
     console.error('Error in meal-plans API:', error);
+    console.error('Error stack:', error.stack);
     const statusCode = error.message.includes('Unauthorized') ? 403 :
                       error.message.includes('not found') ? 404 : 500;
-    res.status(statusCode).json({ error: error.message });
+    res.status(statusCode).json({ 
+      error: error.message || 'Internal server error',
+      details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
   }
 };
 
