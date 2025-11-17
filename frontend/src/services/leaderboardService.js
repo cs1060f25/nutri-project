@@ -2,7 +2,8 @@
  * Service for interacting with the leaderboard API
  */
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3000';
+// Use relative URLs for API calls (works in both dev and production)
+const API_BASE_URL = '';
 
 /**
  * Make an authenticated API request

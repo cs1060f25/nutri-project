@@ -485,6 +485,257 @@ const createPost = async (userId, mealId) => {
   };
 };
 
+const createPostFromScan = async (userId, scanData) => {
+  try {
+    console.log('createPostFromScan called with userId:', userId);
+    console.log('scanData keys:', Object.keys(scanData || {}));
+    
+    const db = getDb();
+
+    // Get user info
+    const userRef = db.collection(USERS_COLLECTION).doc(userId);
+    const userDoc = await userRef.get();
+
+    if (!userDoc.exists) {
+      console.error('User not found:', userId);
+      throw new Error('User not found');
+    }
+
+    const userData = userDoc.data();
+
+    if (!userData.firstName || !userData.lastName) {
+      console.error('User profile incomplete:', { hasFirstName: !!userData.firstName, hasLastName: !!userData.lastName });
+      throw new Error('User profile incomplete');
+    }
+
+    console.log('User data retrieved successfully');
+
+    // Convert matchedItems to post items format
+    const items = (scanData.matchedItems || []).map(item => {
+      const cleanItem = {
+        recipeId: item.recipeId || null,
+        recipeName: String(item.matchedName || item.predictedName || 'Unknown dish'),
+        quantity: Number(item.estimatedServings || 1),
+        servingSize: String(item.portionDescription || '1 serving'),
+        calories: Number(item.calories || 0),
+        protein: Number(item.protein || 0),
+        carbs: Number(item.carbs || 0),
+        fat: Number(item.fat || 0),
+      };
+      Object.keys(cleanItem).forEach(key => {
+        if (cleanItem[key] === undefined) {
+          delete cleanItem[key];
+        }
+      });
+      return cleanItem;
+    });
+
+    // Format totals
+    const totals = {
+      calories: Number(scanData.nutritionTotals?.calories || 0),
+      protein: Number(scanData.nutritionTotals?.protein || 0),
+      totalCarb: Number(scanData.nutritionTotals?.carbs || 0),
+      totalFat: Number(scanData.nutritionTotals?.fat || 0),
+    };
+
+    // Handle timestamp
+    let timestampValue;
+    if (scanData.timestamp) {
+      try {
+        const date = new Date(scanData.timestamp);
+        if (isNaN(date.getTime())) {
+          timestampValue = admin.firestore.FieldValue.serverTimestamp();
+        } else {
+          timestampValue = admin.firestore.Timestamp.fromDate(date);
+        }
+      } catch (err) {
+        timestampValue = admin.firestore.FieldValue.serverTimestamp();
+      }
+    } else {
+      timestampValue = admin.firestore.FieldValue.serverTimestamp();
+    }
+
+    // Clean matchedItems
+    const cleanMatchedItems = (scanData.matchedItems || []).map(item => {
+      if (!item || typeof item !== 'object') {
+        return null;
+      }
+      const clean = {};
+      if (item.recipeId !== undefined && item.recipeId !== null) {
+        clean.recipeId = String(item.recipeId);
+      }
+      const name = item.matchedName || item.predictedName || item.name || 'Unknown dish';
+      if (name) {
+        clean.matchedName = String(name);
+        if (item.predictedName && item.predictedName !== name) {
+          clean.predictedName = String(item.predictedName);
+        }
+      }
+      if (item.estimatedServings !== undefined && item.estimatedServings !== null) {
+        clean.estimatedServings = Number(item.estimatedServings) || 1;
+      }
+      if (item.portionDescription !== undefined && item.portionDescription !== null) {
+        clean.portionDescription = String(item.portionDescription);
+      }
+      if (item.calories !== undefined && item.calories !== null) {
+        clean.calories = Number(item.calories) || 0;
+      }
+      if (item.protein !== undefined && item.protein !== null) {
+        clean.protein = Number(item.protein) || 0;
+      }
+      if (item.carbs !== undefined && item.carbs !== null) {
+        clean.carbs = Number(item.carbs) || 0;
+      }
+      if (item.fat !== undefined && item.fat !== null) {
+        clean.fat = Number(item.fat) || 0;
+      }
+      return clean;
+    }).filter(item => item !== null);
+
+    // Clean unmatchedDishes
+    const cleanUnmatchedDishes = (scanData.unmatchedDishes || [])
+      .filter(dish => dish !== null && dish !== undefined)
+      .map(dish => String(dish));
+
+    const postData = {
+      userId: String(userId),
+      userEmail: String(userData.email || ''),
+      userName: String(`${userData.firstName || ''} ${userData.lastName || ''}`.trim()),
+      userFirstName: String(userData.firstName || ''),
+      userLastName: String(userData.lastName || ''),
+      mealDate: scanData.mealDate ? String(scanData.mealDate) : null,
+      mealType: scanData.mealType ? String(scanData.mealType) : null,
+      mealName: scanData.mealType ? String(scanData.mealType) : null,
+      rating: Number(scanData.rating),
+      review: (typeof scanData.review === 'string' && scanData.review.trim().length > 0) ? String(scanData.review) : null,
+      locationId: String(scanData.locationId),
+      locationName: String(scanData.locationName || ''),
+      isPublic: scanData.isPublic !== undefined ? Boolean(scanData.isPublic) : true,
+      items,
+      totals,
+      matchedItems: cleanMatchedItems,
+      unmatchedDishes: cleanUnmatchedDishes,
+      timestamp: timestampValue,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    };
+
+    // Store compressed image if provided and not too large
+    if (scanData.image && scanData.image.length < 750000) {
+      postData.image = scanData.image;
+    }
+
+    // Remove undefined values
+    Object.keys(postData).forEach(key => {
+      if (postData[key] === undefined) {
+        delete postData[key];
+      }
+    });
+
+    console.log('About to save post to Firestore. Post data keys:', Object.keys(postData));
+    console.log('Post data sample:', {
+      userId: postData.userId,
+      locationId: postData.locationId,
+      locationName: postData.locationName,
+      rating: postData.rating,
+      itemsCount: postData.items?.length,
+      matchedItemsCount: postData.matchedItems?.length,
+      hasImage: !!postData.image,
+      imageSize: postData.image?.length
+    });
+
+    const postRef = await db.collection(POSTS_COLLECTION).add(postData);
+    console.log('Post saved to Firestore with ID:', postRef.id);
+    
+    const postDoc = await postRef.get();
+    if (!postDoc.exists) {
+      throw new Error('Post was created but document does not exist');
+    }
+    
+    const savedPostData = postDoc.data();
+    console.log('Post document retrieved successfully');
+
+    // Create meal log for progress tracking
+    try {
+      const mealLogItems = items.map(item => ({
+        recipeId: item.recipeId || null,
+        recipeName: item.recipeName || 'Unknown dish',
+        quantity: item.quantity || 1,
+        servingSize: item.servingSize || '1 serving',
+        calories: String(item.calories || 0),
+        protein: `${item.protein || 0}g`,
+        totalCarb: `${item.carbs || 0}g`,
+        totalFat: `${item.fat || 0}g`,
+        saturatedFat: '0g',
+        transFat: '0g',
+        cholesterol: '0mg',
+        sodium: '0mg',
+        dietaryFiber: '0g',
+        sugars: '0g',
+      }));
+
+      const mealDate = scanData.mealDate || new Date().toISOString().split('T')[0];
+      
+      // Convert timestamp to Firestore Timestamp
+      let mealTimestamp;
+      if (scanData.timestamp) {
+        try {
+          const date = new Date(scanData.timestamp);
+          if (isNaN(date.getTime())) {
+            mealTimestamp = admin.firestore.FieldValue.serverTimestamp();
+          } else {
+            mealTimestamp = admin.firestore.Timestamp.fromDate(date);
+          }
+        } catch (err) {
+          console.warn('Error converting meal timestamp, using server timestamp:', err);
+          mealTimestamp = admin.firestore.FieldValue.serverTimestamp();
+        }
+      } else {
+        mealTimestamp = admin.firestore.FieldValue.serverTimestamp();
+      }
+
+      // Import mealLogService inline (since we can't require from backend in serverless)
+      const createMealLog = async (userId, userEmail, mealData) => {
+        const mealLogRef = db.collection(USERS_COLLECTION)
+          .doc(userId)
+          .collection('mealLogs')
+          .doc();
+        
+        await mealLogRef.set({
+          userId,
+          userEmail,
+          ...mealData,
+          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+      };
+
+      await createMealLog(userId, userData.email || '', {
+        mealDate,
+        mealType: scanData.mealType || null,
+        mealName: scanData.mealType || null,
+        locationId: scanData.locationId,
+        locationName: scanData.locationName,
+        items: mealLogItems,
+        timestamp: mealTimestamp,
+      });
+    } catch (mealLogError) {
+      console.error('Error creating meal log for post:', mealLogError);
+      // Don't fail the post creation if meal log fails
+    }
+
+    return {
+      id: postDoc.id,
+      ...savedPostData,
+      timestamp: savedPostData.timestamp?.toDate(),
+      createdAt: savedPostData.createdAt?.toDate(),
+      updatedAt: savedPostData.updatedAt?.toDate(),
+    };
+  } catch (error) {
+    console.error('Error in createPostFromScan:', error);
+    throw error;
+  }
+};
+
 const getFeedPosts = async (userId, limit = 50) => {
   const db = getDb();
   const friends = await getFriends(userId);
@@ -495,13 +746,12 @@ const getFeedPosts = async (userId, limit = 50) => {
   }
 
   const allPosts = [];
+  // Remove orderBy to avoid requiring composite index - sort in-memory instead
   for (let i = 0; i < friendIds.length; i += 10) {
     const batch = friendIds.slice(i, i + 10);
     const snapshot = await db
       .collection(POSTS_COLLECTION)
       .where('userId', 'in', batch)
-      .orderBy('timestamp', 'desc')
-      .limit(limit)
       .get();
 
     snapshot.forEach(doc => {
@@ -515,7 +765,14 @@ const getFeedPosts = async (userId, limit = 50) => {
     });
   }
 
-  return allPosts.sort((a, b) => b.timestamp - a.timestamp).slice(0, limit);
+  // Sort by timestamp descending in-memory
+  allPosts.sort((a, b) => {
+    const aTime = a.timestamp || a.createdAt || new Date(0);
+    const bTime = b.timestamp || b.createdAt || new Date(0);
+    return bTime - aTime;
+  });
+
+  return allPosts.slice(0, limit);
 };
 
 const getPostsByUser = async (targetUserId, limit = 50) => {
@@ -852,6 +1109,129 @@ module.exports = async (req, res) => {
       }
       const post = await createPost(userId, mealId);
       return res.status(201).json({ post, message: 'Post created successfully' });
+    }
+
+    if (req.method === 'POST' && path === '/posts/scan') {
+      try {
+        console.log('=== CREATE POST FROM SCAN START ===');
+        console.log('Request body keys:', Object.keys(req.body || {}));
+        console.log('User ID:', userId);
+        
+        const {
+          image,
+          locationId,
+          locationName,
+          mealDate,
+          mealType,
+          rating,
+          review: rawReview,
+          isPublic,
+          matchedItems,
+          unmatchedDishes,
+          nutritionTotals,
+          timestamp
+        } = req.body;
+
+        // Safely handle review
+        const review = (typeof rawReview === 'string' && rawReview.trim().length > 0)
+          ? rawReview.trim()
+          : null;
+
+        console.log('Parsed request data:', {
+          hasImage: !!image,
+          imageSize: image ? image.length : 0,
+          locationId,
+          locationName,
+          mealDate,
+          mealType,
+          rating,
+          hasReview: !!review,
+          isPublic,
+          matchedItemsCount: matchedItems?.length || 0,
+          unmatchedDishesCount: unmatchedDishes?.length || 0
+        });
+
+        // Validate required fields
+        if (!locationId) {
+          console.error('Missing locationId');
+          return res.status(400).json(createErrorResponse('INVALID_REQUEST', 'locationId is required'));
+        }
+
+        if (!locationName) {
+          console.error('Missing locationName');
+          return res.status(400).json(createErrorResponse('INVALID_REQUEST', 'locationName is required'));
+        }
+
+        if (!rating || rating < 1 || rating > 5) {
+          console.error('Invalid rating:', rating);
+          return res.status(400).json(createErrorResponse('INVALID_REQUEST', 'rating must be between 1 and 5'));
+        }
+
+        // Ensure locationId is a string
+        const locationIdStr = String(locationId).trim();
+        if (!locationIdStr) {
+          return res.status(400).json(createErrorResponse('INVALID_REQUEST', 'locationId cannot be empty'));
+        }
+
+        // Handle image - compress if provided
+        let processedImage = null;
+        if (image && typeof image === 'string') {
+          try {
+            console.log('Compressing image, original size:', image.length, 'bytes');
+            // Use the compressImage function from this file
+            processedImage = await compressImage(image, 750); // 750KB max
+            console.log('✅ Image compressed successfully, new size:', processedImage.length, 'bytes');
+          } catch (error) {
+            console.error('❌ Failed to compress image:', error);
+            console.error('Image compression error details:', error.message, error.stack);
+            // Continue without image rather than failing the entire request
+            processedImage = null;
+          }
+        }
+
+        console.log('Calling createPostFromScan with:', {
+          userId,
+          hasImage: !!processedImage,
+          imageSize: processedImage ? processedImage.length : 0,
+          locationId: locationIdStr,
+          locationName,
+          mealDate: mealDate || new Date().toISOString().split('T')[0],
+          mealType,
+          rating,
+          hasReview: !!review,
+          matchedItemsCount: matchedItems?.length || 0
+        });
+
+        // Create post from scan data
+        const post = await createPostFromScan(userId, {
+          image: processedImage,
+          locationId: locationIdStr,
+          locationName,
+          mealDate: mealDate || new Date().toISOString().split('T')[0],
+          mealType: mealType || null,
+          rating,
+          review: review,
+          isPublic: isPublic !== undefined ? isPublic : true,
+          matchedItems: matchedItems || [],
+          unmatchedDishes: unmatchedDishes || [],
+          nutritionTotals: nutritionTotals || {},
+          timestamp: timestamp || new Date().toISOString()
+        });
+
+        console.log('=== POST CREATED SUCCESSFULLY ===');
+        console.log('Post ID:', post.id);
+        return res.status(201).json({ post, message: 'Post created successfully' });
+      } catch (error) {
+        console.error('=== CREATE POST FROM SCAN ERROR ===');
+        console.error('Error message:', error.message);
+        console.error('Error stack:', error.stack);
+        console.error('Error details:', {
+          message: error.message,
+          code: error.code,
+          name: error.name
+        });
+        return res.status(500).json(createErrorResponse('INTERNAL_ERROR', error.message || 'Failed to create post from scan'));
+      }
     }
 
     if (req.method === 'GET' && path === '/posts/feed') {
