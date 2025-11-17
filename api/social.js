@@ -460,7 +460,15 @@ module.exports = async (req, res) => {
     const decodedToken = await verifyToken(req.headers.authorization);
     const userId = decodedToken.uid;
 
-    const path = req.url.replace('/api/social', '');
+    // Handle both Vercel's url format and standard format
+    const url = req.url || req.path || '';
+    // Remove query string and /api/social prefix
+    const pathWithoutQuery = url.split('?')[0];
+    let path = pathWithoutQuery.replace(/^\/api\/social/, '');
+    // If path is empty, it means we're at the root /api/social
+    if (!path || path === '') {
+      path = '/';
+    }
 
     // Friend request routes
     if (req.method === 'POST' && path === '/friends/request') {
