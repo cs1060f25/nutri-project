@@ -39,11 +39,25 @@ const mealPlanRequest = async (endpoint, options = {}, accessToken) => {
       try {
         const text = await responseClone.text();
         if (text) {
-          errorMessage = text;
+          // Try to parse as JSON if it looks like JSON
+          try {
+            const parsed = JSON.parse(text);
+            errorMessage = parsed.error || parsed.message || errorMessage;
+          } catch {
+            // If not JSON, use the text directly (but limit length)
+            errorMessage = text.length > 200 ? text.substring(0, 200) + '...' : text;
+          }
         }
       } catch (textError) {
         // If all else fails, use status-based message
         console.error('Failed to parse error response:', textError);
+        if (response.status === 401) {
+          errorMessage = 'Unauthorized: Please log in again';
+        } else if (response.status === 403) {
+          errorMessage = 'Forbidden: You do not have permission to perform this action';
+        } else if (response.status === 500) {
+          errorMessage = 'Internal server error: Please try again later';
+        }
       }
     }
     throw new Error(errorMessage);

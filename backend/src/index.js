@@ -12,6 +12,7 @@ const nutritionProgressRoutes = require('./routes/nutritionProgressRoutes');
 const mealSuggestionRoutes = require('./routes/mealSuggestionRoutes');
 const socialRoutes = require('./routes/socialRoutes');
 const mealPlanRoutes = require('./routes/mealPlanRoutes');
+const savedMealPlanRoutes = require('./routes/savedMealPlanRoutes');
 const leaderboardRoutes = require('./routes/leaderboardRoutes');
 const geminiRoutes = require('./routes/geminiRoutes');
 const { homeData } = require('../data');
@@ -82,6 +83,9 @@ app.use('/api/social', socialRoutes);
 
 // Meal plan routes
 app.use('/api/meal-plans', mealPlanRoutes);
+
+// Saved meal plan routes
+app.use('/api/saved-meal-plans', savedMealPlanRoutes);
 
 // Leaderboard routes
 app.use('/api/leaderboard', leaderboardRoutes);
