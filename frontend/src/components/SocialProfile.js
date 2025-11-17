@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Filter } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { getFriends, getFriendRequests, acceptFriendRequest, rejectFriendRequest, removeFriend, getFollowedDiningHalls, unfollowDiningHall, getPostsByLocationName } from '../services/socialService';
 import { getPostsByUser } from '../services/socialService';
@@ -21,6 +22,7 @@ const SocialProfile = () => {
   const [error, setError] = useState(null);
   
   // Filter states
+  const [showFilters, setShowFilters] = useState(false);
   const [filterDiningHall, setFilterDiningHall] = useState('');
   const [filterVisibility, setFilterVisibility] = useState('');
   const [filterRating, setFilterRating] = useState('');
@@ -81,6 +83,11 @@ const SocialProfile = () => {
 
     setFilteredPosts(filtered);
   }, [posts, filterDiningHall, filterVisibility, filterRating, filterMealType, activeTab]);
+
+  // Reset filter visibility when switching tabs
+  useEffect(() => {
+    setShowFilters(false);
+  }, [activeTab]);
 
   // Fetch tab-specific data when tab changes
   useEffect(() => {
@@ -264,32 +271,70 @@ const SocialProfile = () => {
   return (
     <div className="social-profile">
       <div className="profile-header">
-        <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem', marginBottom: '1.5rem' }}>
-          <button
-            className={`btn ${activeTab === 'posts' ? 'btn-primary' : 'btn-secondary'}`}
-            onClick={() => setActiveTab('posts')}
-          >
-            My Posts
-          </button>
-          <button
-            className={`btn ${activeTab === 'friends' ? 'btn-primary' : 'btn-secondary'}`}
-            onClick={() => setActiveTab('friends')}
-          >
-            Friends ({friends.length})
-          </button>
-          <button
-            className={`btn ${activeTab === 'dining-halls' ? 'btn-primary' : 'btn-secondary'}`}
-            onClick={() => setActiveTab('dining-halls')}
-          >
-            Dining Halls ({followedDiningHalls.length})
-          </button>
+        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginTop: '1rem', marginBottom: '1.5rem' }}>
+          <div style={{ display: 'flex', gap: '1rem', flex: 1 }}>
+            <button
+              className={`btn ${activeTab === 'posts' ? 'btn-primary' : 'btn-secondary'}`}
+              onClick={() => setActiveTab('posts')}
+            >
+              My Posts
+            </button>
+            <button
+              className={`btn ${activeTab === 'friends' ? 'btn-primary' : 'btn-secondary'}`}
+              onClick={() => setActiveTab('friends')}
+            >
+              Friends ({friends.length})
+            </button>
+            <button
+              className={`btn ${activeTab === 'dining-halls' ? 'btn-primary' : 'btn-secondary'}`}
+              onClick={() => setActiveTab('dining-halls')}
+            >
+              Dining Halls ({followedDiningHalls.length})
+            </button>
+          </div>
+          {activeTab === 'posts' && posts.length > 0 && (
+            <button
+              className={`btn ${showFilters ? 'btn-primary' : 'btn-secondary'}`}
+              onClick={() => setShowFilters(!showFilters)}
+              style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '0.5rem',
+                padding: '0.5rem 1rem',
+                position: 'relative'
+              }}
+              title="Toggle filters"
+            >
+              <Filter size={18} />
+              Filter
+              {(filterDiningHall || filterVisibility || filterRating || filterMealType) && (
+                <span style={{
+                  position: 'absolute',
+                  top: '-4px',
+                  right: '-4px',
+                  backgroundColor: '#dc2626',
+                  color: 'white',
+                  borderRadius: '50%',
+                  width: '18px',
+                  height: '18px',
+                  fontSize: '10px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontWeight: 'bold'
+                }}>
+                  {(filterDiningHall ? 1 : 0) + (filterVisibility ? 1 : 0) + (filterRating ? 1 : 0) + (filterMealType ? 1 : 0)}
+                </span>
+              )}
+            </button>
+          )}
         </div>
       </div>
 
       {activeTab === 'posts' && (
         <div className="profile-posts">
           {/* Filter Section */}
-          {posts.length > 0 && (
+          {posts.length > 0 && showFilters && (
             <div className="profile-filters">
               <h3 style={{ marginBottom: '1rem', fontSize: '1.1rem', fontWeight: 600 }}>Filter Posts</h3>
               <div className="filters-grid">
