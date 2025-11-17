@@ -313,16 +313,28 @@ const MealPlanning = () => {
   };
 
   // Open add modal
-  const handleAddClick = () => {
-    const today = new Date();
-    setSelectedDate(formatDate(today));
-    setSelectedMealType('');
+  const handleAddClick = (date = null, mealType = '') => {
+    const targetDate = date ? formatDate(date) : formatDate(new Date());
+    setSelectedDate(targetDate);
+    setSelectedMealType(mealType);
     setSelectedLocationId('');
     setSelectedLocationName('');
     setMenuItems({});
     setSelectedItems([]);
     setMealPlanToUpdate(null);
     setIsAddModalOpen(true);
+  };
+
+  // Handle clicking on an empty calendar cell
+  const handleCellClick = (date, mealType) => {
+    const plan = getMealPlanForCell(date, mealType);
+    // If there's already a plan, open the side panel (existing behavior)
+    if (plan) {
+      handleMealPlanClick(plan);
+    } else {
+      // If empty, open the add modal with date and meal type pre-filled
+      handleAddClick(date, mealType);
+    }
   };
 
   // Handle date selection in modal
@@ -784,7 +796,12 @@ const MealPlanning = () => {
               {weekDates.map((date, dateIndex) => {
                 const plan = getMealPlanForCell(date, mealType);
                 return (
-                  <div key={`${mealType}-${dateIndex}-${formatDate(date)}`} className="calendar-cell">
+                  <div 
+                    key={`${mealType}-${dateIndex}-${formatDate(date)}`} 
+                    className="calendar-cell"
+                    onClick={() => handleCellClick(date, mealType)}
+                    style={{ cursor: 'pointer' }}
+                  >
                     {plan && (() => {
                       const colors = getDiningHallColor(plan.locationName);
                       // Debug logging
@@ -794,7 +811,10 @@ const MealPlanning = () => {
                       return (
                         <div 
                           className="meal-plan-item"
-                          onClick={() => handleMealPlanClick(plan)}
+                          onClick={(e) => {
+                            e.stopPropagation(); // Prevent cell click from firing
+                            handleMealPlanClick(plan);
+                          }}
                           style={{
                             backgroundColor: colors.bg,
                             borderColor: colors.border,
