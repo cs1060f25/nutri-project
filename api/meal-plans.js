@@ -84,10 +84,16 @@ module.exports = async (req, res) => {
     const user = await extractUserFromToken(req);
     req.user = user;
 
-    const { method, url } = req;
+    const { method } = req;
+    // Handle both Vercel's url format and standard format
+    const url = req.url || req.path || '';
     const path = url.split('?')[0];
-    const pathParts = path.split('/').filter(Boolean);
+    // Remove leading /api/meal-plans if present
+    const cleanPath = path.replace(/^\/api\/meal-plans/, '').replace(/^\//, '');
+    const pathParts = cleanPath.split('/').filter(Boolean);
     const mealPlanId = pathParts.length > 0 ? pathParts[pathParts.length - 1] : null;
+    
+    console.log('Request details:', { method, url, path, cleanPath, pathParts, mealPlanId });
 
     // Route handling
     if (method === 'POST' && pathParts.length === 0) {

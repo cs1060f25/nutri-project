@@ -25,6 +25,8 @@ const mealPlanRequest = async (endpoint, options = {}, accessToken) => {
 
   if (!response.ok) {
     let errorMessage = `HTTP error! status: ${response.status}`;
+    // Clone the response so we can read it multiple times if needed
+    const responseClone = response.clone();
     try {
       const errorData = await response.json();
       errorMessage = errorData.error || errorData.message || errorMessage;
@@ -33,9 +35,9 @@ const mealPlanRequest = async (endpoint, options = {}, accessToken) => {
         console.error('Error details:', errorData.details);
       }
     } catch (jsonError) {
-      // If response is not JSON, try to get text
+      // If response is not JSON, try to get text from the clone
       try {
-        const text = await response.text();
+        const text = await responseClone.text();
         if (text) {
           errorMessage = text;
         }
