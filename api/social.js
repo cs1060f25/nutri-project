@@ -889,69 +889,85 @@ module.exports = async (req, res) => {
 
     // Search routes
     if (req.method === 'GET' && path === '/search/users') {
-      const q = req.query.q;
-      if (!q || q.trim().length === 0) {
-        return res.status(400).json(createErrorResponse('INVALID_REQUEST', 'Search query is required'));
-      }
-
-      const searchTerm = q.trim().toLowerCase();
-      const db = getDb();
-      
-      // Step 1: Get all valid users from Firebase Auth first
-      // This ensures we only include users that actually exist in Auth (not deleted)
-      // Wrap in try-catch to handle potential timeouts or errors on Vercel
-      let validAuthUserIds = new Set();
       try {
-        const authUsersResult = await admin.auth().listUsers(1000); // Get up to 1000 users
-        authUsersResult.users.forEach(user => {
-          validAuthUserIds.add(user.uid);
-        });
-      } catch (authError) {
-        console.error('Error fetching users from Firebase Auth, falling back to Firestore-only filter:', authError);
-        // If listUsers fails (e.g., timeout), we'll just filter by email presence
-        // This is a fallback - not ideal but prevents the function from crashing
-      }
-
-      // Step 2: Get all users from Firestore and filter by search term
-      // Only include users that exist in Firebase Auth (not deleted)
-      const snapshot = await db.collection(USERS_COLLECTION).get();
-      const matchingUsers = [];
-
-      snapshot.forEach(doc => {
-        const userData = doc.data();
-        const userId = doc.id;
-        
-        // Only include users that:
-        // 1. Have an email (required field for valid users)
-        // 2. Still exist in Firebase Auth (not deleted) - if we successfully got the list
-        if (!userData || !userData.email) {
-          return;
-        }
-        
-        // If we have validAuthUserIds (from successful listUsers call), check it
-        // Otherwise, just check for email (fallback mode)
-        if (validAuthUserIds.size > 0 && !validAuthUserIds.has(userId)) {
-          return;
+        const q = req.query.q;
+        if (!q || q.trim().length === 0) {
+          return res.status(400).json(createErrorResponse('INVALID_REQUEST', 'Search query is required'));
         }
 
-        const fullName = `${userData.firstName || ''} ${userData.lastName || ''}`.toLowerCase();
-        const email = (userData.email || '').toLowerCase();
-        const residence = (userData.residence || '').toLowerCase();
-
-        if (fullName.includes(searchTerm) || email.includes(searchTerm) || residence.includes(searchTerm)) {
-          matchingUsers.push({
-            id: doc.id,
-            email: userData.email,
-            firstName: userData.firstName,
-            lastName: userData.lastName,
-            residence: userData.residence,
-            name: `${userData.firstName} ${userData.lastName}`,
+        const searchTerm = q.trim().toLowerCase();
+        const db = getDb();
+        
+        // Step 1: Get all valid users from Firebase Auth first
+        // This ensures we only include users that actually exist in Auth (not deleted)
+        // Wrap in try-catch to handle potential timeouts or errors on Vercel
+        let validAuthUserIds = new Set();
+        try {
+          // Use a timeout to prevent hanging on Vercel
+          const authUsersResult = await Promise.race([
+            admin.auth().listUsers(1000),
+            new Promise((_, reject) => 
+              setTimeout(() => reject(new Error('Auth listUsers timeout')), 5000)
+            )
+          ]);
+          authUsersResult.users.forEach(user => {
+            validAuthUserIds.add(user.uid);
           });
+        } catch (authError) {
+          console.error('Error fetching users from Firebase Auth, falling back to Firestore-only filter:', authError.message || authError);
+          // If listUsers fails (e.g., timeout), we'll just filter by email presence
+          // This is a fallback - not ideal but prevents the function from crashing
         }
-      });
 
-      const limit = parseInt(req.query.limit || 20, 10);
-      return res.status(200).json({ users: matchingUsers.slice(0, limit), count: matchingUsers.length });
+        // Step 2: Get all users from Firestore and filter by search term
+        // Only include users that exist in Firebase Auth (not deleted)
+        const snapshot = await db.collection(USERS_COLLECTION).get();
+        const matchingUsers = [];
+
+        snapshot.forEach(doc => {
+          try {
+            const userData = doc.data();
+            const userId = doc.id;
+            
+            // Only include users that:
+            // 1. Have an email (required field for valid users)
+            // 2. Still exist in Firebase Auth (not deleted) - if we successfully got the list
+            if (!userData || !userData.email) {
+              return;
+            }
+            
+            // If we have validAuthUserIds (from successful listUsers call), check it
+            // Otherwise, just check for email (fallback mode)
+            if (validAuthUserIds.size > 0 && !validAuthUserIds.has(userId)) {
+              return;
+            }
+
+            const fullName = `${userData.firstName || ''} ${userData.lastName || ''}`.toLowerCase();
+            const email = (userData.email || '').toLowerCase();
+            const residence = (userData.residence || '').toLowerCase();
+
+            if (fullName.includes(searchTerm) || email.includes(searchTerm) || residence.includes(searchTerm)) {
+              matchingUsers.push({
+                id: doc.id,
+                email: userData.email,
+                firstName: userData.firstName,
+                lastName: userData.lastName,
+                residence: userData.residence,
+                name: `${userData.firstName} ${userData.lastName}`,
+              });
+            }
+          } catch (docError) {
+            console.error(`Error processing user document ${doc.id}:`, docError.message || docError);
+            // Continue processing other documents
+          }
+        });
+
+        const limit = parseInt(req.query.limit || 20, 10);
+        return res.status(200).json({ users: matchingUsers.slice(0, limit), count: matchingUsers.length });
+      } catch (error) {
+        console.error('Error in search/users endpoint:', error);
+        return res.status(500).json(createErrorResponse('INTERNAL_ERROR', 'A server error has occurred'));
+      }
     }
 
     if (req.method === 'GET' && path === '/search/locations') {
