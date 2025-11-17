@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Upload, ArrowRight, Clock, Share2 } from 'lucide-react';
+import { Upload, ArrowRight, Clock } from 'lucide-react';
 import { analyzeMealImage } from '../services/geminiService';
 import CreatePostModal from './CreatePostModal';
 import './FoodScanner.css';

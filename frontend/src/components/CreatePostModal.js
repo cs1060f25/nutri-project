@@ -35,18 +35,23 @@ const normalizeHouseName = (houseName) => {
   return trimmed;
 };
 
-const CreatePostModal = ({ isOpen, onClose, scanData, imageUrl, imageFile }) => {
+const CreatePostModal = ({ isOpen, onClose, scanData, imageUrl, imageFile, initialData }) => {
   const { accessToken, refreshAccessToken } = useAuth();
   const [diningHalls, setDiningHalls] = useState([]);
   const [selectedLocation, setSelectedLocation] = useState({ locationId: '', locationName: '' });
-  const [mealDate, setMealDate] = useState(new Date().toISOString().split('T')[0]); // Default to today
-  const [mealType, setMealType] = useState('');
+  const [mealDate, setMealDate] = useState(initialData?.mealDate || new Date().toISOString().split('T')[0]); // Default to today or initialData
+  const [mealType, setMealType] = useState(initialData?.mealType || '');
   const [rating, setRating] = useState(0);
   const [hoveredRating, setHoveredRating] = useState(0);
   const [review, setReview] = useState('');
   const [isPublic, setIsPublic] = useState(true); // Default to public
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [uploadedImage, setUploadedImage] = useState(null);
+  const [uploadedImagePreview, setUploadedImagePreview] = useState(null);
+  
+  // Check if this is from meal planning (no imageUrl or imageFile provided)
+  const isFromMealPlanning = !imageUrl && !imageFile;
 
   const loadDiningHalls = useCallback(async () => {
     try {
@@ -85,8 +90,63 @@ const CreatePostModal = ({ isOpen, onClose, scanData, imageUrl, imageFile }) => 
   useEffect(() => {
     if (isOpen) {
       loadDiningHalls();
+      
+      // Pre-fill form if initialData is provided
+      if (initialData) {
+        if (initialData.mealDate) {
+          setMealDate(initialData.mealDate);
+        }
+        // Capitalize meal type (meal plan uses lowercase, but options use capitalized)
+        if (initialData.mealType) {
+          const capitalized = initialData.mealType.charAt(0).toUpperCase() + initialData.mealType.slice(1);
+          setMealType(capitalized);
+        }
+      }
+    } else {
+      // Reset form when modal closes
+      setSelectedLocation({ locationId: '', locationName: '' });
+      setMealDate(initialData?.mealDate || new Date().toISOString().split('T')[0]);
+      setMealType(initialData?.mealType ? (initialData.mealType.charAt(0).toUpperCase() + initialData.mealType.slice(1)) : '');
+      setRating(0);
+      setReview('');
+      setError(null);
+      setUploadedImage(null);
+      setUploadedImagePreview(null);
     }
-  }, [isOpen, loadDiningHalls]);
+  }, [isOpen, loadDiningHalls, initialData]);
+
+  // Set selected location after dining halls are loaded
+  useEffect(() => {
+    if (isOpen && initialData && diningHalls.length > 0 && initialData.locationId && initialData.locationName) {
+      // Find matching dining hall - locationId might be just the number or in format "number|name"
+      let locationNumber = initialData.locationId;
+      if (initialData.locationId.includes('|')) {
+        locationNumber = initialData.locationId.split('|')[0];
+      }
+      
+      // Find the dining hall that matches
+      const matchingHall = diningHalls.find(hall => 
+        hall.location_number === locationNumber || 
+        hall.location_name === initialData.locationName ||
+        `${hall.location_number}|${hall.location_name}` === initialData.locationId
+      );
+      
+      if (matchingHall) {
+        const uniqueId = `${matchingHall.location_number}|${matchingHall.location_name}`;
+        setSelectedLocation({
+          locationId: uniqueId,
+          locationName: matchingHall.location_name,
+        });
+      } else {
+        // Fallback: try to construct the ID from the provided data
+        const uniqueId = `${locationNumber}|${initialData.locationName}`;
+        setSelectedLocation({
+          locationId: uniqueId,
+          locationName: initialData.locationName,
+        });
+      }
+    }
+  }, [isOpen, initialData, diningHalls]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -121,6 +181,18 @@ const CreatePostModal = ({ isOpen, onClose, scanData, imageUrl, imageFile }) => 
           };
           reader.onerror = reject;
           reader.readAsDataURL(imageFile);
+        });
+      } else if (uploadedImage) {
+        // Convert uploaded image file to base64
+        const reader = new FileReader();
+        imageBase64 = await new Promise((resolve, reject) => {
+          reader.onload = () => {
+            const result = reader.result;
+            console.log('Converted uploadedImage to base64, size:', result.length);
+            resolve(result);
+          };
+          reader.onerror = reject;
+          reader.readAsDataURL(uploadedImage);
         });
       } else if (imageUrl) {
         // If we have an imageUrl but it's not base64, try to fetch and convert
@@ -218,10 +290,55 @@ const CreatePostModal = ({ isOpen, onClose, scanData, imageUrl, imageFile }) => 
         </div>
 
         <form onSubmit={handleSubmit} className="create-post-modal-form">
-          {/* Image Preview */}
-          {imageUrl && (
+          {/* Image Preview from Food Scanner */}
+          {imageUrl && !isFromMealPlanning && (
             <div className="create-post-modal-image">
               <img src={imageUrl} alt="Scanned meal" />
+            </div>
+          )}
+
+          {/* Image Upload Section (only for meal planning) */}
+          {isFromMealPlanning && (
+            <div className="create-post-modal-field">
+              <label htmlFor="image-upload">Upload Picture</label>
+              <div className="create-post-modal-image-upload">
+                <input
+                  id="image-upload"
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                      setUploadedImage(file);
+                      // Create preview
+                      const reader = new FileReader();
+                      reader.onload = (event) => {
+                        setUploadedImagePreview(event.target.result);
+                      };
+                      reader.readAsDataURL(file);
+                    }
+                  }}
+                  className="create-post-modal-file-input"
+                />
+                {uploadedImagePreview && (
+                  <div className="create-post-modal-image-preview">
+                    <img src={uploadedImagePreview} alt="Uploaded meal" />
+                    <button
+                      type="button"
+                      className="create-post-modal-remove-image"
+                      onClick={() => {
+                        setUploadedImage(null);
+                        setUploadedImagePreview(null);
+                        // Reset file input
+                        const fileInput = document.getElementById('image-upload');
+                        if (fileInput) fileInput.value = '';
+                      }}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
