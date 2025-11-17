@@ -50,6 +50,20 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
       )
     },
     {
+      id: 'scanner',
+      label: 'Food Scanner',
+      path: '/home/scanner',
+      iconSvg: (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="12" r="3"></circle>
+          <path d="M4 7v10"></path>
+          <path d="M20 7v10"></path>
+          <path d="M7 4h10"></path>
+          <path d="M7 20h10"></path>
+        </svg>
+      )
+    },
+    {
       id: 'social',
       label: 'Social',
       path: '/home/social',

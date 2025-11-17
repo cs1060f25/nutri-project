@@ -13,6 +13,7 @@ const mealSuggestionRoutes = require('./routes/mealSuggestionRoutes');
 const socialRoutes = require('./routes/socialRoutes');
 const mealPlanRoutes = require('./routes/mealPlanRoutes');
 const leaderboardRoutes = require('./routes/leaderboardRoutes');
+const geminiRoutes = require('./routes/geminiRoutes');
 const { homeData } = require('../data');
 
 // Initialize Express app
@@ -72,6 +73,9 @@ app.use('/api/nutrition-progress', nutritionProgressRoutes);
 
 // Meal suggestion routes
 app.use('/api/meal-suggestion', mealSuggestionRoutes);
+
+// Gemini analyzer route
+app.use('/api', geminiRoutes);
 
 // Social routes (friends and posts)
 app.use('/api/social', socialRoutes);
