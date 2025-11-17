@@ -5,6 +5,7 @@ import { getMealPlans, createMealPlan, deleteMealPlan, updateMealPlan } from '..
 import { getActiveNutritionPlan } from '../services/nutritionPlanService';
 import { getTodayProgress } from '../services/nutritionProgressService';
 import { getMealLogs } from '../services/mealLogService';
+import { getSavedMealPlans, createSavedMealPlan, deleteSavedMealPlan, incrementSavedMealPlanUsage, updateSavedMealPlan } from '../services/savedMealPlanService';
 import CustomSelect from '../components/CustomSelect';
 import CreatePostModal from '../components/CreatePostModal';
 import './MealPlanning.css';
@@ -104,7 +105,7 @@ const getDiningHallColor = (locationName) => {
 };
 
 const MealPlanning = () => {
-  const { accessToken } = useAuth();
+  const { accessToken, refreshAccessToken } = useAuth();
   const [currentWeekStart, setCurrentWeekStart] = useState(() => {
     // Start of current week (Sunday)
     const today = new Date();
@@ -133,6 +134,24 @@ const MealPlanning = () => {
   const [showCompleteModal, setShowCompleteModal] = useState(false);
   const [completeModalScanData, setCompleteModalScanData] = useState(null);
   const [isMealPlanCompleted, setIsMealPlanCompleted] = useState(false);
+  const [savedMealPlans, setSavedMealPlans] = useState([]);
+  const [filteredSavedMealPlans, setFilteredSavedMealPlans] = useState([]);
+  const [todaysMenu, setTodaysMenu] = useState([]);
+  const [showSavedPlansFilters, setShowSavedPlansFilters] = useState(false);
+  const [savedPlanFilterStar, setSavedPlanFilterStar] = useState('');
+  const [savedPlanFilterHouse, setSavedPlanFilterHouse] = useState('');
+  const [savedPlanFilterMealType, setSavedPlanFilterMealType] = useState('');
+  const [savedPlanFilterAvailability, setSavedPlanFilterAvailability] = useState('');
+  const [selectedSavedPlan, setSelectedSavedPlan] = useState(null);
+  const [isSavedPlanModalOpen, setIsSavedPlanModalOpen] = useState(false);
+  const [isNameModalOpen, setIsNameModalOpen] = useState(false);
+  const [mealPlanName, setMealPlanName] = useState('');
+  const [isConfirmationModalOpen, setIsConfirmationModalOpen] = useState(false);
+  const [confirmationMessage, setConfirmationMessage] = useState('');
+  const [confirmationType, setConfirmationType] = useState('success'); // 'success' or 'error'
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [deleteType, setDeleteType] = useState('mealPlan'); // 'mealPlan' or 'savedMealPlan'
+  const [deleteTargetId, setDeleteTargetId] = useState(null);
 
   // Calculate week dates
   const getWeekDates = () => {
@@ -333,6 +352,75 @@ const MealPlanning = () => {
     fetchMealPlans();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [accessToken, currentWeekStart]);
+
+  // Fetch saved meal plans
+  useEffect(() => {
+    const fetchSavedMealPlans = async () => {
+      if (!accessToken) return;
+      try {
+        const data = await getSavedMealPlans(accessToken);
+        setSavedMealPlans(data.savedPlans || []);
+        setFilteredSavedMealPlans(data.savedPlans || []);
+      } catch (error) {
+        console.error('Error fetching saved meal plans:', error);
+      }
+    };
+    fetchSavedMealPlans();
+  }, [accessToken]);
+
+  // Filter saved meal plans
+  useEffect(() => {
+    let filtered = [...savedMealPlans];
+
+    // Filter by star rating
+    if (savedPlanFilterStar) {
+      const minStars = parseInt(savedPlanFilterStar, 10);
+      filtered = filtered.filter(plan => (plan.stars || 0) >= minStars);
+    }
+
+    // Filter by house (location)
+    if (savedPlanFilterHouse) {
+      filtered = filtered.filter(plan => 
+        plan.locationName?.toLowerCase() === savedPlanFilterHouse.toLowerCase()
+      );
+    }
+
+    // Filter by meal type
+    if (savedPlanFilterMealType) {
+      filtered = filtered.filter(plan => 
+        plan.mealType?.toLowerCase() === savedPlanFilterMealType.toLowerCase()
+      );
+    }
+
+    // Filter by availability
+    if (savedPlanFilterAvailability) {
+      filtered = filtered.filter(plan => {
+        const availability = checkSavedPlanAvailability(plan);
+        if (savedPlanFilterAvailability === 'available') {
+          return availability.canMake;
+        } else if (savedPlanFilterAvailability === 'unavailable') {
+          return !availability.canMake;
+        }
+        return true;
+      });
+    }
+
+    setFilteredSavedMealPlans(filtered);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [savedMealPlans, savedPlanFilterStar, savedPlanFilterHouse, savedPlanFilterMealType, savedPlanFilterAvailability, todaysMenu]);
+
+  // Fetch today's menu for availability checking
+  useEffect(() => {
+    const fetchTodaysMenu = async () => {
+      try {
+        const menu = await getTodaysMenu();
+        setTodaysMenu(menu || []);
+      } catch (error) {
+        console.error('Error fetching today\'s menu:', error);
+      }
+    };
+    fetchTodaysMenu();
+  }, []);
 
   // Listen for meal log updates to refresh completion status
   useEffect(() => {
@@ -632,31 +720,65 @@ const MealPlanning = () => {
       return;
     }
 
+    if (!accessToken) {
+      alert('You must be logged in to save a meal plan');
+      return;
+    }
+
     try {
+      let currentToken = accessToken;
+      
+      // Helper function to attempt API call with token refresh
+      const attemptApiCall = async (apiCall) => {
+        try {
+          return await apiCall(currentToken);
+        } catch (error) {
+          // Check if it's a token expiration error
+          if (error.message && (
+            error.message.includes('401') || 
+            error.message.includes('Unauthorized') ||
+            error.message.includes('token') ||
+            error.message.includes('expired')
+          )) {
+            // Try to refresh the token
+            try {
+              const newToken = await refreshAccessToken();
+              currentToken = newToken;
+              // Retry the API call with the new token
+              return await apiCall(newToken);
+            } catch (refreshError) {
+              console.error('Token refresh failed:', refreshError);
+              throw new Error('Session expired. Please log in again.');
+            }
+          }
+          throw error;
+        }
+      };
+
       if (mealPlanToUpdate) {
         // Update existing meal plan
-        await updateMealPlan(mealPlanToUpdate, {
+        await attemptApiCall((token) => updateMealPlan(mealPlanToUpdate, {
           date: selectedDate,
           mealType: selectedMealType,
           locationId: selectedLocationId,
           locationName: selectedLocationName,
           selectedItems: selectedItems,
-        }, accessToken);
+        }, token));
       } else {
         // Create new meal plan
-        await createMealPlan({
+        await attemptApiCall((token) => createMealPlan({
           date: selectedDate,
           mealType: selectedMealType,
           locationId: selectedLocationId,
           locationName: selectedLocationName,
           selectedItems: selectedItems,
-        }, accessToken);
+        }, token));
       }
 
       // Refresh meal plans
       const startDate = formatDate(weekDates[0]);
       const endDate = formatDate(weekDates[6]);
-      const data = await getMealPlans(startDate, endDate, accessToken);
+      const data = await attemptApiCall((token) => getMealPlans(startDate, endDate, token));
       setMealPlans(data.mealPlans || []);
 
       // Close modal and reset form
@@ -668,9 +790,16 @@ const MealPlanning = () => {
       setMenuItems({});
       setSelectedItems([]);
       setMealPlanToUpdate(null);
+      
+      // Show success message
+      setConfirmationMessage('Meal plan saved successfully!');
+      setConfirmationType('success');
+      setIsConfirmationModalOpen(true);
     } catch (error) {
       console.error('Error saving meal plan:', error);
-      alert('Failed to save meal plan: ' + error.message);
+      setConfirmationMessage('Failed to save meal plan: ' + (error.message || 'Unknown error'));
+      setConfirmationType('error');
+      setIsConfirmationModalOpen(true);
     }
   };
 
@@ -764,30 +893,57 @@ const MealPlanning = () => {
     setDailyProgress(null);
   };
 
-  // Delete meal plan
-  const handleDelete = async () => {
+  // Delete meal plan - opens confirmation modal
+  const handleDelete = () => {
     if (!selectedMealPlan) return;
-    
-    if (!window.confirm('Are you sure you want to delete this meal plan?')) {
-      return;
-    }
+    setDeleteType('mealPlan');
+    setDeleteTargetId(selectedMealPlan.id);
+    setIsDeleteModalOpen(true);
+  };
+
+  // Confirm and execute meal plan deletion
+  const handleConfirmDelete = async () => {
+    if (!deleteTargetId || !accessToken) return;
 
     try {
-      await deleteMealPlan(selectedMealPlan.id, accessToken);
+      if (deleteType === 'mealPlan') {
+        await deleteMealPlan(deleteTargetId, accessToken);
+        
+        // Refresh meal plans
+        const startDate = formatDate(weekDates[0]);
+        const endDate = formatDate(weekDates[6]);
+        const data = await getMealPlans(startDate, endDate, accessToken);
+        setMealPlans(data.mealPlans || []);
+        
+        // Close side panel
+        setIsSidePanelOpen(false);
+        setSelectedMealPlan(null);
+        setDailyProgress(null);
+      } else if (deleteType === 'savedMealPlan') {
+        await deleteSavedMealPlan(deleteTargetId, accessToken);
+        
+        // Refresh saved meal plans
+        const data = await getSavedMealPlans(accessToken);
+        setSavedMealPlans(data.savedPlans || []);
+        
+        // Close modals if open
+        setIsSavedPlanModalOpen(false);
+        setSelectedSavedPlan(null);
+      }
       
-      // Refresh meal plans
-      const startDate = formatDate(weekDates[0]);
-      const endDate = formatDate(weekDates[6]);
-      const data = await getMealPlans(startDate, endDate, accessToken);
-      setMealPlans(data.mealPlans || []);
+      setIsDeleteModalOpen(false);
+      setDeleteTargetId(null);
       
-      // Close side panel
-      setIsSidePanelOpen(false);
-      setSelectedMealPlan(null);
-      setDailyProgress(null);
+      // Show success message
+      setConfirmationMessage(deleteType === 'mealPlan' ? 'Meal plan deleted successfully!' : 'Saved meal plan deleted successfully!');
+      setConfirmationType('success');
+      setIsConfirmationModalOpen(true);
     } catch (error) {
-      console.error('Error deleting meal plan:', error);
-      alert('Failed to delete meal plan: ' + error.message);
+      console.error('Error deleting:', error);
+      setConfirmationMessage('Failed to delete: ' + (error.message || 'Unknown error'));
+      setConfirmationType('error');
+      setIsConfirmationModalOpen(true);
+      setIsDeleteModalOpen(false);
     }
   };
 
@@ -868,6 +1024,160 @@ const MealPlanning = () => {
       .split(' ')
       .map(word => word.charAt(0).toUpperCase() + word.slice(1))
       .join(' ');
+  };
+
+  // Check if saved meal plan items are available today
+  const checkSavedPlanAvailability = (savedPlan) => {
+    if (!todaysMenu || todaysMenu.length === 0) {
+      return { canMake: false, mealTypes: [] };
+    }
+
+    // Flatten today's menu to get all available items
+    const availableItems = new Set();
+    const availableMealTypes = new Set();
+    
+    todaysMenu.forEach(location => {
+      if (location.meals) {
+        Object.values(location.meals).forEach(meal => {
+          const mealName = meal.mealName ? meal.mealName.toLowerCase() : '';
+          if (meal.categories) {
+            Object.values(meal.categories).forEach(category => {
+              if (category.recipes) {
+                category.recipes.forEach(recipe => {
+                  const itemName = recipe.Recipe_Name?.toLowerCase() || '';
+                  availableItems.add(itemName);
+                  if (mealName === savedPlan.mealType.toLowerCase()) {
+                    availableMealTypes.add(mealName);
+                  }
+                });
+              }
+            });
+          }
+        });
+      }
+    });
+
+    // Check if all items in saved plan are available
+    const savedItemNames = savedPlan.selectedItems.map(item => 
+      item.name?.toLowerCase() || ''
+    );
+    
+    const allAvailable = savedItemNames.every(itemName => {
+      // Check for exact match or partial match
+      return Array.from(availableItems).some(available => 
+        available.includes(itemName) || itemName.includes(available)
+      );
+    });
+
+    return {
+      canMake: allAvailable && availableMealTypes.has(savedPlan.mealType.toLowerCase()),
+      mealTypes: Array.from(availableMealTypes),
+    };
+  };
+
+  // Handle using a saved meal plan
+  const handleUseSavedPlan = async (savedPlan) => {
+    if (!accessToken) return;
+    
+    try {
+      // Increment usage count
+      await incrementSavedMealPlanUsage(savedPlan.id, accessToken);
+      
+      // Refresh saved meal plans
+      const data = await getSavedMealPlans(accessToken);
+      setSavedMealPlans(data.savedPlans || []);
+      
+      // Set up the form with saved plan data
+      const today = formatDate(new Date());
+      setSelectedDate(today);
+      setSelectedMealType(savedPlan.mealType);
+      setSelectedLocationId(savedPlan.locationId);
+      setSelectedLocationName(savedPlan.locationName);
+      setSelectedItems(savedPlan.selectedItems);
+      setMealPlanToUpdate(null);
+      
+      // Open the add modal
+      setIsAddModalOpen(true);
+      
+      // Fetch menu items
+      await fetchMenuItems(today, savedPlan.locationId);
+    } catch (error) {
+      console.error('Error using saved meal plan:', error);
+      alert('Failed to use saved meal plan');
+    }
+  };
+
+  // Handle deleting a saved meal plan - opens confirmation modal
+  const handleDeleteSavedPlan = (savedPlanId) => {
+    if (!accessToken) return;
+    setDeleteType('savedMealPlan');
+    setDeleteTargetId(savedPlanId);
+    setIsDeleteModalOpen(true);
+  };
+
+  // Handle opening name modal for saving meal plan as template
+  const handleSaveMealPlanAsTemplate = () => {
+    if (!selectedMealPlan || !accessToken) return;
+    setMealPlanName('');
+    setIsNameModalOpen(true);
+  };
+
+  // Handle confirming name and saving meal plan as template
+  const handleConfirmSaveMealPlanAsTemplate = async () => {
+    if (!mealPlanName || !mealPlanName.trim()) {
+      setConfirmationMessage('Please enter a name for the meal plan');
+      setConfirmationType('error');
+      setIsConfirmationModalOpen(true);
+      setIsNameModalOpen(false);
+      return;
+    }
+
+    setIsNameModalOpen(false);
+
+    try {
+      await createSavedMealPlan({
+        title: mealPlanName.trim(),
+        mealType: selectedMealPlan.mealType,
+        locationId: selectedMealPlan.locationId,
+        locationName: selectedMealPlan.locationName,
+        selectedItems: selectedMealPlan.selectedItems,
+        image: null, // Can be added later if needed
+        stars: 0, // Default to 0, user can rate later
+      }, accessToken);
+      
+      // Refresh saved meal plans
+      const data = await getSavedMealPlans(accessToken);
+      setSavedMealPlans(data.savedPlans || []);
+      
+      setConfirmationMessage('Meal plan saved as template successfully!');
+      setConfirmationType('success');
+      setIsConfirmationModalOpen(true);
+      setMealPlanName('');
+    } catch (error) {
+      console.error('Error saving meal plan as template:', error);
+      setConfirmationMessage('Failed to save meal plan as template: ' + (error.message || 'Unknown error'));
+      setConfirmationType('error');
+      setIsConfirmationModalOpen(true);
+    }
+  };
+
+  // Handle updating star rating
+  const handleUpdateStarRating = async (savedPlanId, rating) => {
+    if (!accessToken) return;
+    
+    try {
+      await updateSavedMealPlan(savedPlanId, { stars: rating }, accessToken);
+      
+      // Update the local state
+      setSavedMealPlans(prevPlans =>
+        prevPlans.map(plan =>
+          plan.id === savedPlanId ? { ...plan, stars: rating } : plan
+        )
+      );
+    } catch (error) {
+      console.error('Error updating star rating:', error);
+      alert('Failed to update rating');
+    }
   };
 
   // Calculate nutrition totals from meal plan
@@ -1034,6 +1344,498 @@ const MealPlanning = () => {
         </div>
       </div>
 
+      {/* Saved Meal Plans Section */}
+      <div className="saved-meal-plans-section">
+        <div className="saved-meal-plans-header">
+          <h2>Saved Meal Plans</h2>
+          <div className="saved-meal-plans-header-actions">
+            <button
+              className="filter-toggle-btn"
+              onClick={() => setShowSavedPlansFilters(!showSavedPlansFilters)}
+              title="Filter saved meal plans"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+              </svg>
+              {((savedPlanFilterStar || savedPlanFilterHouse || savedPlanFilterMealType || savedPlanFilterAvailability) && (
+                <span className="filter-badge">
+                  {[savedPlanFilterStar, savedPlanFilterHouse, savedPlanFilterMealType, savedPlanFilterAvailability].filter(Boolean).length}
+                </span>
+              ))}
+            </button>
+          </div>
+        </div>
+        
+        {showSavedPlansFilters && (
+          <div className="saved-meal-plans-filters">
+            <div className="filters-grid">
+              <div className="filter-group">
+                <label>Star Rating</label>
+                <CustomSelect
+                  value={savedPlanFilterStar}
+                  onChange={(value) => setSavedPlanFilterStar(value)}
+                  options={[
+                    { value: '', label: 'All Ratings' },
+                    { value: '5', label: '5 Stars' },
+                    { value: '4', label: '4+ Stars' },
+                    { value: '3', label: '3+ Stars' },
+                    { value: '2', label: '2+ Stars' },
+                    { value: '1', label: '1+ Stars' },
+                  ]}
+                  placeholder="Filter by rating"
+                />
+              </div>
+              
+              <div className="filter-group">
+                <label>Dining Hall</label>
+                <CustomSelect
+                  value={savedPlanFilterHouse}
+                  onChange={(value) => setSavedPlanFilterHouse(value)}
+                  options={[
+                    { value: '', label: 'All Dining Halls' },
+                    ...locations.map(loc => ({
+                      value: loc.location_name,
+                      label: loc.location_name
+                    }))
+                  ]}
+                  placeholder="Filter by dining hall"
+                />
+              </div>
+              
+              <div className="filter-group">
+                <label>Meal Type</label>
+                <CustomSelect
+                  value={savedPlanFilterMealType}
+                  onChange={(value) => setSavedPlanFilterMealType(value)}
+                  options={[
+                    { value: '', label: 'All Meal Types' },
+                    { value: 'breakfast', label: 'Breakfast' },
+                    { value: 'lunch', label: 'Lunch' },
+                    { value: 'dinner', label: 'Dinner' },
+                  ]}
+                  placeholder="Filter by meal type"
+                />
+              </div>
+              
+              <div className="filter-group">
+                <label>Availability</label>
+                <CustomSelect
+                  value={savedPlanFilterAvailability}
+                  onChange={(value) => setSavedPlanFilterAvailability(value)}
+                  options={[
+                    { value: '', label: 'All' },
+                    { value: 'available', label: 'Available Today' },
+                    { value: 'unavailable', label: 'Not Available Today' },
+                  ]}
+                  placeholder="Filter by availability"
+                />
+              </div>
+            </div>
+            <button
+              className="btn btn-secondary btn-sm"
+              onClick={() => {
+                setSavedPlanFilterStar('');
+                setSavedPlanFilterHouse('');
+                setSavedPlanFilterMealType('');
+                setSavedPlanFilterAvailability('');
+              }}
+            >
+              Clear Filters
+            </button>
+          </div>
+        )}
+        
+        <div className="saved-meal-plans-grid">
+          {filteredSavedMealPlans.map((savedPlan) => {
+            const availability = checkSavedPlanAvailability(savedPlan);
+            return (
+              <div 
+                key={savedPlan.id} 
+                className="saved-meal-plan-card"
+                onClick={() => {
+                  setSelectedSavedPlan(savedPlan);
+                  setIsSavedPlanModalOpen(true);
+                }}
+                style={{ cursor: 'pointer' }}
+              >
+                {savedPlan.image && (
+                  <div className="saved-meal-plan-image">
+                    <img src={savedPlan.image} alt={savedPlan.title} />
+                  </div>
+                )}
+                <div className="saved-meal-plan-content">
+                  <div className="saved-meal-plan-title-row">
+                    <h3 className="saved-meal-plan-title">{savedPlan.title}</h3>
+                    <div className="saved-meal-plan-stars">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <span
+                          key={star}
+                          className={`star ${star <= (savedPlan.stars || 0) ? 'filled' : ''}`}
+                          onClick={() => handleUpdateStarRating(savedPlan.id, star)}
+                          style={{ cursor: 'pointer' }}
+                          title={`Rate ${star} star${star !== 1 ? 's' : ''}`}
+                        >
+                          ★
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="saved-meal-plan-info">
+                    <span className="saved-meal-plan-meal-type">
+                      {savedPlan.mealType.charAt(0).toUpperCase() + savedPlan.mealType.slice(1)}
+                    </span>
+                    <span className="saved-meal-plan-location">{savedPlan.locationName}</span>
+                    <span className="saved-meal-plan-count">
+                      Made {savedPlan.usageCount || 0} time{savedPlan.usageCount !== 1 ? 's' : ''}
+                    </span>
+                  </div>
+                  
+                  {savedPlan.selectedItems && savedPlan.selectedItems.length > 0 && (
+                    <div className="saved-meal-plan-items">
+                      <div className="saved-meal-plan-items-label">Items:</div>
+                      <div className="saved-meal-plan-items-list">
+                        {savedPlan.selectedItems.slice(0, 3).map((item, idx) => (
+                          <span key={`${savedPlan.id}-item-${item.id || idx}`} className="saved-meal-plan-item-chip">
+                            {capitalizeFoodName(item.name)}
+                          </span>
+                        ))}
+                        {savedPlan.selectedItems.length > 3 && (
+                          <span className="saved-meal-plan-item-chip saved-meal-plan-item-more">
+                            +{savedPlan.selectedItems.length - 3} more
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  {availability.canMake && (
+                    <div className="saved-meal-plan-availability available">
+                      ✓ Available for {availability.mealTypes.join(', ')} today
+                    </div>
+                  )}
+                  {!availability.canMake && (
+                    <div className="saved-meal-plan-availability unavailable">
+                      Not available today
+                    </div>
+                  )}
+                  <div className="saved-meal-plan-actions">
+                    <button
+                      className="btn btn-primary btn-sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleUseSavedPlan(savedPlan);
+                        setIsSavedPlanModalOpen(false);
+                        setSelectedSavedPlan(null);
+                      }}
+                      disabled={!availability.canMake}
+                    >
+                      Use Plan
+                    </button>
+                    <button
+                      className="btn btn-danger btn-sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteSavedPlan(savedPlan.id);
+                        setIsSavedPlanModalOpen(false);
+                        setSelectedSavedPlan(null);
+                      }}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+          {filteredSavedMealPlans.length === 0 && savedMealPlans.length > 0 && (
+            <div className="no-saved-plans">
+              <p>No saved meal plans match your filters. Try adjusting your filters.</p>
+            </div>
+          )}
+          {savedMealPlans.length === 0 && (
+            <div className="no-saved-plans">
+              <p>No saved meal plans yet. Save a meal plan to reuse it later!</p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Saved Meal Plan Detail Modal */}
+      {isSavedPlanModalOpen && selectedSavedPlan && (
+        <div className="meal-planning-modal-overlay" onClick={() => {
+          setIsSavedPlanModalOpen(false);
+          setSelectedSavedPlan(null);
+        }}>
+          <div className="meal-planning-modal saved-meal-plan-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>{selectedSavedPlan.title}</h2>
+              <button className="modal-close" onClick={() => {
+                setIsSavedPlanModalOpen(false);
+                setSelectedSavedPlan(null);
+              }}>×</button>
+            </div>
+
+            <div className="modal-content">
+              {selectedSavedPlan.image && (
+                <div className="saved-meal-plan-modal-image">
+                  <img src={selectedSavedPlan.image} alt={selectedSavedPlan.title} />
+                </div>
+              )}
+
+              <div className="saved-meal-plan-modal-stars-section">
+                <label>Rating:</label>
+                <div className="saved-meal-plan-stars">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <span
+                      key={star}
+                      className={`star ${star <= (selectedSavedPlan.stars || 0) ? 'filled' : ''}`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleUpdateStarRating(selectedSavedPlan.id, star);
+                      }}
+                      style={{ cursor: 'pointer' }}
+                      title={`Rate ${star} star${star !== 1 ? 's' : ''}`}
+                    >
+                      ★
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              <div className="saved-meal-plan-modal-info">
+                <div className="info-row">
+                  <span className="info-label">Meal Type:</span>
+                  <span className="info-value">
+                    {selectedSavedPlan.mealType.charAt(0).toUpperCase() + selectedSavedPlan.mealType.slice(1)}
+                  </span>
+                </div>
+                <div className="info-row">
+                  <span className="info-label">Dining Hall:</span>
+                  <span className="info-value">{selectedSavedPlan.locationName}</span>
+                </div>
+                <div className="info-row">
+                  <span className="info-label">Times Used:</span>
+                  <span className="info-value">
+                    {selectedSavedPlan.usageCount || 0} time{(selectedSavedPlan.usageCount || 0) !== 1 ? 's' : ''}
+                  </span>
+                </div>
+              </div>
+
+              {selectedSavedPlan.selectedItems && selectedSavedPlan.selectedItems.length > 0 && (
+                <div className="saved-meal-plan-modal-items-section">
+                  <h3>Items ({selectedSavedPlan.selectedItems.length})</h3>
+                  <div className="saved-meal-plan-modal-items-list">
+                    {selectedSavedPlan.selectedItems.map((item, idx) => (
+                      <div key={`${selectedSavedPlan.id}-modal-item-${item.id || idx}`} className="saved-meal-plan-modal-item">
+                        <span className="item-name">{capitalizeFoodName(item.name)}</span>
+                        {item.calories && (
+                          <span className="item-calories">{Math.round(item.calories)} cal</span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {(() => {
+                const totals = calculateNutritionTotals(selectedSavedPlan);
+                if (totals) {
+                  return (
+                    <div className="saved-meal-plan-modal-nutrition">
+                      <h3>Nutrition Totals</h3>
+                      <div className="nutrition-metrics">
+                        <div className="nutrition-metric">
+                          <span className="metric-label">Calories</span>
+                          <span className="metric-value">{Math.round(totals.calories || 0)}</span>
+                        </div>
+                        <div className="nutrition-metric">
+                          <span className="metric-label">Protein</span>
+                          <span className="metric-value">{Math.round(totals.protein || 0)}g</span>
+                        </div>
+                        <div className="nutrition-metric">
+                          <span className="metric-label">Carbs</span>
+                          <span className="metric-value">{Math.round(totals.totalCarb || 0)}g</span>
+                        </div>
+                        <div className="nutrition-metric">
+                          <span className="metric-label">Fat</span>
+                          <span className="metric-value">{Math.round(totals.totalFat || 0)}g</span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                }
+                return null;
+              })()}
+
+              {(() => {
+                const availability = checkSavedPlanAvailability(selectedSavedPlan);
+                return (
+                  <div className={`saved-meal-plan-availability ${availability.canMake ? 'available' : 'unavailable'}`}>
+                    {availability.canMake ? (
+                      <>✓ Available for {availability.mealTypes.join(', ')} today</>
+                    ) : (
+                      <>Not available today</>
+                    )}
+                  </div>
+                );
+              })()}
+            </div>
+
+            <div className="modal-footer">
+              <button
+                className="btn btn-primary"
+                onClick={() => {
+                  handleUseSavedPlan(selectedSavedPlan);
+                  setIsSavedPlanModalOpen(false);
+                  setSelectedSavedPlan(null);
+                }}
+                disabled={!checkSavedPlanAvailability(selectedSavedPlan).canMake}
+              >
+                Use Plan
+              </button>
+              <button
+                className="btn btn-danger"
+                onClick={() => {
+                  if (window.confirm('Are you sure you want to delete this saved meal plan?')) {
+                    handleDeleteSavedPlan(selectedSavedPlan.id);
+                    setIsSavedPlanModalOpen(false);
+                    setSelectedSavedPlan(null);
+                  }
+                }}
+              >
+                Delete
+              </button>
+              <button
+                className="btn btn-secondary"
+                onClick={() => {
+                  setIsSavedPlanModalOpen(false);
+                  setSelectedSavedPlan(null);
+                }}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Name Input Modal */}
+      {isNameModalOpen && (
+        <div className="meal-planning-modal-overlay" onClick={() => setIsNameModalOpen(false)}>
+          <div className="meal-planning-modal name-input-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>Save Meal Plan as Template</h2>
+              <button className="modal-close" onClick={() => setIsNameModalOpen(false)}>×</button>
+            </div>
+
+            <div className="modal-content">
+              <div className="form-group">
+                <label htmlFor="meal-plan-name">Enter a name for this saved meal plan:</label>
+                <input
+                  id="meal-plan-name"
+                  type="text"
+                  className="form-input"
+                  value={mealPlanName}
+                  onChange={(e) => setMealPlanName(e.target.value)}
+                  placeholder="e.g., My Favorite Breakfast"
+                  autoFocus
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      handleConfirmSaveMealPlanAsTemplate();
+                    } else if (e.key === 'Escape') {
+                      setIsNameModalOpen(false);
+                    }
+                  }}
+                />
+              </div>
+            </div>
+
+            <div className="modal-footer">
+              <button
+                className="btn btn-secondary"
+                onClick={() => {
+                  setIsNameModalOpen(false);
+                  setMealPlanName('');
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                className="btn btn-primary"
+                onClick={handleConfirmSaveMealPlanAsTemplate}
+                disabled={!mealPlanName || !mealPlanName.trim()}
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation Modal */}
+      {isConfirmationModalOpen && (
+        <div className="meal-planning-modal-overlay" onClick={() => setIsConfirmationModalOpen(false)}>
+          <div className="meal-planning-modal confirmation-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>{confirmationType === 'error' ? 'Error' : ''}</h2>
+              <button className="modal-close" onClick={() => setIsConfirmationModalOpen(false)}>×</button>
+            </div>
+
+            <div className="modal-content">
+              <div className={`confirmation-message ${confirmationType}`}>
+                {confirmationMessage}
+              </div>
+            </div>
+
+            <div className="modal-footer">
+              <button
+                className={`btn ${confirmationType === 'success' ? 'btn-primary' : 'btn-danger'}`}
+                onClick={() => setIsConfirmationModalOpen(false)}
+              >
+                OK
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {isDeleteModalOpen && (
+        <div className="meal-planning-modal-overlay" onClick={() => setIsDeleteModalOpen(false)}>
+          <div className="meal-planning-modal delete-confirmation-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>Confirm Delete</h2>
+              <button className="modal-close" onClick={() => setIsDeleteModalOpen(false)}>×</button>
+            </div>
+
+            <div className="modal-content">
+              <div className="delete-confirmation-message">
+                {deleteType === 'mealPlan' 
+                  ? 'Are you sure you want to delete this meal plan? This action cannot be undone.'
+                  : 'Are you sure you want to delete this saved meal plan? This action cannot be undone.'}
+              </div>
+            </div>
+
+            <div className="modal-footer">
+              <button
+                className="btn btn-secondary"
+                onClick={() => {
+                  setIsDeleteModalOpen(false);
+                  setDeleteTargetId(null);
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                className="btn btn-danger"
+                onClick={handleConfirmDelete}
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Floating add button */}
       <button className="meal-planning-add-btn" onClick={handleAddClick} title="Add Meal Plan">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -1048,7 +1850,20 @@ const MealPlanning = () => {
           <div className="meal-plan-side-panel" onClick={(e) => e.stopPropagation()}>
             <div className="side-panel-header">
               <h2>Meal Plan Details</h2>
-              <button className="side-panel-close" onClick={handleCloseSidePanel}>×</button>
+              <div className="side-panel-header-actions">
+                <button 
+                  className="side-panel-save-btn" 
+                  onClick={handleSaveMealPlanAsTemplate}
+                  title="Save as Template"
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="7 10 12 15 17 10"></polyline>
+                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                  </svg>
+                </button>
+                <button className="side-panel-close" onClick={handleCloseSidePanel}>×</button>
+              </div>
             </div>
             
             <div className="side-panel-content">

@@ -568,6 +568,36 @@
   color: #1a5f3f;
 }
 
+.side-panel-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.side-panel-save-btn {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  color: #1a5f3f;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: background 0.2s;
+  padding: 0;
+}
+
+.side-panel-save-btn:hover {
+  background: #e0e0e0;
+}
+
+.side-panel-save-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
 .side-panel-close {
   background: none;
   border: none;
@@ -857,10 +887,450 @@
   line-height: 1.6;
 }
 
+/* Saved Meal Plans Section */
+.saved-meal-plans-section {
+  margin-top: 2rem;
+  padding: 2rem;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.saved-meal-plans-header {
+  margin-bottom: 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.saved-meal-plans-header h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  color: #1a5f3f;
+}
+
+.saved-meal-plans-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.filter-toggle-btn {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  border: 1px solid #d1d5db;
+  background: white;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  color: #1a5f3f;
+}
+
+.filter-toggle-btn:hover {
+  background: #f8fcfa;
+  border-color: #1a5f3f;
+}
+
+.filter-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background: #dc3545;
+  color: white;
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  font-size: 0.7rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+}
+
+.saved-meal-plans-filters {
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+}
+
+.saved-meal-plans-filters .filters-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.saved-meal-plans-filters .filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.saved-meal-plans-filters .filter-group label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #333;
+}
+
+.saved-meal-plans-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+
+.saved-meal-plan-card {
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  overflow: hidden;
+  background: white;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.saved-meal-plan-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.saved-meal-plan-image {
+  width: 100%;
+  height: 200px;
+  overflow: hidden;
+  background: #f0f0f0;
+}
+
+.saved-meal-plan-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.saved-meal-plan-content {
+  padding: 1rem;
+}
+
+.saved-meal-plan-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 0.75rem;
+  gap: 0.5rem;
+}
+
+.saved-meal-plan-title {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #333;
+  flex: 1;
+}
+
+.saved-meal-plan-stars {
+  display: flex;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.saved-meal-plan-stars .star {
+  color: #ddd;
+  font-size: 1rem;
+  line-height: 1;
+  transition: color 0.2s, transform 0.1s;
+  user-select: none;
+}
+
+.saved-meal-plan-stars .star:hover {
+  transform: scale(1.2);
+}
+
+.saved-meal-plan-stars .star.filled {
+  color: #ffc107;
+}
+
+.saved-meal-plan-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-bottom: 0.75rem;
+  font-size: 0.875rem;
+  color: #666;
+}
+
+.saved-meal-plan-meal-type {
+  font-weight: 500;
+  color: #1a5f3f;
+}
+
+.saved-meal-plan-location {
+  color: #666;
+}
+
+.saved-meal-plan-count {
+  color: #999;
+  font-style: italic;
+}
+
+.saved-meal-plan-items {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid #e0e0e0;
+}
+
+.saved-meal-plan-items-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #666;
+  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.saved-meal-plan-items-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.saved-meal-plan-item-chip {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  background: #f0f9f4;
+  border: 1px solid #d1e7dd;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  color: #1a5f3f;
+  font-weight: 500;
+}
+
+.saved-meal-plan-item-chip.saved-meal-plan-item-more {
+  background: #e9ecef;
+  border-color: #dee2e6;
+  color: #6c757d;
+  font-style: italic;
+}
+
+.saved-meal-plan-availability {
+  padding: 0.5rem;
+  border-radius: 4px;
+  margin-top: 0.75rem;
+  margin-bottom: 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.saved-meal-plan-availability.available {
+  background: #d4edda;
+  color: #155724;
+}
+
+.saved-meal-plan-availability.unavailable {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.saved-meal-plan-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.btn-sm {
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+}
+
+.no-saved-plans {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 3rem 1rem;
+  color: #999;
+}
+
+.no-saved-plans p {
+  margin: 0;
+  font-size: 1rem;
+}
+
+/* Saved Meal Plan Modal */
+.saved-meal-plan-modal {
+  max-width: 600px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.saved-meal-plan-modal-image {
+  width: 100%;
+  max-height: 300px;
+  overflow: hidden;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+  background: #f0f0f0;
+}
+
+.saved-meal-plan-modal-image img {
+  width: 100%;
+  height: auto;
+  max-height: 300px;
+  object-fit: cover;
+}
+
+.saved-meal-plan-modal-stars-section {
+  margin-bottom: 1.5rem;
+}
+
+.saved-meal-plan-modal-stars-section label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  color: #333;
+}
+
+.saved-meal-plan-modal-info {
+  margin-bottom: 1.5rem;
+}
+
+.saved-meal-plan-modal-info .info-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.saved-meal-plan-modal-info .info-row:last-child {
+  border-bottom: none;
+}
+
+.saved-meal-plan-modal-info .info-label {
+  font-weight: 500;
+  color: #666;
+}
+
+.saved-meal-plan-modal-info .info-value {
+  color: #1a5f3f;
+  font-weight: 600;
+}
+
+.saved-meal-plan-modal-items-section {
+  margin-bottom: 1.5rem;
+}
+
+.saved-meal-plan-modal-items-section h3 {
+  margin: 0 0 1rem 0;
+  font-size: 1.1rem;
+  color: #1a5f3f;
+}
+
+.saved-meal-plan-modal-items-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.saved-meal-plan-modal-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem;
+  background: #f8f9fa;
+  border-radius: 6px;
+  border: 1px solid #e0e0e0;
+}
+
+.saved-meal-plan-modal-item .item-name {
+  flex: 1;
+  font-weight: 500;
+  color: #333;
+}
+
+.saved-meal-plan-modal-item .item-calories {
+  color: #666;
+  font-size: 0.875rem;
+}
+
+.saved-meal-plan-modal-nutrition {
+  margin-bottom: 1.5rem;
+}
+
+.saved-meal-plan-modal-nutrition h3 {
+  margin: 0 0 1rem 0;
+  font-size: 1.1rem;
+  color: #1a5f3f;
+}
+
+/* Name Input Modal */
+.name-input-modal {
+  max-width: 500px;
+}
+
+.name-input-modal .form-input {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 1rem;
+  transition: border-color 0.2s;
+  box-sizing: border-box;
+}
+
+.name-input-modal .form-input:focus {
+  outline: none;
+  border-color: #1a5f3f;
+  box-shadow: 0 0 0 3px rgba(26, 95, 63, 0.1);
+}
+
+/* Confirmation Modal */
+.confirmation-modal {
+  max-width: 450px;
+}
+
+.confirmation-message {
+  padding: 1.5rem;
+  text-align: center;
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+.confirmation-message.success {
+  color: #155724;
+  background: #d4edda;
+  border: 1px solid #c3e6cb;
+  border-radius: 4px;
+}
+
+.confirmation-message.error {
+  color: #721c24;
+  background: #f8d7da;
+  border: 1px solid #f5c6cb;
+  border-radius: 4px;
+}
+
+/* Delete Confirmation Modal */
+.delete-confirmation-modal {
+  max-width: 450px;
+}
+
+.delete-confirmation-message {
+  padding: 1.5rem;
+  text-align: center;
+  font-size: 1rem;
+  line-height: 1.5;
+  color: #333;
+}
+
 @media (max-width: 768px) {
   .meal-plan-side-panel {
     width: 100vw;
     max-width: 100vw;
+  }
+  
+  .saved-meal-plans-grid {
+    grid-template-columns: 1fr;
   }
 }
 
