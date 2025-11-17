@@ -11,6 +11,35 @@ const getAuthHeaders = (accessToken) => {
   };
 };
 
+// Helper to handle API errors with better error messages
+const handleApiError = async (response, defaultMessage) => {
+  if (!response.ok) {
+    let errorMessage = defaultMessage || `HTTP error! status: ${response.status}`;
+    // Clone the response so we can read it multiple times if needed
+    const responseClone = response.clone();
+    try {
+      const errorData = await response.json();
+      errorMessage = errorData.error?.message || errorData.error || errorData.message || errorMessage;
+    } catch (jsonError) {
+      // If response is not JSON, try to get text from the clone
+      try {
+        const text = await responseClone.text();
+        // Check if it's HTML (like a 404 page)
+        if (text.trim().startsWith('<!')) {
+          errorMessage = `API endpoint not found (${response.status}). Check if the route is configured correctly.`;
+        } else if (text) {
+          errorMessage = text;
+        }
+      } catch (textError) {
+        // If all else fails, use status-based message
+        console.error('Failed to parse error response:', textError);
+      }
+    }
+    throw new Error(errorMessage);
+  }
+  return response.json();
+};
+
 /**
  * Friend request functions
  */
@@ -21,12 +50,7 @@ export const sendFriendRequest = async (toUserId, accessToken) => {
     body: JSON.stringify({ toUserId }),
   });
 
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error?.message || 'Failed to send friend request');
-  }
-
-  return response.json();
+  return handleApiError(response, 'Failed to send friend request');
 };
 
 export const acceptFriendRequest = async (requestId, accessToken) => {
@@ -35,12 +59,7 @@ export const acceptFriendRequest = async (requestId, accessToken) => {
     headers: getAuthHeaders(accessToken),
   });
 
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error?.message || 'Failed to accept friend request');
-  }
-
-  return response.json();
+  return handleApiError(response, 'Failed to accept friend request');
 };
 
 export const rejectFriendRequest = async (requestId, accessToken) => {
@@ -49,12 +68,7 @@ export const rejectFriendRequest = async (requestId, accessToken) => {
     headers: getAuthHeaders(accessToken),
   });
 
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error?.message || 'Failed to reject friend request');
-  }
-
-  return response.json();
+  return handleApiError(response, 'Failed to reject friend request');
 };
 
 export const getFriendRequests = async (type = 'all', accessToken) => {
@@ -63,12 +77,7 @@ export const getFriendRequests = async (type = 'all', accessToken) => {
     headers: getAuthHeaders(accessToken),
   });
 
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error?.message || 'Failed to get friend requests');
-  }
-
-  return response.json();
+  return handleApiError(response, 'Failed to get friend requests');
 };
 
 export const getFriends = async (accessToken) => {
@@ -77,12 +86,7 @@ export const getFriends = async (accessToken) => {
     headers: getAuthHeaders(accessToken),
   });
 
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error?.message || 'Failed to get friends');
-  }
-
-  return response.json();
+  return handleApiError(response, 'Failed to get friends');
 };
 
 export const removeFriend = async (friendId, accessToken) => {
@@ -91,12 +95,7 @@ export const removeFriend = async (friendId, accessToken) => {
     headers: getAuthHeaders(accessToken),
   });
 
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error?.message || 'Failed to remove friend');
-  }
-
-  return response.json();
+  return handleApiError(response, 'Failed to remove friend');
 };
 
 /**
@@ -109,12 +108,7 @@ export const createPost = async (mealId, accessToken) => {
     body: JSON.stringify({ mealId }),
   });
 
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error?.message || 'Failed to create post');
-  }
-
-  return response.json();
+  return handleApiError(response, 'Failed to create post');
 };
 
 export const getFeedPosts = async (limit = 50, accessToken) => {
@@ -123,12 +117,7 @@ export const getFeedPosts = async (limit = 50, accessToken) => {
     headers: getAuthHeaders(accessToken),
   });
 
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error?.message || 'Failed to get feed posts');
-  }
-
-  return response.json();
+  return handleApiError(response, 'Failed to get feed posts');
 };
 
 export const getPostsByUser = async (userId, limit = 50, accessToken) => {
@@ -137,12 +126,7 @@ export const getPostsByUser = async (userId, limit = 50, accessToken) => {
     headers: getAuthHeaders(accessToken),
   });
 
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error?.message || 'Failed to get user posts');
-  }
-
-  return response.json();
+  return handleApiError(response, 'Failed to get user posts');
 };
 
 export const getPostsByLocation = async (locationId, limit = 50, accessToken) => {
@@ -151,12 +135,7 @@ export const getPostsByLocation = async (locationId, limit = 50, accessToken) =>
     headers: getAuthHeaders(accessToken),
   });
 
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error?.message || 'Failed to get location posts');
-  }
-
-  return response.json();
+  return handleApiError(response, 'Failed to get location posts');
 };
 
 export const getPostsByLocationName = async (locationName, limit = 50, accessToken) => {
@@ -166,12 +145,7 @@ export const getPostsByLocationName = async (locationName, limit = 50, accessTok
     headers: getAuthHeaders(accessToken),
   });
 
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error?.message || 'Failed to get location posts');
-  }
-
-  return response.json();
+  return handleApiError(response, 'Failed to get location posts');
 };
 
 export const deletePost = async (postId, accessToken) => {
@@ -180,12 +154,7 @@ export const deletePost = async (postId, accessToken) => {
     headers: getAuthHeaders(accessToken),
   });
 
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error?.message || 'Failed to delete post');
-  }
-
-  return response.json();
+  return handleApiError(response, 'Failed to delete post');
 };
 
 /**
@@ -197,12 +166,7 @@ export const searchUsers = async (query, limit = 20, accessToken) => {
     headers: getAuthHeaders(accessToken),
   });
 
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error?.message || 'Failed to search users');
-  }
-
-  return response.json();
+  return handleApiError(response, 'Failed to search users');
 };
 
 export const searchLocations = async (query, limit = 20, accessToken) => {
@@ -211,12 +175,7 @@ export const searchLocations = async (query, limit = 20, accessToken) => {
     headers: getAuthHeaders(accessToken),
   });
 
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error?.message || 'Failed to search locations');
-  }
-
-  return response.json();
+  return handleApiError(response, 'Failed to search locations');
 };
 
 /**
@@ -229,12 +188,7 @@ export const followDiningHall = async (locationId, locationName, accessToken) =>
     body: JSON.stringify({ locationId, locationName }),
   });
 
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error?.message || 'Failed to follow dining hall');
-  }
-
-  return response.json();
+  return handleApiError(response, 'Failed to follow dining hall');
 };
 
 export const unfollowDiningHall = async (locationId, locationName, accessToken) => {
@@ -244,12 +198,7 @@ export const unfollowDiningHall = async (locationId, locationName, accessToken) 
     body: JSON.stringify({ locationId, locationName }),
   });
 
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error?.message || 'Failed to unfollow dining hall');
-  }
-
-  return response.json();
+  return handleApiError(response, 'Failed to unfollow dining hall');
 };
 
 export const getFollowedDiningHalls = async (accessToken) => {
@@ -258,12 +207,7 @@ export const getFollowedDiningHalls = async (accessToken) => {
     headers: getAuthHeaders(accessToken),
   });
 
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error?.message || 'Failed to get followed dining halls');
-  }
-
-  return response.json();
+  return handleApiError(response, 'Failed to get followed dining halls');
 };
 
 export const getDiningHallFeedPosts = async (limit = 50, accessToken) => {
@@ -272,11 +216,6 @@ export const getDiningHallFeedPosts = async (limit = 50, accessToken) => {
     headers: getAuthHeaders(accessToken),
   });
 
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error?.message || 'Failed to get dining hall feed posts');
-  }
-
-  return response.json();
+  return handleApiError(response, 'Failed to get dining hall feed posts');
 };
 
