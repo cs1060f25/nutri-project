@@ -101,7 +101,7 @@
 
 .leaderboard-header-row {
   display: grid;
-  grid-template-columns: 80px 1fr 120px 120px 120px;
+  grid-template-columns: 80px 1fr 120px;
   gap: 1rem;
   padding: 1rem;
   background: #f8f9fa;
@@ -115,7 +115,7 @@
 
 .leaderboard-row {
   display: grid;
-  grid-template-columns: 80px 1fr 120px 120px 120px;
+  grid-template-columns: 80px 1fr 120px;
   gap: 1rem;
   padding: 1rem;
   border-bottom: 1px solid #e2e8f0;
@@ -163,11 +163,10 @@
   color: #64748b;
 }
 
-.posts-col,
-.public-col,
-.private-col {
+.posts-col {
   display: flex;
   align-items: center;
+  justify-content: center;
   font-weight: 500;
   color: #1e293b;
 }
@@ -190,11 +189,6 @@
   .leaderboard-row {
     grid-template-columns: 60px 1fr 80px;
     gap: 0.5rem;
-  }
-
-  .public-col,
-  .private-col {
-    display: none;
   }
 }
 

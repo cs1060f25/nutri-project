@@ -151,9 +151,7 @@ const Leaderboard = () => {
           <div className="leaderboard-header-row">
             <div className="rank-col">Rank</div>
             <div className="name-col">Name</div>
-            <div className="posts-col">Total Posts</div>
-            <div className="public-col">Public Posts</div>
-            <div className="private-col">Private Posts</div>
+            <div className="posts-col">Total Logs</div>
           </div>
           {leaderboard.map((entry) => (
             <div key={entry.userId} className="leaderboard-row">
@@ -174,8 +172,6 @@ const Leaderboard = () => {
                 )}
               </div>
               <div className="posts-col">{entry.postCount}</div>
-              <div className="public-col">{entry.publicPostCount}</div>
-              <div className="private-col">{entry.privatePostCount}</div>
             </div>
           ))}
         </div>
