@@ -19,7 +19,7 @@ if (!admin.apps.length) {
 const getDb = () => admin.firestore();
 const USERS_COLLECTION = 'users';
 const MEALS_SUBCOLLECTION = 'meals';
-const NUTRITION_PLANS_COLLECTION = 'nutritionPlans';
+const NUTRITION_PLANS_SUBCOLLECTION = 'nutritionPlans';
 
 const createErrorResponse = (errorCode, message) => {
   return { error: { code: errorCode, message: message } };
@@ -243,8 +243,10 @@ const buildCallToAction = (day, metrics) => {
 // Get active nutrition plan
 const getActiveNutritionPlan = async (userId) => {
   const db = getDb();
-  const plansRef = db.collection(NUTRITION_PLANS_COLLECTION)
-    .where('userId', '==', userId)
+  // Use subcollection: users/{userId}/nutritionPlans (same as backend)
+  const plansRef = db.collection(USERS_COLLECTION)
+    .doc(userId)
+    .collection(NUTRITION_PLANS_SUBCOLLECTION)
     .where('isActive', '==', true)
     .limit(1);
   
