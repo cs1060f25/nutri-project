@@ -507,13 +507,30 @@ const searchUsers = async (req, res) => {
     const db = admin.firestore();
     const usersRef = db.collection('users');
 
-    // Get all users (Firestore doesn't support full-text search, so we'll filter client-side)
-    // In production, you might want to use Algolia or similar for better search
+    // Step 1: Get all valid users from Firebase Auth first
+    // This ensures we only include users that actually exist in Auth (not deleted)
+    const authUsersResult = await admin.auth().listUsers(1000); // Get up to 1000 users
+    const validAuthUserIds = new Set();
+    authUsersResult.users.forEach(user => {
+      validAuthUserIds.add(user.uid);
+    });
+
+    // Step 2: Get all users from Firestore and filter by search term
+    // Only include users that exist in Firebase Auth (not deleted)
     const snapshot = await usersRef.get();
     const matchingUsers = [];
 
     snapshot.forEach(doc => {
       const userData = doc.data();
+      const userId = doc.id;
+      
+      // Only include users that:
+      // 1. Have an email (required field for valid users)
+      // 2. Still exist in Firebase Auth (not deleted)
+      if (!userData || !userData.email || !validAuthUserIds.has(userId)) {
+        return;
+      }
+
       const fullName = `${userData.firstName || ''} ${userData.lastName || ''}`.toLowerCase();
       const email = (userData.email || '').toLowerCase();
       const residence = (userData.residence || '').toLowerCase();
