@@ -166,35 +166,97 @@ const CreatePostModal = ({ isOpen, onClose, scanData, imageUrl, imageFile, initi
     setError(null);
 
     try {
+      // Helper function to compress image on client side
+      const compressImage = (file, maxSizeMB = 0.5, maxWidth = 1200, maxHeight = 1200) => {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            const img = new Image();
+            img.onload = () => {
+              // Calculate new dimensions
+              let width = img.width;
+              let height = img.height;
+              
+              if (width > maxWidth || height > maxHeight) {
+                const ratio = Math.min(maxWidth / width, maxHeight / height);
+                width = Math.round(width * ratio);
+                height = Math.round(height * ratio);
+              }
+
+              // Create canvas and draw resized image
+              const canvas = document.createElement('canvas');
+              canvas.width = width;
+              canvas.height = height;
+              const ctx = canvas.getContext('2d');
+              ctx.drawImage(img, 0, 0, width, height);
+
+              // Convert to blob with quality compression
+              const maxSizeBytes = maxSizeMB * 1024 * 1024;
+              
+              // Try compression with decreasing quality until we're under the limit
+              const compressWithQuality = (quality) => {
+                canvas.toBlob(
+                  (blob) => {
+                    if (!blob) {
+                      reject(new Error('Failed to compress image'));
+                      return;
+                    }
+                    
+                    // If still too large and quality can be reduced, try again with lower quality
+                    if (blob.size > maxSizeBytes && quality > 0.3) {
+                      compressWithQuality(quality - 0.1);
+                    } else {
+                      // Convert blob to base64
+                      const reader2 = new FileReader();
+                      reader2.onload = () => resolve(reader2.result);
+                      reader2.onerror = reject;
+                      reader2.readAsDataURL(blob);
+                    }
+                  },
+                  'image/jpeg',
+                  quality
+                );
+              };
+              
+              // Start with 0.75 quality (good balance for smaller file size)
+              compressWithQuality(0.75);
+            };
+            img.onerror = () => reject(new Error('Failed to load image'));
+            img.src = e.target.result;
+          };
+          reader.onerror = () => reject(new Error('Failed to read file'));
+          reader.readAsDataURL(file);
+        });
+      };
+
       // Convert image to base64 if needed, or use the imageUrl
+      // Compress images before sending to avoid payload size limits
       let imageBase64 = null;
       if (imageUrl && imageUrl.startsWith('data:')) {
-        imageBase64 = imageUrl;
-        console.log('Using imageUrl (data URL), size:', imageBase64.length);
+        // If it's already base64, check size and compress if needed
+        const base64SizeMB = imageUrl.length * 3 / 4 / 1024 / 1024; // Approximate size
+        if (base64SizeMB > 0.5) {
+          console.log(`Image is large (${base64SizeMB.toFixed(2)}MB), compressing...`);
+          // Convert base64 to blob, then compress
+          const response = await fetch(imageUrl);
+          const blob = await response.blob();
+          const file = new File([blob], 'image.jpg', { type: 'image/jpeg' });
+          imageBase64 = await compressImage(file);
+          console.log(`Compressed to approximately ${(imageBase64.length * 3 / 4 / 1024 / 1024).toFixed(2)}MB`);
+        } else {
+          imageBase64 = imageUrl;
+          console.log('Using imageUrl (data URL), size:', (base64SizeMB * 1024 * 1024).toFixed(2), 'MB');
+        }
       } else if (imageFile) {
-        // Convert file to base64
-        const reader = new FileReader();
-        imageBase64 = await new Promise((resolve, reject) => {
-          reader.onload = () => {
-            const result = reader.result;
-            console.log('Converted imageFile to base64, size:', result.length);
-            resolve(result);
-          };
-          reader.onerror = reject;
-          reader.readAsDataURL(imageFile);
-        });
+        // Compress file before converting to base64
+        console.log('Compressing imageFile before upload...');
+        imageBase64 = await compressImage(imageFile);
+        console.log('Compressed imageFile to base64, size:', (imageBase64.length * 3 / 4 / 1024 / 1024).toFixed(2), 'MB');
       } else if (uploadedImage) {
-        // Convert uploaded image file to base64
-        const reader = new FileReader();
-        imageBase64 = await new Promise((resolve, reject) => {
-          reader.onload = () => {
-            const result = reader.result;
-            console.log('Converted uploadedImage to base64, size:', result.length);
-            resolve(result);
-          };
-          reader.onerror = reject;
-          reader.readAsDataURL(uploadedImage);
-        });
+        // Compress uploaded image file before converting to base64
+        console.log('Compressing uploadedImage before upload...');
+        imageBase64 = await compressImage(uploadedImage);
+        console.log('Compressed uploadedImage to base64, size:', (imageBase64.length * 3 / 4 / 1024 / 1024).toFixed(2), 'MB');
       } else if (imageUrl) {
         // If we have an imageUrl but it's not base64, try to fetch and convert
         imageBase64 = imageUrl;

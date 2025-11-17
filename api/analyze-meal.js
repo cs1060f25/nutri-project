@@ -53,56 +53,97 @@ const formatDate = (date) => {
 
 /**
  * Get combined menus from multiple dining halls
+ * Uses the same approach as backend/src/services/hudsService.js
  */
 const getCombinedMenus = async () => {
   try {
-    const today = formatDate(new Date());
+    const today = new Date();
+    const todayStr = formatDate(today);
     
-    // Get menus from Annenberg, Quincy, and Winthrop (covers all unique items)
-    const locations = ['01', '07', '12']; // Annenberg, Quincy, Winthrop
-    const menuPromises = locations.map(async (locationId) => {
-      try {
-        const response = await axios.get(`${HUDS_API_BASE_URL}/menus`, {
-          headers: { 'Accept': 'application/json' },
-          params: {
-            apikey: HUDS_API_KEY,
-            location: locationId,
-            date: today,
-          },
-        });
-        return response.data;
-      } catch (error) {
-        console.error(`Error fetching menu for location ${locationId}:`, error.message);
-        return null;
-      }
-    });
+    // Get recipes and events for today
+    const [recipesResponse, eventsResponse] = await Promise.all([
+      axios.get(`${HUDS_API_BASE_URL}/recipes`, {
+        headers: {
+          'X-Api-Key': HUDS_API_KEY,
+          'Accept': 'application/json',
+        },
+        params: {
+          date: todayStr,
+        },
+      }),
+      axios.get(`${HUDS_API_BASE_URL}/events`, {
+        headers: {
+          'X-Api-Key': HUDS_API_KEY,
+          'Accept': 'application/json',
+        },
+        params: {
+          date: todayStr,
+        },
+      }),
+    ]);
 
-    const menuResults = await Promise.all(menuPromises);
-    const validMenus = menuResults.filter(m => m !== null);
+    const recipes = Array.isArray(recipesResponse.data) ? recipesResponse.data : [];
+    const events = Array.isArray(eventsResponse.data) ? eventsResponse.data : [];
 
-    if (validMenus.length === 0) {
+    if (recipes.length === 0) {
+      console.warn('No recipes found for today');
       return [];
     }
 
-    // Combine and deduplicate by location
-    const combinedMenus = [];
-    const seenLocations = new Set();
+    // Organize data by location, meal, and menu category (same structure as backend)
+    const menuByLocation = {};
 
-    validMenus.forEach(menu => {
-      if (menu.locations && menu.locations.length > 0) {
-        menu.locations.forEach(location => {
-          const locationKey = location.location_number || location.location_id;
-          if (!seenLocations.has(locationKey)) {
-            seenLocations.add(locationKey);
-            combinedMenus.push(location);
-          }
-        });
+    recipes.forEach(recipe => {
+      const locNum = recipe.Location_Number;
+      const locName = recipe.Location_Name;
+      const mealNum = recipe.Meal_Number;
+      const mealName = recipe.Meal_Name;
+      const categoryNum = recipe.Menu_Category_Number;
+      const categoryName = recipe.Menu_Category_Name;
+
+      if (!menuByLocation[locNum]) {
+        menuByLocation[locNum] = {
+          locationNumber: locNum,
+          locationName: locName,
+          location_number: locNum, // For compatibility
+          location_name: locName, // For compatibility
+          meals: {},
+        };
       }
+
+      if (!menuByLocation[locNum].meals[mealNum]) {
+        menuByLocation[locNum].meals[mealNum] = {
+          mealNumber: mealNum,
+          mealName: mealName,
+          meal_name: mealName, // For compatibility
+          categories: {},
+        };
+      }
+
+      if (!menuByLocation[locNum].meals[mealNum].categories[categoryNum]) {
+        menuByLocation[locNum].meals[mealNum].categories[categoryNum] = {
+          categoryNumber: categoryNum,
+          categoryName: categoryName,
+          category_name: categoryName, // For compatibility
+          recipes: [],
+        };
+      }
+
+      menuByLocation[locNum].meals[mealNum].categories[categoryNum].recipes.push(recipe);
     });
 
-    return combinedMenus;
+    // Convert to array format and filter to primary locations (Annenberg, Quincy, Winthrop)
+    const primaryNames = new Set(['Annenberg Hall', 'Quincy House', 'Winthrop House']);
+    const allMenus = Object.values(menuByLocation);
+    const combinedMenus = allMenus.filter(loc => primaryNames.has(loc.locationName));
+
+    // If no primary locations found, return all menus
+    return combinedMenus.length > 0 ? combinedMenus : allMenus;
   } catch (error) {
     console.error('Error getting combined menus:', error);
+    if (error.response) {
+      console.error('HUDS API error response:', error.response.status, error.response.data);
+    }
     throw error;
   }
 };
@@ -118,15 +159,18 @@ const formatMenuText = (menuData) => {
   let menuText = "Today's HUDS Dining Menu with Nutrition Information:\n\n";
   
   menuData.forEach(location => {
-    menuText += `📍 ${location.location_name}\n`;
+    const locationName = location.locationName || location.location_name;
+    menuText += `📍 ${locationName}\n`;
     
     const meals = Object.values(location.meals || {});
     meals.forEach(meal => {
-      menuText += `  🍽️ ${meal.meal_name}\n`;
+      const mealName = meal.mealName || meal.meal_name;
+      menuText += `  🍽️ ${mealName}\n`;
       
       const categories = Object.values(meal.categories || {});
       categories.forEach(category => {
-        menuText += `    • ${category.category_name}:\n`;
+        const categoryName = category.categoryName || category.category_name;
+        menuText += `    • ${categoryName}:\n`;
         
         category.recipes.forEach(recipe => {
           const dishName = recipe.Recipe_Print_As_Name || recipe.Recipe_Name;
@@ -358,6 +402,11 @@ const calculateMealMacros = (predictions, menuData) => {
 
   return {
     nutritionTotals: {
+      totalCalories: Math.round(totalCalories),
+      totalProtein: totalProtein.toFixed(1),
+      totalCarbs: totalCarbs.toFixed(1),
+      totalFat: totalFat.toFixed(1),
+      // Also include non-prefixed versions for backward compatibility
       calories: Math.round(totalCalories),
       protein: totalProtein.toFixed(1),
       carbs: totalCarbs.toFixed(1),
