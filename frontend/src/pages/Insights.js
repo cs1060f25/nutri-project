@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import './Insights.css';
 import { useAuth } from '../context/AuthContext';
 import { getRangeProgress } from '../services/insightsService';
@@ -36,24 +36,36 @@ const Insights = () => {
     end: range.end,
   }), [range.start, range.end]);
 
-  useEffect(() => {
+  const fetchData = useCallback(async () => {
     if (!accessToken) return;
+    
+    setLoading(true);
+    setError('');
+    try {
+      const result = await getRangeProgress(activeRange, accessToken);
+      setData(result);
+    } catch (err) {
+      setError(err.message || 'Failed to load insights');
+    } finally {
+      setLoading(false);
+    }
+  }, [accessToken, activeRange]);
 
-    const fetchData = async () => {
-      setLoading(true);
-      setError('');
-      try {
-        const result = await getRangeProgress(activeRange, accessToken);
-        setData(result);
-      } catch (err) {
-        setError(err.message || 'Failed to load insights');
-      } finally {
-        setLoading(false);
-      }
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  // Listen for meal log updates (from post creation, etc.)
+  useEffect(() => {
+    const handleMealLogUpdate = () => {
+      fetchData();
     };
 
-    fetchData();
-  }, [accessToken, activeRange]);
+    window.addEventListener('mealLogUpdated', handleMealLogUpdate);
+    return () => {
+      window.removeEventListener('mealLogUpdated', handleMealLogUpdate);
+    };
+  }, [fetchData]);
 
   const metricOptions = useMemo(() => {
     if (!data?.trend?.metrics) return [];
