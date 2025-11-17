@@ -18,6 +18,7 @@ const FRIEND_REQUESTS_COLLECTION = 'friendRequests';
 const FRIENDS_COLLECTION = 'friends';
 const POSTS_COLLECTION = 'posts';
 const MEALS_SUBCOLLECTION = 'meals';
+const DINING_HALL_FOLLOWS_COLLECTION = 'diningHallFollows';
 
 const createErrorResponse = (errorCode, message) => {
   return { error: { code: errorCode, message: message } };
@@ -446,6 +447,134 @@ const deletePost = async (userId, postId) => {
   return { success: true, message: 'Post deleted successfully' };
 };
 
+// Dining hall follow functions
+const followDiningHall = async (userId, locationId, locationName) => {
+  if (!userId || !locationId || !locationName) {
+    throw new Error('userId, locationId, and locationName are required');
+  }
+
+  const db = getDb();
+
+  // Check if already following (use both locationId and locationName to uniquely identify)
+  const existingFollow = await db
+    .collection(DINING_HALL_FOLLOWS_COLLECTION)
+    .where('userId', '==', userId)
+    .where('locationId', '==', locationId)
+    .where('locationName', '==', locationName)
+    .get();
+
+  if (!existingFollow.empty) {
+    throw new Error('Already following this dining hall');
+  }
+
+  // Create follow relationship
+  const followRef = await db.collection(DINING_HALL_FOLLOWS_COLLECTION).add({
+    userId,
+    locationId,
+    locationName,
+    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+  });
+
+  const followDoc = await followRef.get();
+  const followData = followDoc.data();
+
+  return {
+    id: followDoc.id,
+    ...followData,
+    createdAt: followData.createdAt?.toDate(),
+  };
+};
+
+const unfollowDiningHall = async (userId, locationId, locationName) => {
+  const db = getDb();
+
+  // Find the follow relationship (use both locationId and locationName to uniquely identify)
+  const follows = await db
+    .collection(DINING_HALL_FOLLOWS_COLLECTION)
+    .where('userId', '==', userId)
+    .where('locationId', '==', locationId)
+    .where('locationName', '==', locationName)
+    .get();
+
+  if (follows.empty) {
+    throw new Error('Not following this dining hall');
+  }
+
+  // Delete all follow relationships (should only be one)
+  const deletePromises = follows.docs.map(doc => doc.ref.delete());
+  await Promise.all(deletePromises);
+
+  return { success: true, message: 'Unfollowed dining hall successfully' };
+};
+
+const getFollowedDiningHalls = async (userId) => {
+  const db = getDb();
+
+  const follows = await db
+    .collection(DINING_HALL_FOLLOWS_COLLECTION)
+    .where('userId', '==', userId)
+    .get();
+
+  const diningHalls = [];
+  follows.forEach(doc => {
+    const data = doc.data();
+    diningHalls.push({
+      id: doc.id,
+      locationId: data.locationId,
+      locationName: data.locationName,
+      createdAt: data.createdAt?.toDate(),
+    });
+  });
+
+  return diningHalls.sort((a, b) => a.locationName.localeCompare(b.locationName));
+};
+
+const getDiningHallFeedPosts = async (userId, limit = 50) => {
+  const db = getDb();
+
+  // Get user's followed dining halls
+  const followedHalls = await getFollowedDiningHalls(userId);
+
+  if (followedHalls.length === 0) {
+    return [];
+  }
+
+  // Get posts from followed dining halls
+  // Match by both locationId and locationName to get posts from specific dining halls
+  const allPosts = [];
+
+  // For each followed dining hall, get posts matching both locationId and locationName
+  for (const hall of followedHalls) {
+    const query = db
+      .collection(POSTS_COLLECTION)
+      .where('locationId', '==', hall.locationId)
+      .where('locationName', '==', hall.locationName)
+      .orderBy('timestamp', 'desc')
+      .limit(limit);
+    
+    const snapshot = await query.get();
+    snapshot.forEach(doc => {
+      allPosts.push({
+        id: doc.id,
+        ...doc.data(),
+        timestamp: doc.data().timestamp?.toDate(),
+        createdAt: doc.data().createdAt?.toDate(),
+        updatedAt: doc.data().updatedAt?.toDate(),
+      });
+    });
+  }
+
+  // Sort all posts by timestamp descending
+  allPosts.sort((a, b) => {
+    const aTime = a.timestamp || a.createdAt || new Date(0);
+    const bTime = b.timestamp || b.createdAt || new Date(0);
+    return bTime - aTime;
+  });
+
+  // Return limited results
+  return allPosts.slice(0, limit);
+};
+
 module.exports = async (req, res) => {
   // CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -611,6 +740,36 @@ module.exports = async (req, res) => {
       const locations = Array.from(locationMap.values());
       const limit = parseInt(req.query.limit || 20, 10);
       return res.status(200).json({ locations: locations.slice(0, limit), count: locations.length });
+    }
+
+    // Dining hall follow routes
+    if (req.method === 'POST' && path === '/dining-halls/follow') {
+      const { locationId, locationName } = req.body;
+      if (!locationId || !locationName) {
+        return res.status(400).json(createErrorResponse('INVALID_REQUEST', 'locationId and locationName are required'));
+      }
+      const follow = await followDiningHall(userId, locationId, locationName);
+      return res.status(201).json({ follow, message: 'Dining hall followed successfully' });
+    }
+
+    if (req.method === 'POST' && path === '/dining-halls/unfollow') {
+      const { locationId, locationName } = req.body;
+      if (!locationId || !locationName) {
+        return res.status(400).json(createErrorResponse('INVALID_REQUEST', 'locationId and locationName are required'));
+      }
+      const result = await unfollowDiningHall(userId, locationId, locationName);
+      return res.status(200).json(result);
+    }
+
+    if (req.method === 'GET' && path === '/dining-halls/following') {
+      const diningHalls = await getFollowedDiningHalls(userId);
+      return res.status(200).json({ diningHalls, count: diningHalls.length });
+    }
+
+    if (req.method === 'GET' && path === '/posts/feed/dining-halls') {
+      const limit = parseInt(req.query.limit || 50, 10);
+      const posts = await getDiningHallFeedPosts(userId, limit);
+      return res.status(200).json({ posts, count: posts.length });
     }
 
     return res.status(404).json(createErrorResponse('NOT_FOUND', 'Endpoint not found'));
