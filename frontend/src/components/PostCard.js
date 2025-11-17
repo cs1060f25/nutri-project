@@ -89,21 +89,26 @@ const PostCard = ({ post, showDelete = false, onPostUpdated, onPostDeleted, show
       <div className="post-content">
         <div className="post-meal-type">{post.mealName || post.mealType}</div>
 
-        {/* Image from scan */}
-        {post.image && (
-          <div className="post-image-section">
-            <div className="post-image">
-              <img 
-                src={post.image.startsWith('data:') ? post.image : `data:image/jpeg;base64,${post.image}`} 
-                alt="Scanned meal" 
-                onError={(e) => {
-                  // Fallback if image fails to load
-                  e.target.style.display = 'none';
-                }}
-              />
-            </div>
+        {/* Meal section - show if post has items (from scan) or has image */}
+        {(post.items && post.items.length > 0) || post.image ? (
+          <div className="post-meal-section">
+            <h3 className="post-section-header">Meal</h3>
+            {post.image && (
+              <div className="post-image-section">
+                <div className="post-image">
+                  <img 
+                    src={post.image.startsWith('http') ? post.image : (post.image.startsWith('data:') ? post.image : `data:image/jpeg;base64,${post.image}`)} 
+                    alt="Scanned meal" 
+                    onError={(e) => {
+                      // Fallback if image fails to load
+                      e.target.style.display = 'none';
+                    }}
+                  />
+                </div>
+              </div>
+            )}
           </div>
-        )}
+        ) : null}
 
         {/* Star Rating */}
         <div className="post-rating-section">

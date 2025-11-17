@@ -247,7 +247,10 @@ const EditPostModal = ({ isOpen, onClose, post, onPostUpdated, onPostDeleted }) 
           {/* Image Preview */}
           {post.image && (
             <div className="create-post-modal-image">
-              <img src={post.image} alt="Meal" />
+              <img 
+                src={post.image.startsWith('http') ? post.image : (post.image.startsWith('data:') ? post.image : `data:image/jpeg;base64,${post.image}`)} 
+                alt="Meal" 
+              />
             </div>
           )}
 

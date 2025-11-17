@@ -245,36 +245,30 @@ const createPostFromScan = async (req, res) => {
       );
     }
 
-    // Check image size (Firestore has 1MB limit per document)
-    // Base64 is ~33% larger than binary, so ~750KB base64 = ~1MB binary
-    if (image && image.length > 750000) {
-      console.warn('Image too large for Firestore, truncating or skipping');
-      // For now, we'll store a truncated version or skip it
-      // In production, you should upload to Firebase Storage instead
-    }
-
-    // Handle image - strip data:image/...;base64, prefix if present
+    // Handle image - compress and store in Firestore
     let processedImage = null;
     if (image && typeof image === 'string') {
-      if (image.length > 750000) {
-        console.warn('Image too large for Firestore, skipping. Size:', image.length);
+      try {
+        console.log('Compressing image, original size:', image.length, 'bytes');
+        const { compressImage } = require('../utils/imageCompression');
+        // Compress image to fit within Firestore limits (400KB max)
+        processedImage = await compressImage(image, 400);
+        console.log('✅ Image compressed successfully, new size:', processedImage.length, 'bytes');
+      } catch (error) {
+        console.error('❌ Failed to compress image:', error);
+        console.error('Error details:', error.message, error.stack);
+        // Continue without image rather than failing the entire request
         processedImage = null;
-      } else if (image.startsWith('data:')) {
-        // Extract just the base64 data part (after the comma)
-        const base64Data = image.split(',')[1];
-        if (base64Data) {
-          processedImage = image; // Keep full data URI for now, or use base64Data if you want just base64
-        }
-      } else {
-        processedImage = image;
       }
+    } else {
+      console.log('No image provided in request');
     }
 
     // Create post from scan data
     console.log('Calling postService.createPostFromScan with:', {
       userId,
       hasImage: !!processedImage,
-      imageSize: processedImage?.length || 0,
+      imageSize: processedImage ? processedImage.length : 0,
       locationId: locationIdStr,
       locationName,
       mealDate: mealDate || new Date().toISOString().split('T')[0],
@@ -286,7 +280,7 @@ const createPostFromScan = async (req, res) => {
 
     try {
       const post = await postService.createPostFromScan(userId, {
-        image: processedImage,
+        image: processedImage, // Compressed base64 image
         locationId: locationIdStr,
         locationName,
         mealDate: mealDate || new Date().toISOString().split('T')[0],
@@ -300,6 +294,11 @@ const createPostFromScan = async (req, res) => {
       });
 
       console.log('=== POST CREATED SUCCESSFULLY ===');
+      console.log('Post data:', {
+        id: post.id,
+        hasImage: !!post.image,
+        imageSize: post.image ? post.image.length : 0
+      });
       return res.status(201).json({ post, message: 'Post created successfully' });
     } catch (serviceError) {
       console.error('Error in postService.createPostFromScan:', serviceError);
@@ -443,7 +442,21 @@ const updatePost = async (req, res) => {
   try {
     const userId = req.user.uid;
     const { postId } = req.params;
-    const updateData = req.body;
+    const updateData = { ...req.body };
+
+    // Handle image compression if a new image is provided (base64 data)
+    if (updateData.image && typeof updateData.image === 'string') {
+      try {
+        const { compressImage } = require('../utils/imageCompression');
+        // Compress image to fit within Firestore limits (400KB max)
+        updateData.image = await compressImage(updateData.image, 400);
+        console.log('✅ Image compressed for update, size:', updateData.image.length, 'bytes');
+      } catch (error) {
+        console.error('❌ Failed to compress image:', error);
+        // Continue without image rather than failing the entire request
+        delete updateData.image;
+      }
+    }
 
     const post = await postService.updatePost(userId, postId, updateData);
     return res.status(200).json({ post, message: 'Post updated successfully' });

@@ -109,17 +109,27 @@ const CreatePostModal = ({ isOpen, onClose, scanData, imageUrl, imageFile }) => 
       let imageBase64 = null;
       if (imageUrl && imageUrl.startsWith('data:')) {
         imageBase64 = imageUrl;
+        console.log('Using imageUrl (data URL), size:', imageBase64.length);
       } else if (imageFile) {
         // Convert file to base64
         const reader = new FileReader();
         imageBase64 = await new Promise((resolve, reject) => {
-          reader.onload = () => resolve(reader.result);
+          reader.onload = () => {
+            const result = reader.result;
+            console.log('Converted imageFile to base64, size:', result.length);
+            resolve(result);
+          };
           reader.onerror = reject;
           reader.readAsDataURL(imageFile);
         });
       } else if (imageUrl) {
         // If we have an imageUrl but it's not base64, try to fetch and convert
         imageBase64 = imageUrl;
+        console.log('Using imageUrl (non-data URL), size:', imageBase64?.length || 0);
+      }
+      
+      if (!imageBase64) {
+        console.warn('No image data available for post');
       }
 
       // Parse locationId to get location_number

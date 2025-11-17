@@ -200,11 +200,15 @@ const createPostFromScan = async (userId, scanData) => {
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     };
 
-    // Only add image if it exists and is reasonable size (under 500KB base64)
-    if (scanData.image && scanData.image.length < 500000) {
+    // Store compressed image (base64) in Firestore
+    // Firestore has 1MB document limit, so we allow up to ~750KB to be safe
+    if (scanData.image && scanData.image.length < 750000) {
       postData.image = scanData.image;
+      console.log('Compressed image added to post, size:', scanData.image.length, 'bytes');
     } else if (scanData.image) {
-      console.warn('Image too large for Firestore, skipping. Size:', scanData.image.length);
+      console.warn('Image still too large after compression, skipping. Size:', scanData.image.length, 'bytes');
+    } else {
+      console.log('No image provided in scanData');
     }
 
     // Validate data types before saving to Firestore
@@ -239,6 +243,7 @@ const createPostFromScan = async (userId, scanData) => {
       
       const savedPostData = postDoc.data();
       console.log('Post document retrieved successfully');
+      console.log('Saved post has image:', !!savedPostData.image, savedPostData.image ? 'URL: ' + savedPostData.image.substring(0, 50) + '...' : 'none');
 
       // Also create a meal log so progress tracking works
       // Convert post items to meal log format
@@ -589,6 +594,34 @@ const getPostsByLocationName = async (locationName, limit = 50) => {
 };
 
 /**
+ * Get a single post by ID
+ */
+const getPostById = async (userId, postId) => {
+  const db = getDb();
+  const postRef = db.collection(POSTS_COLLECTION).doc(postId);
+  const postDoc = await postRef.get();
+
+  if (!postDoc.exists) {
+    throw new Error('Post not found');
+  }
+
+  const postData = postDoc.data();
+
+  // Verify ownership (optional - can be removed if you want to allow viewing any post)
+  if (postData.userId !== userId) {
+    throw new Error('Unauthorized: You can only view your own posts');
+  }
+
+  return {
+    id: postDoc.id,
+    ...postData,
+    timestamp: postData.timestamp?.toDate(),
+    createdAt: postData.createdAt?.toDate(),
+    updatedAt: postData.updatedAt?.toDate(),
+  };
+};
+
+/**
  * Update a post
  */
 const updatePost = async (userId, postId, updateData) => {
@@ -646,15 +679,16 @@ const updatePost = async (userId, postId, updateData) => {
     }
   });
 
-  // Handle image update (if provided and not too large)
+  // Handle image update (now expects URL from Firebase Storage, not base64)
   if (updateData.image !== undefined) {
-    if (updateData.image && updateData.image.length < 500000) {
+    if (updateData.image && typeof updateData.image === 'string') {
+      // Image is now a URL from Firebase Storage
       updateObject.image = updateData.image;
+      console.log('Image URL updated in post:', updateData.image);
     } else if (updateData.image === null) {
       // Allow removing image by setting to null
       updateObject.image = null;
-    } else if (updateData.image) {
-      console.warn('Image too large for Firestore, skipping. Size:', updateData.image.length);
+      console.log('Image removed from post');
     }
   }
 
@@ -692,6 +726,8 @@ const deletePost = async (userId, postId) => {
     throw new Error('Unauthorized: You can only delete your own posts');
   }
 
+  // Images are stored in Firestore as base64, so no separate deletion needed
+
   await postRef.delete();
 
   return { success: true, message: 'Post deleted successfully' };
@@ -705,6 +741,7 @@ module.exports = {
   getPostsByUser,
   getPostsByLocation,
   getPostsByLocationName,
+  getPostById,
   updatePost,
   deletePost,
 };
