@@ -125,6 +125,11 @@
   overflow: hidden;
   width: 100%;
   gap: 0.25rem;
+  transition: background-color 0.2s ease;
+}
+
+.calendar-cell:hover {
+  background-color: #f5f5f5;
 }
 
 .calendar-cell:last-child {
