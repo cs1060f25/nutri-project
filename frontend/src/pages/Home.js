@@ -6,6 +6,7 @@ import { getTodayProgress } from '../services/nutritionProgressService';
 import { generateMealSuggestion } from '../services/mealSuggestionService';
 import MealLogger from '../components/MealLogger';
 import NutritionProgress from '../components/NutritionProgress';
+import CustomSelect from '../components/CustomSelect';
 import './Home.css';
 
 // Houses that share menus (11 houses, excluding Quincy)
@@ -1009,24 +1010,23 @@ const Home = () => {
                   </svg>
                   Dining Hall
                 </label>
-                <select
-                  id="location-select"
-                  className="selector-input"
+                <CustomSelect
                   value={selectedLocation}
-                  onChange={(e) => setSelectedLocation(e.target.value)}
+                  onChange={setSelectedLocation}
+                  options={[
+                    { value: '', label: 'Select a dining hall' },
+                    ...expandedLocations.map((loc, idx) => {
+                      const uniqueId = `${loc.location_number}|${loc.location_name}`;
+                      return {
+                        value: uniqueId,
+                        label: loc.location_name
+                      };
+                    })
+                  ]}
+                  placeholder="Select a dining hall"
                   disabled={locationsLoading}
-                >
-                  <option value="">Select a dining hall</option>
-                  {expandedLocations.map((loc, idx) => {
-                    // Create unique identifier for each location
-                    const uniqueId = `${loc.location_number}|${loc.location_name}`;
-                    return (
-                      <option key={`${loc.location_number}-${idx}`} value={uniqueId}>
-                        {loc.location_name}
-                      </option>
-                    );
-                  })}
-                </select>
+                  className="selector-input-wrapper"
+                />
               </div>
 
               <div className="selector-group">
@@ -1037,20 +1037,20 @@ const Home = () => {
                   </svg>
                   Meal Time
                 </label>
-                <select
-                  id="meal-select"
-                  className="selector-input"
+                <CustomSelect
                   value={selectedMealType}
-                  onChange={(e) => setSelectedMealType(e.target.value)}
+                  onChange={setSelectedMealType}
+                  options={[
+                    { value: '', label: 'Select a meal' },
+                    ...getAvailableMealTypes().map(mealType => ({
+                      value: mealType,
+                      label: mealType
+                    }))
+                  ]}
+                  placeholder="Select a meal"
                   disabled={!selectedLocation || loading}
-                >
-                  <option value="">Select a meal</option>
-                  {getAvailableMealTypes().map(mealType => (
-                    <option key={mealType} value={mealType}>
-                      {mealType}
-                    </option>
-                  ))}
-                </select>
+                  className="selector-input-wrapper"
+                />
               </div>
 
               {!selectedLocation && (
@@ -1096,26 +1096,26 @@ const Home = () => {
                   </svg>
                   Dining Hall
                 </label>
-                <select
-                  id="suggestion-location-select"
-                  className="selector-input"
+                <CustomSelect
                   value={suggestionLocation}
-                  onChange={(e) => {
-                    setSuggestionLocation(e.target.value);
+                  onChange={(value) => {
+                    setSuggestionLocation(value);
                     setSuggestionMealType('');
                   }}
+                  options={[
+                    { value: '', label: 'Select a dining hall' },
+                    ...expandedLocations.map((loc, idx) => {
+                      const uniqueId = `${loc.location_number}|${loc.location_name}`;
+                      return {
+                        value: uniqueId,
+                        label: loc.location_name
+                      };
+                    })
+                  ]}
+                  placeholder="Select a dining hall"
                   disabled={locationsLoading}
-                >
-                  <option value="">Select a dining hall</option>
-                  {expandedLocations.map((loc, idx) => {
-                    const uniqueId = `${loc.location_number}|${loc.location_name}`;
-                    return (
-                      <option key={`suggestion-${loc.location_number}-${idx}`} value={uniqueId}>
-                        {loc.location_name}
-                      </option>
-                    );
-                  })}
-                </select>
+                  className="selector-input-wrapper"
+                />
               </div>
 
               <div className="selector-group">
@@ -1126,20 +1126,20 @@ const Home = () => {
                   </svg>
                   Meal Time
                 </label>
-                <select
-                  id="suggestion-meal-select"
-                  className="selector-input"
+                <CustomSelect
                   value={suggestionMealType}
-                  onChange={(e) => setSuggestionMealType(e.target.value)}
+                  onChange={setSuggestionMealType}
+                  options={[
+                    { value: '', label: 'Select a meal' },
+                    ...getSuggestionMealTypes().map(mealType => ({
+                      value: mealType,
+                      label: mealType
+                    }))
+                  ]}
+                  placeholder="Select a meal"
                   disabled={!suggestionLocation || suggestionMenuLoading}
-                >
-                  <option value="">Select a meal</option>
-                  {getSuggestionMealTypes().map(mealType => (
-                    <option key={mealType} value={mealType}>
-                      {mealType}
-                    </option>
-                  ))}
-                </select>
+                  className="selector-input-wrapper"
+                />
               </div>
 
               {hypotheticalMeals.length > 0 && (

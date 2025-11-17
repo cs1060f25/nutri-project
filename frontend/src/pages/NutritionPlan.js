@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import './NutritionPlan.css';
 import { createNutritionPlan, getActiveNutritionPlan, updateNutritionPlan, getPersonalizedRecommendation } from '../services/nutritionPlanService';
 import { getUserProfile } from '../services/profileService';
+import CustomSelect from '../components/CustomSelect';
 
 // Calculate age from birthday (helper function outside component)
 const calculateAgeFromBirthday = (birthday) => {
@@ -885,16 +886,19 @@ const NutritionPlan = () => {
                                 step="any"
                                 min="0"
                               />
-                              <select
+                              <CustomSelect
                                 value={metrics[metric.id].unit}
-                                onChange={(e) => handleMetricChange(metric.id, 'unit', e.target.value)}
-                                className="unit-select"
-                              >
-                                <option value={metric.defaultUnit}>{metric.defaultUnit}</option>
-                                {unitOptions.filter(u => u !== metric.defaultUnit).map(unit => (
-                                  <option key={unit} value={unit}>{unit}</option>
-                                ))}
-                              </select>
+                                onChange={(value) => handleMetricChange(metric.id, 'unit', value)}
+                                options={[
+                                  { value: metric.defaultUnit, label: metric.defaultUnit },
+                                  ...unitOptions.filter(u => u !== metric.defaultUnit).map(unit => ({
+                                    value: unit,
+                                    label: unit
+                                  }))
+                                ]}
+                                placeholder={metric.defaultUnit}
+                                className="unit-select-wrapper"
+                              />
                             </div>
                           </div>
                         )}

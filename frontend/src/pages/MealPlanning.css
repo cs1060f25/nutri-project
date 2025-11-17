@@ -396,6 +396,10 @@
   box-shadow: 0 0 0 3px rgba(26, 95, 63, 0.1);
 }
 
+.form-input-wrapper {
+  width: 100%;
+}
+
 .menu-loading {
   text-align: center;
   padding: 2rem 2rem;
