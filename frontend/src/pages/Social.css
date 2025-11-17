@@ -108,6 +108,56 @@
   margin-top: 1rem;
 }
 
+.profile-filters {
+  background: white;
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.filters-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.filter-group label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+}
+
+.filter-select {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  background: white;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.filter-select:focus {
+  outline: none;
+  border-color: #2d6a4f;
+  box-shadow: 0 0 0 3px rgba(45, 106, 79, 0.1);
+}
+
+.post-visibility {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #6b7280;
+  font-size: 0.875rem;
+}
+
 .profile-friends {
   margin-top: 1rem;
 }
@@ -193,6 +243,103 @@
   font-size: 0.875rem;
   font-weight: 500;
   margin-bottom: 0.75rem;
+}
+
+.post-image-section {
+  margin: 1rem 0;
+}
+
+.post-image {
+  margin-top: 0.5rem;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #f3f4f6;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.post-image img {
+  width: 100%;
+  height: auto;
+  display: block;
+  max-height: 500px;
+  object-fit: contain;
+}
+
+.post-section-header {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 0.5rem;
+  margin-top: 1rem;
+}
+
+.post-rating-section {
+  margin: 1rem 0;
+}
+
+.post-rating-section .post-section-header {
+  margin-top: 0;
+}
+
+.post-rating {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.post-review-section {
+  margin: 1rem 0;
+}
+
+.post-review-section .post-section-header {
+  margin-top: 0;
+}
+
+.post-review {
+  margin-top: 0.5rem;
+  padding: 1rem;
+  background: #f9fafb;
+  border-radius: 8px;
+  border-left: 3px solid #2d6a4f;
+}
+
+.post-items-section {
+  margin: 1rem 0;
+}
+
+.post-items-section .post-section-header {
+  margin-top: 0;
+}
+
+.post-review-text {
+  margin: 0;
+  color: #374151;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.post-food-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 1rem 0;
+}
+
+.post-food-chip {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  background: #f3f4f6;
+  border-radius: 20px;
+  font-size: 0.875rem;
+  color: #374151;
+  border: 1px solid #e5e7eb;
+}
+
+.post-food-chip-unmatched {
+  background: #fef3c7;
+  border-color: #fde68a;
+  color: #92400e;
 }
 
 .post-items {

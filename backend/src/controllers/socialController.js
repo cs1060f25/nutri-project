@@ -164,6 +164,172 @@ const createPost = async (req, res) => {
 };
 
 /**
+ * POST /api/social/posts/scan
+ * Create a post from a scan (image analysis)
+ */
+const createPostFromScan = async (req, res) => {
+  try {
+    console.log('=== CREATE POST FROM SCAN START ===');
+    console.log('Request body keys:', Object.keys(req.body || {}));
+    console.log('Request body size:', JSON.stringify(req.body || {}).length);
+    console.log('User ID:', req.user?.uid);
+    
+    if (!req.user || !req.user.uid) {
+      console.error('No user in request - auth middleware may have failed');
+      return res.status(401).json(
+        createErrorResponse('INVALID_TOKEN', 'Authentication required')
+      );
+    }
+    
+    const userId = req.user.uid;
+    const {
+      image,
+      locationId,
+      locationName,
+      mealDate,
+      mealType,
+      rating,
+      review: rawReview,
+      matchedItems,
+      unmatchedDishes,
+      nutritionTotals,
+      timestamp
+    } = req.body;
+
+    // Safely handle review - can be null, undefined, or string
+    const review = (typeof rawReview === 'string' && rawReview.trim().length > 0)
+      ? rawReview.trim()
+      : null;
+
+    console.log('Create post from scan request:', {
+      userId,
+      hasImage: !!image,
+      imageSize: image ? image.length : 0,
+      locationId,
+      locationName,
+      mealDate,
+      mealType,
+      rating,
+      hasReview: !!review,
+      matchedItemsCount: matchedItems?.length || 0,
+      unmatchedDishesCount: unmatchedDishes?.length || 0
+    });
+
+    // Validate required fields
+    if (!locationId) {
+      console.error('Missing locationId in request');
+      return res.status(400).json(
+        createErrorResponse('INVALID_REQUEST', 'locationId is required')
+      );
+    }
+
+    if (!locationName) {
+      console.error('Missing locationName in request');
+      return res.status(400).json(
+        createErrorResponse('INVALID_REQUEST', 'locationName is required')
+      );
+    }
+
+    if (!rating || rating < 1 || rating > 5) {
+      console.error('Invalid rating:', rating);
+      return res.status(400).json(
+        createErrorResponse('INVALID_REQUEST', 'rating must be between 1 and 5')
+      );
+    }
+
+    // Ensure locationId is a string
+    const locationIdStr = String(locationId).trim();
+    if (!locationIdStr) {
+      return res.status(400).json(
+        createErrorResponse('INVALID_REQUEST', 'locationId cannot be empty')
+      );
+    }
+
+    // Check image size (Firestore has 1MB limit per document)
+    // Base64 is ~33% larger than binary, so ~750KB base64 = ~1MB binary
+    if (image && image.length > 750000) {
+      console.warn('Image too large for Firestore, truncating or skipping');
+      // For now, we'll store a truncated version or skip it
+      // In production, you should upload to Firebase Storage instead
+    }
+
+    // Handle image - strip data:image/...;base64, prefix if present
+    let processedImage = null;
+    if (image && typeof image === 'string') {
+      if (image.length > 750000) {
+        console.warn('Image too large for Firestore, skipping. Size:', image.length);
+        processedImage = null;
+      } else if (image.startsWith('data:')) {
+        // Extract just the base64 data part (after the comma)
+        const base64Data = image.split(',')[1];
+        if (base64Data) {
+          processedImage = image; // Keep full data URI for now, or use base64Data if you want just base64
+        }
+      } else {
+        processedImage = image;
+      }
+    }
+
+    // Create post from scan data
+    console.log('Calling postService.createPostFromScan with:', {
+      userId,
+      hasImage: !!processedImage,
+      imageSize: processedImage?.length || 0,
+      locationId: locationIdStr,
+      locationName,
+      mealDate: mealDate || new Date().toISOString().split('T')[0],
+      mealType,
+      rating,
+      hasReview: !!review,
+      matchedItemsCount: matchedItems?.length || 0
+    });
+
+    try {
+      const post = await postService.createPostFromScan(userId, {
+        image: processedImage,
+        locationId: locationIdStr,
+        locationName,
+        mealDate: mealDate || new Date().toISOString().split('T')[0],
+        mealType: mealType || null,
+        rating,
+        review: review,
+        matchedItems: matchedItems || [],
+        unmatchedDishes: unmatchedDishes || [],
+        nutritionTotals: nutritionTotals || {},
+        timestamp: timestamp || new Date().toISOString()
+      });
+
+      console.log('=== POST CREATED SUCCESSFULLY ===');
+      return res.status(201).json({ post, message: 'Post created successfully' });
+    } catch (serviceError) {
+      console.error('Error in postService.createPostFromScan:', serviceError);
+      console.error('Service error stack:', serviceError.stack);
+      throw serviceError; // Re-throw to be caught by outer catch
+    }
+  } catch (error) {
+    console.error('=== CREATE POST FROM SCAN ERROR ===');
+    console.error('Error message:', error.message);
+    console.error('Error stack:', error.stack);
+    console.error('Error details:', {
+      message: error.message,
+      code: error.code,
+      name: error.name,
+      stack: error.stack?.split('\n').slice(0, 5)
+    });
+    
+    // Ensure we always return a proper error response
+    const statusCode = error.message?.includes('not found') ? 404 : 500;
+    const errorMessage = error.message || 'Failed to create post from scan';
+    
+    console.error('Returning error response:', { statusCode, errorMessage });
+    
+    return res.status(statusCode).json(
+      createErrorResponse('POST_ERROR', errorMessage)
+    );
+  }
+};
+
+/**
  * GET /api/social/posts/feed
  * Get feed posts (from friends)
  */
@@ -265,6 +431,28 @@ const getPostsByLocationName = async (req, res) => {
     console.error('Get posts by location name error:', error);
     return res.status(500).json(
       createErrorResponse('INTERNAL', 'Failed to get location posts')
+    );
+  }
+};
+
+/**
+ * PUT /api/social/posts/:postId
+ * Update a post
+ */
+const updatePost = async (req, res) => {
+  try {
+    const userId = req.user.uid;
+    const { postId } = req.params;
+    const updateData = req.body;
+
+    const post = await postService.updatePost(userId, postId, updateData);
+    return res.status(200).json({ post, message: 'Post updated successfully' });
+  } catch (error) {
+    console.error('Update post error:', error);
+    const statusCode = error.message?.includes('not found') ? 404 : 
+                       error.message?.includes('Unauthorized') ? 403 : 400;
+    return res.status(statusCode).json(
+      createErrorResponse('POST_ERROR', error.message)
     );
   }
 };
@@ -545,11 +733,13 @@ module.exports = {
   getFriends,
   removeFriend,
   createPost,
+  createPostFromScan,
   getFeedPosts,
   getDiningHallFeedPosts,
   getPostsByUser,
   getPostsByLocation,
   getPostsByLocationName,
+  updatePost,
   deletePost,
   followDiningHall,
   unfollowDiningHall,

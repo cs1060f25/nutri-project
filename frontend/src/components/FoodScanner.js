@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Upload, ArrowRight, Clock } from 'lucide-react';
+import { Upload, ArrowRight, Clock, Share2 } from 'lucide-react';
 import { analyzeMealImage } from '../services/geminiService';
+import CreatePostModal from './CreatePostModal';
 import './FoodScanner.css';
 
 const formatNumber = (value) => {
@@ -16,6 +17,7 @@ const FoodScanner = () => {
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState(null);
   const [error, setError] = useState(null);
+  const [showPostModal, setShowPostModal] = useState(false);
 
   const handleFileSelect = (e) => {
     const file = e.target.files[0];
@@ -119,7 +121,7 @@ const FoodScanner = () => {
                 <label htmlFor="file-upload" className="scanner-dropzone">
                   <Upload className="scanner-dropzone-icon" />
                   <p className="scanner-dropzone-title">Drop image or browse files</p>
-                  <p className="scanner-dropzone-subtitle">Supports JPG/PNG up to 10MB</p>
+                  <p className="scanner-dropzone-subtitle">Supports JPG/PNG up to 20MB</p>
                 </label>
                 <input
                   id="file-upload"
@@ -272,11 +274,25 @@ const FoodScanner = () => {
                   <Clock className="scanner-footer-icon" />
                   Scanned {new Date(results.timestamp).toLocaleString()}
                 </div>
+                <button
+                  onClick={() => setShowPostModal(true)}
+                  className="scanner-primary-btn scanner-save-log-btn"
+                >
+                  Save Log
+                </button>
               </div>
             </div>
           )}
         </div>
       </div>
+
+      <CreatePostModal
+        isOpen={showPostModal}
+        onClose={() => setShowPostModal(false)}
+        scanData={results}
+        imageUrl={previewUrl}
+        imageFile={selectedFile}
+      />
     </div>
   );
 }

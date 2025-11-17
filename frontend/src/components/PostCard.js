@@ -1,11 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { Star, Edit, Lock, Globe } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { deletePost } from '../services/socialService';
+import EditPostModal from './EditPostModal';
 import '../pages/Social.css';
 
-const PostCard = ({ post, showDelete = false }) => {
-  const { accessToken, user } = useAuth();
-  const [deleting, setDeleting] = React.useState(false);
+const PostCard = ({ post, showDelete = false, onPostUpdated, onPostDeleted, showVisibility = false }) => {
+  const { user } = useAuth();
+  const [showEditModal, setShowEditModal] = useState(false);
 
   const getInitials = (name) => {
     if (!name) return '?';
@@ -28,64 +29,147 @@ const PostCard = ({ post, showDelete = false }) => {
     });
   };
 
-  const handleDelete = async () => {
-    if (!window.confirm('Are you sure you want to delete this post?')) {
-      return;
-    }
+  const canEdit = showDelete && (user?.id === post.userId || user?.uid === post.userId);
 
-    try {
-      setDeleting(true);
-      await deletePost(post.id, accessToken);
-      // Remove from parent component's state
-      window.location.reload(); // Simple refresh for now
-    } catch (err) {
-      console.error('Error deleting post:', err);
-      alert('Failed to delete post: ' + err.message);
-    } finally {
-      setDeleting(false);
+  const handlePostUpdated = () => {
+    if (onPostUpdated) {
+      onPostUpdated();
+    } else {
+      window.location.reload();
     }
   };
 
-  const canDelete = showDelete && (user?.id === post.userId || user?.uid === post.userId);
+  const handlePostDeleted = () => {
+    if (onPostDeleted) {
+      onPostDeleted();
+    } else {
+      window.location.reload();
+    }
+  };
 
   return (
-    <div className="post-card">
-      <div className="post-header">
-        <div className="post-avatar">{getInitials(post.userName)}</div>
-        <div className="post-user-info">
-          <div className="post-user-name">{post.userName}</div>
-          <div className="post-meta">
-            {formatDate(post.timestamp)} •{' '}
-            <span className="post-location">{post.locationName}</span>
+    <>
+      <div className="post-card">
+        <div className="post-header">
+          <div className="post-avatar">{getInitials(post.userName)}</div>
+          <div className="post-user-info">
+            <div className="post-user-name">{post.userName}</div>
+            <div className="post-meta">
+              {post.mealDate && (
+                <span className="post-date">
+                  {new Date(post.mealDate + 'T00:00:00').toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric'
+                  })}
+                </span>
+              )}
+              {post.mealDate && ' • '}
+              {formatDate(post.timestamp)} •{' '}
+              <span className="post-location">{post.locationName}</span>
+              {showVisibility && (
+                <>
+                  {' • '}
+                  <span className="post-visibility">
+                    {post.isPublic === false ? (
+                      <>
+                        <Lock size={14} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '4px' }} />
+                        Private
+                      </>
+                    ) : (
+                      <>
+                        <Globe size={14} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '4px' }} />
+                        Public
+                      </>
+                    )}
+                  </span>
+                </>
+              )}
+            </div>
           </div>
+          {canEdit && (
+            <button
+              className="btn"
+              onClick={() => setShowEditModal(true)}
+              style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '0.25rem',
+                padding: '0.5rem 1rem',
+                marginLeft: 'auto'
+              }}
+              title="Edit post"
+            >
+              <Edit size={16} />
+              Edit
+            </button>
+          )}
         </div>
-        {canDelete && (
-          <button
-            className="btn btn-danger"
-            onClick={handleDelete}
-            disabled={deleting}
-            style={{ marginLeft: 'auto' }}
-          >
-            {deleting ? 'Deleting...' : 'Delete'}
-          </button>
-        )}
-      </div>
 
       <div className="post-content">
         <div className="post-meal-type">{post.mealName || post.mealType}</div>
 
+        {/* Image from scan */}
+        {post.image && (
+          <div className="post-image-section">
+            <div className="post-image">
+              <img 
+                src={post.image.startsWith('data:') ? post.image : `data:image/jpeg;base64,${post.image}`} 
+                alt="Scanned meal" 
+                onError={(e) => {
+                  // Fallback if image fails to load
+                  e.target.style.display = 'none';
+                }}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Star Rating */}
+        {post.rating && (
+          <div className="post-rating-section">
+            <h3 className="post-section-header">Rating</h3>
+            <div className="post-rating">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <Star
+                  key={star}
+                  size={20}
+                  fill={star <= post.rating ? '#fbbf24' : 'none'}
+                  stroke={star <= post.rating ? '#fbbf24' : '#d1d5db'}
+                  style={{ marginRight: '2px' }}
+                />
+              ))}
+              <span style={{ marginLeft: '8px', color: '#6b7280' }}>{post.rating} / 5</span>
+            </div>
+          </div>
+        )}
+
+        {/* Review/Comment */}
+        {post.review && (
+          <div className="post-review-section">
+            <h3 className="post-section-header">Review</h3>
+            <div className="post-review">
+              <p className="post-review-text">{post.review}</p>
+            </div>
+          </div>
+        )}
+
+        {/* Food Items with Nutrition Values */}
         {post.items && post.items.length > 0 && (
-          <div className="post-items">
-            {post.items.map((item, index) => (
-              <div key={index} className="post-item">
-                <div className="post-item-name">{item.recipeName}</div>
-                <div className="post-item-details">
-                  {item.quantity > 1 && `${item.quantity}x `}
-                  {item.servingSize && `${item.servingSize} • `}
-                  {item.calories && `${item.calories} cal`}
+          <div className="post-items-section">
+            <h3 className="post-section-header">Food Items</h3>
+            <div className="post-items">
+              {post.items.map((item, index) => (
+                <div key={index} className="post-item">
+                  <div className="post-item-name">{item.recipeName}</div>
+                  <div className="post-item-details">
+                    {item.quantity > 1 && `${item.quantity}x `}
+                    {item.servingSize && `${item.servingSize} • `}
+                    {item.calories && `${item.calories} cal`}
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         )}
 
@@ -121,7 +205,16 @@ const PostCard = ({ post, showDelete = false }) => {
           </div>
         )}
       </div>
-    </div>
+      </div>
+
+      <EditPostModal
+        isOpen={showEditModal}
+        onClose={() => setShowEditModal(false)}
+        post={post}
+        onPostUpdated={handlePostUpdated}
+        onPostDeleted={handlePostDeleted}
+      />
+    </>
   );
 };
 
