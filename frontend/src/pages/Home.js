@@ -332,24 +332,36 @@ const Home = () => {
   }, [suggestionLocation, expandedLocations, findLocationById, parseLocationId]);
 
   // Fetch nutrition progress
+  const fetchProgress = useCallback(async () => {
+    if (!accessToken) return;
+    
+    try {
+      setProgressLoading(true);
+      const progress = await getTodayProgress(accessToken);
+      setProgressData(progress);
+    } catch (err) {
+      console.error('Error fetching nutrition progress:', err);
+      // Don't show error to user - just fail silently for progress
+    } finally {
+      setProgressLoading(false);
+    }
+  }, [accessToken]);
+
   useEffect(() => {
-    const fetchProgress = async () => {
-      if (!accessToken) return;
-      
-      try {
-        setProgressLoading(true);
-        const progress = await getTodayProgress(accessToken);
-        setProgressData(progress);
-      } catch (err) {
-        console.error('Error fetching nutrition progress:', err);
-        // Don't show error to user - just fail silently for progress
-      } finally {
-        setProgressLoading(false);
-      }
+    fetchProgress();
+  }, [fetchProgress]);
+
+  // Listen for meal log updates (from post creation, etc.)
+  useEffect(() => {
+    const handleMealLogUpdate = () => {
+      fetchProgress();
     };
 
-    fetchProgress();
-  }, [accessToken]);
+    window.addEventListener('mealLogUpdated', handleMealLogUpdate);
+    return () => {
+      window.removeEventListener('mealLogUpdated', handleMealLogUpdate);
+    };
+  }, [fetchProgress]);
 
   const openNutritionModal = (recipe) => {
     setSelectedRecipe(recipe);

@@ -175,6 +175,9 @@ const CreatePostModal = ({ isOpen, onClose, scanData, imageUrl, imageFile }) => 
         }
       }
 
+      // Dispatch event to notify other components (Home, Insights) to refresh progress
+      window.dispatchEvent(new CustomEvent('mealLogUpdated'));
+      
       onClose();
       // Optionally show success message
       alert('Post created successfully!');

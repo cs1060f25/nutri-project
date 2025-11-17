@@ -240,6 +240,47 @@ const createPostFromScan = async (userId, scanData) => {
       const savedPostData = postDoc.data();
       console.log('Post document retrieved successfully');
 
+      // Also create a meal log so progress tracking works
+      // Convert post items to meal log format
+      const mealLogService = require('./mealLogService');
+      const mealLogItems = items.map(item => ({
+        recipeId: item.recipeId || null,
+        recipeName: item.recipeName || 'Unknown dish',
+        quantity: item.quantity || 1,
+        servingSize: item.servingSize || '1 serving',
+        calories: String(item.calories || 0),
+        protein: String(item.protein || 0),
+        totalCarb: String(item.carbs || 0),
+        totalFat: String(item.fat || 0),
+        // Set defaults for missing nutrition fields
+        saturatedFat: '0g',
+        transFat: '0g',
+        cholesterol: '0mg',
+        sodium: '0mg',
+        dietaryFiber: '0g',
+        sugars: '0g',
+      }));
+
+      const mealDate = scanData.mealDate || new Date().toISOString().split('T')[0];
+      const mealTimestamp = scanData.timestamp ? new Date(scanData.timestamp) : new Date();
+
+      try {
+        await mealLogService.createMealLog(userId, userData.email || '', {
+          mealDate,
+          mealType: scanData.mealType || null,
+          mealName: scanData.mealType || null,
+          locationId: scanData.locationId,
+          locationName: scanData.locationName,
+          items: mealLogItems,
+          timestamp: mealTimestamp,
+        });
+        console.log('Meal log created successfully for post');
+      } catch (mealLogError) {
+        // Log error but don't fail the post creation
+        console.error('Error creating meal log for post:', mealLogError);
+        console.error('Post was still created successfully, but progress may not update');
+      }
+
       return {
         id: postDoc.id,
         ...savedPostData,
