@@ -34,97 +34,112 @@ const compressImage = async (base64Image, maxSizeKB = 400) => {
       return base64Image.startsWith('data:') ? base64Image : `data:${mimeType};base64,${base64Data}`;
     }
     
-    // Compress image using sharp
-    let quality = 85;
-    let width = null;
-    let height = null;
+    // Get image format and dimensions
+    const metadata = await sharp(imageBuffer).metadata();
+    const isPng = mimeType.includes('png') || metadata.format === 'png';
+    const originalWidth = metadata.width;
+    const originalHeight = metadata.height;
     
-    // Start with quality reduction, then resize if needed
+    // For very large images (>1MB), resize immediately and convert to JPEG for better compression
+    // For smaller images, try quality reduction first
+    const shouldResizeImmediately = originalSizeKB > 1000;
+    
     let compressedBuffer = imageBuffer;
     let currentSizeKB = originalSizeKB;
     
-    // Get image format
-    const metadata = await sharp(imageBuffer).metadata();
-    const isPng = mimeType.includes('png') || metadata.format === 'png';
-    
-    // Try reducing quality first
-    while (currentSizeKB > maxSizeKB && quality > 30) {
-      let sharpInstance = sharp(imageBuffer);
+    if (shouldResizeImmediately) {
+      // For very large images, resize immediately to speed up compression
+      // Calculate target dimensions based on desired file size
+      // Rough estimate: target ~400KB, so resize to roughly 800x600 or smaller
+      const targetMaxDimension = 1200; // Max width or height
+      let width = originalWidth;
+      let height = originalHeight;
+      
+      if (width > height) {
+        if (width > targetMaxDimension) {
+          height = Math.round((height * targetMaxDimension) / width);
+          width = targetMaxDimension;
+        }
+      } else {
+        if (height > targetMaxDimension) {
+          width = Math.round((width * targetMaxDimension) / height);
+          height = targetMaxDimension;
+        }
+      }
+      
+      console.log(`Large image detected (${originalSizeKB.toFixed(2)} KB), resizing immediately from ${originalWidth}x${originalHeight} to ${width}x${height}`);
+      
+      // Resize and convert to JPEG with moderate quality (faster than multiple iterations)
+      compressedBuffer = await sharp(imageBuffer)
+        .resize(width, height, { fit: 'inside', withoutEnlargement: true })
+        .jpeg({ quality: 70, mozjpeg: true })
+        .toBuffer();
+      
+      mimeType = 'image/jpeg';
+      currentSizeKB = compressedBuffer.length / 1024;
+      console.log(`After initial resize: ${currentSizeKB.toFixed(2)} KB`);
+      
+      // If still too large, reduce quality in one step
+      if (currentSizeKB > maxSizeKB) {
+        compressedBuffer = await sharp(imageBuffer)
+          .resize(width, height, { fit: 'inside', withoutEnlargement: true })
+          .jpeg({ quality: 60, mozjpeg: true })
+          .toBuffer();
+        
+        currentSizeKB = compressedBuffer.length / 1024;
+        console.log(`After quality reduction: ${currentSizeKB.toFixed(2)} KB`);
+      }
+      
+      // If still too large, resize more aggressively
+      if (currentSizeKB > maxSizeKB) {
+        const ratio = Math.sqrt((maxSizeKB * 0.8) / currentSizeKB);
+        width = Math.max(Math.round(width * ratio), 400);
+        height = Math.max(Math.round(height * ratio), 300);
+        
+        console.log(`Further resizing to ${width}x${height}`);
+        compressedBuffer = await sharp(imageBuffer)
+          .resize(width, height, { fit: 'inside', withoutEnlargement: true })
+          .jpeg({ quality: 60, mozjpeg: true })
+          .toBuffer();
+        
+        currentSizeKB = compressedBuffer.length / 1024;
+        console.log(`Final size: ${currentSizeKB.toFixed(2)} KB`);
+      }
+    } else {
+      // For smaller images, try quality reduction first (faster)
+      // Convert PNG to JPEG immediately for better compression
+      let quality = isPng ? 70 : 75; // Start lower for faster compression
       
       if (isPng) {
-        // For PNG, use compression level (0-9, higher = more compression)
-        const compressionLevel = Math.floor((100 - quality) / 10);
-        compressedBuffer = await sharpInstance
-          .png({ quality, compressionLevel: Math.min(compressionLevel, 9) })
-          .toBuffer();
-      } else {
-        // For JPEG and other formats, convert to JPEG with quality
-        compressedBuffer = await sharpInstance
+        // Convert PNG to JPEG immediately (JPEG compresses much better)
+        compressedBuffer = await sharp(imageBuffer)
           .jpeg({ quality, mozjpeg: true })
           .toBuffer();
-        mimeType = 'image/jpeg'; // Update mime type since we converted
+        mimeType = 'image/jpeg';
+      } else {
+        compressedBuffer = await sharp(imageBuffer)
+          .jpeg({ quality, mozjpeg: true })
+          .toBuffer();
       }
       
       currentSizeKB = compressedBuffer.length / 1024;
       console.log(`Compressed with quality ${quality}: ${currentSizeKB.toFixed(2)} KB`);
       
+      // If still too large, resize
       if (currentSizeKB > maxSizeKB) {
-        quality -= 10;
-      }
-    }
-    
-    // If still too large, resize the image and compress more aggressively
-    if (currentSizeKB > maxSizeKB) {
-      // Get original dimensions (already have metadata from above)
-      const originalWidth = metadata.width;
-      const originalHeight = metadata.height;
-      
-      // Calculate new dimensions (maintain aspect ratio)
-      // Use a more aggressive ratio to ensure we hit the target
-      const ratio = Math.sqrt((maxSizeKB * 0.9) / currentSizeKB); // 90% of target to be safe
-      width = Math.round(originalWidth * ratio);
-      height = Math.round(originalHeight * ratio);
-      
-      // Ensure minimum dimensions but allow smaller if needed
-      width = Math.max(width, 300);
-      height = Math.max(height, 200);
-      
-      console.log(`Resizing from ${originalWidth}x${originalHeight} to ${width}x${height}`);
-      
-      // Try with lower quality after resize
-      let resizeQuality = 70;
-      let resizeAttempts = 0;
-      
-      while (currentSizeKB > maxSizeKB && resizeQuality > 40 && resizeAttempts < 3) {
-        let sharpInstance = sharp(imageBuffer).resize(width, height, { 
-          fit: 'inside', 
-          withoutEnlargement: true 
-        });
+        const ratio = Math.sqrt((maxSizeKB * 0.9) / currentSizeKB);
+        const width = Math.max(Math.round(originalWidth * ratio), 400);
+        const height = Math.max(Math.round(originalHeight * ratio), 300);
         
-        if (isPng) {
-          compressedBuffer = await sharpInstance
-            .png({ quality: resizeQuality, compressionLevel: 9 })
-            .toBuffer();
-        } else {
-          compressedBuffer = await sharpInstance
-            .jpeg({ quality: resizeQuality, mozjpeg: true })
-            .toBuffer();
-          mimeType = 'image/jpeg'; // Update mime type since we converted
-        }
+        console.log(`Resizing from ${originalWidth}x${originalHeight} to ${width}x${height}`);
+        compressedBuffer = await sharp(imageBuffer)
+          .resize(width, height, { fit: 'inside', withoutEnlargement: true })
+          .jpeg({ quality: 60, mozjpeg: true })
+          .toBuffer();
         
+        mimeType = 'image/jpeg';
         currentSizeKB = compressedBuffer.length / 1024;
-        console.log(`After resize with quality ${resizeQuality}: ${currentSizeKB.toFixed(2)} KB`);
-        
-        if (currentSizeKB > maxSizeKB) {
-          resizeQuality -= 10;
-          resizeAttempts++;
-          // If still too large, reduce dimensions further
-          if (resizeAttempts >= 2) {
-            width = Math.round(width * 0.9);
-            height = Math.round(height * 0.9);
-            console.log(`Further reducing size to ${width}x${height}`);
-          }
-        }
+        console.log(`After resize: ${currentSizeKB.toFixed(2)} KB`);
       }
     }
     

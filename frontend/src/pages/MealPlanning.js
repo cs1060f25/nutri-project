@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { getLocations, getMenuByDate } from '../services/hudsService';
+import { getLocations, getMenuByDate, getTodaysMenu } from '../services/hudsService';
 import { getMealPlans, createMealPlan, deleteMealPlan, updateMealPlan } from '../services/mealPlanService';
 import { getActiveNutritionPlan } from '../services/nutritionPlanService';
 import { getTodayProgress } from '../services/nutritionProgressService';
+import { getMealLogs } from '../services/mealLogService';
 import CustomSelect from '../components/CustomSelect';
+import CreatePostModal from '../components/CreatePostModal';
 import './MealPlanning.css';
 
 const MEAL_TYPES = ['breakfast', 'lunch', 'dinner'];
@@ -128,6 +130,9 @@ const MealPlanning = () => {
   const [nutritionPlan, setNutritionPlan] = useState(null);
   const [dailyProgress, setDailyProgress] = useState(null);
   const [mealPlanToUpdate, setMealPlanToUpdate] = useState(null);
+  const [showCompleteModal, setShowCompleteModal] = useState(false);
+  const [completeModalScanData, setCompleteModalScanData] = useState(null);
+  const [isMealPlanCompleted, setIsMealPlanCompleted] = useState(false);
 
   // Calculate week dates
   const getWeekDates = () => {
@@ -143,7 +148,21 @@ const MealPlanning = () => {
   const weekDates = getWeekDates();
 
   // Format date as YYYY-MM-DD
+  // Handles both Date objects and date strings (YYYY-MM-DD format)
   const formatDate = (date) => {
+    // If it's already a string in YYYY-MM-DD format, return it
+    if (typeof date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      return date;
+    }
+    // If it's a string but not in the right format, try to parse it
+    if (typeof date === 'string') {
+      date = new Date(date);
+    }
+    // Ensure it's a Date object
+    if (!(date instanceof Date) || isNaN(date.getTime())) {
+      console.error('Invalid date passed to formatDate:', date);
+      return new Date().toISOString().split('T')[0]; // Return today's date as fallback
+    }
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
@@ -151,7 +170,17 @@ const MealPlanning = () => {
   };
 
   // Format date for display
+  // Handles both Date objects and date strings
   const formatDateDisplay = (date) => {
+    // If it's a string, convert to Date object
+    if (typeof date === 'string') {
+      date = new Date(date);
+    }
+    // Ensure it's a Date object
+    if (!(date instanceof Date) || isNaN(date.getTime())) {
+      console.error('Invalid date passed to formatDateDisplay:', date);
+      date = new Date(); // Use today as fallback
+    }
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
 
@@ -305,6 +334,40 @@ const MealPlanning = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [accessToken, currentWeekStart]);
 
+  // Listen for meal log updates to refresh completion status
+  useEffect(() => {
+    const handleMealLogUpdated = async () => {
+      if (selectedMealPlan && accessToken) {
+        try {
+          // Query only by date to avoid index requirement, then filter by meal type in memory
+          const mealLogs = await getMealLogs({
+            startDate: selectedMealPlan.date,
+            endDate: selectedMealPlan.date,
+          }, accessToken);
+          
+          // Compare case-insensitively since meal plans use lowercase but meal logs might use capitalized
+          // Normalize dates to YYYY-MM-DD format for comparison
+          const isCompleted = mealLogs.meals && mealLogs.meals.some(meal => {
+            const mealDateStr = meal.mealDate ? String(meal.mealDate).split('T')[0] : '';
+            const planDateStr = selectedMealPlan.date ? String(selectedMealPlan.date).split('T')[0] : '';
+            const dateMatch = mealDateStr === planDateStr;
+            const typeMatch = meal.mealType?.toLowerCase() === selectedMealPlan.mealType?.toLowerCase();
+            return dateMatch && typeMatch;
+          });
+          
+          setIsMealPlanCompleted(isCompleted || false);
+        } catch (error) {
+          console.error('Error checking meal plan completion:', error);
+        }
+      }
+    };
+
+    window.addEventListener('mealLogUpdated', handleMealLogUpdated);
+    return () => {
+      window.removeEventListener('mealLogUpdated', handleMealLogUpdated);
+    };
+  }, [selectedMealPlan, accessToken]);
+
   // Get meal plan for a specific date and meal type
   const getMealPlanForCell = (date, mealType) => {
     const dateStr = formatDate(date);
@@ -382,6 +445,10 @@ const MealPlanning = () => {
     try {
       setMenuLoading(true);
       
+      // Check if the selected date is today
+      const today = formatDate(new Date());
+      const isToday = date === today;
+      
       // Find the selected location to check if it's a shared-menu house
       const selectedLocation = locations.find(loc => loc.location_number === locationId);
       const isSharedMenuHouse = selectedLocation && SHARED_MENU_HOUSES.some(house => 
@@ -396,14 +463,23 @@ const MealPlanning = () => {
         // Try to fetch from the selected location first, or use a known working location
         // Since they share menus, we only need to fetch from one location
         try {
-          menuData = await getMenuByDate(date, locationId);
+          if (isToday) {
+            // Use getTodaysMenu for today (same as home page)
+            menuData = await getTodaysMenu(locationId);
+          } else {
+            menuData = await getMenuByDate(date, locationId);
+          }
         } catch (error) {
           // If the selected location fails, try a few common location numbers
           const fallbackLocations = ['38', '05', '07'];
           let success = false;
           for (const fallbackLoc of fallbackLocations) {
             try {
-              menuData = await getMenuByDate(date, fallbackLoc);
+              if (isToday) {
+                menuData = await getTodaysMenu(fallbackLoc);
+              } else {
+                menuData = await getMenuByDate(date, fallbackLoc);
+              }
               success = true;
               break;
             } catch (err) {
@@ -416,7 +492,12 @@ const MealPlanning = () => {
         }
       } else {
         // For non-shared houses (like Quincy), fetch their specific menu
-        menuData = await getMenuByDate(date, locationId);
+        if (isToday) {
+          // Use getTodaysMenu for today (same as home page)
+          menuData = await getTodaysMenu(locationId);
+        } else {
+          menuData = await getMenuByDate(date, locationId);
+        }
       }
       
       // Flatten menu structure to get all items
@@ -598,15 +679,72 @@ const MealPlanning = () => {
     setSelectedMealPlan(plan);
     setIsSidePanelOpen(true);
     
+    // Check if this meal plan has been completed (has a matching meal log)
+    if (accessToken) {
+      try {
+        // Query only by date to avoid index requirement, then filter by meal type in memory
+        const mealLogs = await getMealLogs({
+          startDate: plan.date,
+          endDate: plan.date,
+        }, accessToken);
+        
+        // Check if there's a meal log matching this meal plan's date and meal type
+        // Compare case-insensitively since meal plans use lowercase but meal logs might use capitalized
+        console.log('Checking completion for meal plan:', {
+          planDate: plan.date,
+          planMealType: plan.mealType,
+          mealLogsCount: mealLogs.meals?.length || 0,
+          mealLogs: mealLogs.meals?.map(m => ({ date: m.mealDate, type: m.mealType })) || []
+        });
+        
+        const isCompleted = mealLogs.meals && mealLogs.meals.some(meal => {
+          // Normalize dates to YYYY-MM-DD format for comparison
+          const mealDateStr = meal.mealDate ? String(meal.mealDate).split('T')[0] : '';
+          const planDateStr = plan.date ? String(plan.date).split('T')[0] : '';
+          const dateMatch = mealDateStr === planDateStr;
+          
+          // Compare meal types case-insensitively
+          const typeMatch = meal.mealType?.toLowerCase() === plan.mealType?.toLowerCase();
+          
+          console.log('Comparing:', {
+            mealDate: meal.mealDate,
+            mealDateStr,
+            planDate: plan.date,
+            planDateStr,
+            dateMatch,
+            mealType: meal.mealType,
+            planMealType: plan.mealType,
+            typeMatch,
+            overallMatch: dateMatch && typeMatch
+          });
+          return dateMatch && typeMatch;
+        });
+        
+        console.log('Meal plan completed:', isCompleted);
+        setIsMealPlanCompleted(isCompleted || false);
+      } catch (error) {
+        console.error('Error checking meal plan completion:', error);
+        setIsMealPlanCompleted(false);
+      }
+    }
+    
     // Fetch daily progress for the meal plan's date
     // Only fetch if the date is today (since we only have today's progress endpoint)
-    const planDate = new Date(plan.date);
-    const today = new Date();
-    const isToday = planDate.toDateString() === today.toDateString();
+    const planDateStr = plan.date ? String(plan.date).split('T')[0] : '';
+    const todayStr = formatDate(new Date());
+    const isToday = planDateStr === todayStr;
+    
+    console.log('Fetching progress for meal plan:', { 
+      planDate: plan.date, 
+      planDateStr, 
+      todayStr, 
+      isToday 
+    });
     
     if (isToday && accessToken) {
       try {
         const progress = await getTodayProgress(accessToken);
+        console.log('Fetched progress:', progress);
         setDailyProgress(progress);
       } catch (error) {
         console.error('Error fetching daily progress:', error);
@@ -614,6 +752,7 @@ const MealPlanning = () => {
       }
     } else {
       // For future dates, we don't have progress data yet
+      console.log('Not today, setting dailyProgress to null');
       setDailyProgress(null);
     }
   };
@@ -650,6 +789,51 @@ const MealPlanning = () => {
       console.error('Error deleting meal plan:', error);
       alert('Failed to delete meal plan: ' + error.message);
     }
+  };
+
+  // Handle complete meal plan - open create post modal with pre-filled data
+  const handleCompleteMealPlan = () => {
+    if (!selectedMealPlan) return;
+
+    // Calculate nutrition totals from meal plan
+    const totals = calculateNutritionTotals(selectedMealPlan);
+    
+    // Convert meal plan items to matchedItems format (for scanData)
+    // Backend expects: calories, protein, carbs, fat (not totalCarb/totalFat)
+    const matchedItems = selectedMealPlan.selectedItems.map((item, idx) => ({
+      predictedName: item.name || `Item ${idx + 1}`,
+      matchedName: item.name || `Item ${idx + 1}`,
+      estimatedServings: 1,
+      nutrition: {
+        calories: item.calories || 0,
+        protein: item.protein || 0,
+        carbs: item.totalCarb || 0, // totalCarb from meal plan -> carbs for backend
+        fat: item.totalFat || 0,   // totalFat from meal plan -> fat for backend
+      },
+      id: item.id || `item-${idx}`,
+      name: item.name,
+      calories: item.calories || 0,
+      protein: item.protein || 0,
+      carbs: item.totalCarb || 0,  // Use 'carbs' not 'totalCarb' for backend
+      fat: item.totalFat || 0,     // Use 'fat' not 'totalFat' for backend
+      recipeId: item.id || null,
+      recipeName: item.name || 'Unknown dish',
+    }));
+
+    // Create scanData format for CreatePostModal
+    const scanData = {
+      matchedItems,
+      unmatchedDishes: [],
+      calories: totals?.calories || 0,
+      protein: totals?.protein || 0,
+      carbs: totals?.totalCarb || 0,
+      fat: totals?.totalFat || 0,
+      timestamp: new Date().toISOString(),
+    };
+
+    setCompleteModalScanData(scanData);
+    setShowCompleteModal(true);
+    setIsSidePanelOpen(false);
   };
 
   // Handle update meal plan - open modal with pre-filled data
@@ -935,9 +1119,14 @@ const MealPlanning = () => {
                           {(() => {
                             // Helper to get current consumption from progress data
                             const getCurrentConsumption = (metricKey) => {
-                              if (!dailyProgress || !dailyProgress.progress) return 0;
+                              if (!dailyProgress || !dailyProgress.progress) {
+                                console.log('No dailyProgress or progress:', { dailyProgress, metricKey });
+                                return 0;
+                              }
                               const metric = dailyProgress.progress[metricKey];
-                              return metric?.current || 0;
+                              const value = metric?.current || 0;
+                              console.log('Current consumption:', { metricKey, metric, value });
+                              return value;
                             };
 
                             // Helper to calculate percentages
@@ -966,19 +1155,31 @@ const MealPlanning = () => {
                                         const mealValue = totals.calories || 0;
                                         const currentPercent = calculatePercentage(current, goals.calories);
                                         const mealPercent = calculatePercentage(mealValue, goals.calories);
+                                        console.log('Calories progress:', { 
+                                          current, 
+                                          mealValue, 
+                                          currentPercent, 
+                                          mealPercent, 
+                                          goals: goals.calories,
+                                          dailyProgress 
+                                        });
                                         return (
                                           <>
-                                            <div 
-                                              className="goal-progress-fill goal-progress-current"
-                                              style={{ width: `${currentPercent}%` }}
-                                            ></div>
-                                            <div 
-                                              className="goal-progress-fill goal-progress-meal"
-                                              style={{ 
-                                                width: `${mealPercent}%`,
-                                                left: `${currentPercent}%`
-                                              }}
-                                            ></div>
+                                            {current > 0 && (
+                                              <div 
+                                                className={`goal-progress-fill goal-progress-current ${isMealPlanCompleted ? 'goal-progress-completed' : ''}`}
+                                                style={{ width: `${Math.max(currentPercent, 1)}%` }}
+                                              ></div>
+                                            )}
+                                            {mealPercent > 0 && (
+                                              <div 
+                                                className={`goal-progress-fill goal-progress-meal ${isMealPlanCompleted ? 'goal-progress-completed' : ''}`}
+                                                style={{ 
+                                                  width: `${mealPercent}%`,
+                                                  left: `${currentPercent}%`
+                                                }}
+                                              ></div>
+                                            )}
                                           </>
                                         );
                                       })()}
@@ -1006,11 +1207,11 @@ const MealPlanning = () => {
                                         return (
                                           <>
                                             <div 
-                                              className="goal-progress-fill goal-progress-current"
+                                              className={`goal-progress-fill goal-progress-current ${isMealPlanCompleted ? 'goal-progress-completed' : ''}`}
                                               style={{ width: `${currentPercent}%` }}
                                             ></div>
                                             <div 
-                                              className="goal-progress-fill goal-progress-meal"
+                                              className={`goal-progress-fill goal-progress-meal ${isMealPlanCompleted ? 'goal-progress-completed' : ''}`}
                                               style={{ 
                                                 width: `${mealPercent}%`,
                                                 left: `${currentPercent}%`
@@ -1043,11 +1244,11 @@ const MealPlanning = () => {
                                         return (
                                           <>
                                             <div 
-                                              className="goal-progress-fill goal-progress-current"
+                                              className={`goal-progress-fill goal-progress-current ${isMealPlanCompleted ? 'goal-progress-completed' : ''}`}
                                               style={{ width: `${currentPercent}%` }}
                                             ></div>
                                             <div 
-                                              className="goal-progress-fill goal-progress-meal"
+                                              className={`goal-progress-fill goal-progress-meal ${isMealPlanCompleted ? 'goal-progress-completed' : ''}`}
                                               style={{ 
                                                 width: `${mealPercent}%`,
                                                 left: `${currentPercent}%`
@@ -1080,11 +1281,11 @@ const MealPlanning = () => {
                                         return (
                                           <>
                                             <div 
-                                              className="goal-progress-fill goal-progress-current"
+                                              className={`goal-progress-fill goal-progress-current ${isMealPlanCompleted ? 'goal-progress-completed' : ''}`}
                                               style={{ width: `${currentPercent}%` }}
                                             ></div>
                                             <div 
-                                              className="goal-progress-fill goal-progress-meal"
+                                              className={`goal-progress-fill goal-progress-meal ${isMealPlanCompleted ? 'goal-progress-completed' : ''}`}
                                               style={{ 
                                                 width: `${mealPercent}%`,
                                                 left: `${currentPercent}%`
@@ -1114,15 +1315,58 @@ const MealPlanning = () => {
             </div>
 
             <div className="side-panel-footer">
-              <button className="btn btn-secondary" onClick={handleUpdate}>
-                Update
+              <button 
+                className={`btn btn-primary ${isMealPlanCompleted ? 'btn-completed' : ''}`}
+                onClick={handleCompleteMealPlan}
+                disabled={isMealPlanCompleted}
+              >
+                {isMealPlanCompleted ? 'Completed' : 'Complete'}
               </button>
-              <button className="btn btn-danger" onClick={handleDelete}>
-                Delete
-              </button>
+              <div className="side-panel-footer-right">
+                <button className="btn btn-secondary" onClick={handleUpdate}>
+                  Update
+                </button>
+                <button className="btn btn-danger" onClick={handleDelete}>
+                  Delete
+                </button>
+              </div>
             </div>
           </div>
         </div>
+      )}
+
+      {/* Complete Meal Plan Modal (Create Post) */}
+      {showCompleteModal && completeModalScanData && selectedMealPlan && (
+        <CreatePostModal
+          isOpen={showCompleteModal}
+          onClose={() => {
+            setShowCompleteModal(false);
+            setCompleteModalScanData(null);
+            // Re-check if meal plan is completed after closing
+            if (selectedMealPlan && accessToken) {
+              // Query only by date to avoid index requirement, then filter by meal type in memory
+              getMealLogs({
+                startDate: selectedMealPlan.date,
+                endDate: selectedMealPlan.date,
+              }, accessToken).then(mealLogs => {
+                const isCompleted = mealLogs.meals && mealLogs.meals.some(meal => 
+                  meal.mealDate === selectedMealPlan.date &&
+                  meal.mealType === selectedMealPlan.mealType
+                );
+                setIsMealPlanCompleted(isCompleted || false);
+              }).catch(err => console.error('Error checking completion:', err));
+            }
+          }}
+          scanData={completeModalScanData}
+          imageUrl={null}
+          imageFile={null}
+          initialData={{
+            locationId: selectedMealPlan.locationId,
+            locationName: selectedMealPlan.locationName,
+            mealDate: selectedMealPlan.date,
+            mealType: selectedMealPlan.mealType,
+          }}
+        />
       )}
 
       {/* Add Meal Plan Modal */}

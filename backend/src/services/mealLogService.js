@@ -112,6 +112,7 @@ const getMealLogs = async (userId, filters = {}) => {
     .collection(MEALS_SUBCOLLECTION);
 
   let query = mealsRef;
+  const hasDateFilters = filters.startDate || filters.endDate;
 
   // Apply filters
   if (filters.startDate) {
@@ -124,12 +125,18 @@ const getMealLogs = async (userId, filters = {}) => {
     query = query.where('mealType', '==', filters.mealType);
   }
 
-  // Order by timestamp descending (most recent first)
-  query = query.orderBy('timestamp', 'desc');
+  // Only order by timestamp if we don't have date range filters
+  // (date range + orderBy requires a composite index)
+  // If we have date filters, we'll sort in memory instead
+  if (!hasDateFilters) {
+    query = query.orderBy('timestamp', 'desc');
+  }
 
-  // Limit results
+  // Limit results (apply before sorting in memory if needed)
   const limit = filters.limit || 50;
-  query = query.limit(limit);
+  if (!hasDateFilters) {
+    query = query.limit(limit);
+  }
 
   const snapshot = await query.get();
   
@@ -143,6 +150,20 @@ const getMealLogs = async (userId, filters = {}) => {
       updatedAt: doc.data().updatedAt?.toDate(),
     });
   });
+
+  // Sort in memory if we had date filters (to avoid index requirement)
+  if (hasDateFilters) {
+    meals.sort((a, b) => {
+      const aTime = a.timestamp?.getTime() || 0;
+      const bTime = b.timestamp?.getTime() || 0;
+      return bTime - aTime; // Descending (most recent first)
+    });
+    
+    // Apply limit after sorting
+    if (meals.length > limit) {
+      meals.splice(limit);
+    }
+  }
 
   return meals;
 };

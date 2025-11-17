@@ -253,10 +253,11 @@ const createPostFromScan = async (userId, scanData) => {
         recipeName: item.recipeName || 'Unknown dish',
         quantity: item.quantity || 1,
         servingSize: item.servingSize || '1 serving',
+        // Format nutrition values with units (required for calculateTotals to parse correctly)
         calories: String(item.calories || 0),
-        protein: String(item.protein || 0),
-        totalCarb: String(item.carbs || 0),
-        totalFat: String(item.fat || 0),
+        protein: `${item.protein || 0}g`,
+        totalCarb: `${item.carbs || 0}g`,
+        totalFat: `${item.fat || 0}g`,
         // Set defaults for missing nutrition fields
         saturatedFat: '0g',
         transFat: '0g',
@@ -269,6 +270,21 @@ const createPostFromScan = async (userId, scanData) => {
       const mealDate = scanData.mealDate || new Date().toISOString().split('T')[0];
       const mealTimestamp = scanData.timestamp ? new Date(scanData.timestamp) : new Date();
 
+      console.log('Creating meal log with:', {
+        mealDate,
+        mealType: scanData.mealType,
+        locationId: scanData.locationId,
+        locationName: scanData.locationName,
+        itemsCount: mealLogItems.length,
+        firstItem: mealLogItems[0] ? {
+          recipeName: mealLogItems[0].recipeName,
+          calories: mealLogItems[0].calories,
+          protein: mealLogItems[0].protein,
+          totalCarb: mealLogItems[0].totalCarb,
+          totalFat: mealLogItems[0].totalFat,
+        } : null,
+      });
+
       try {
         await mealLogService.createMealLog(userId, userData.email || '', {
           mealDate,
@@ -279,7 +295,7 @@ const createPostFromScan = async (userId, scanData) => {
           items: mealLogItems,
           timestamp: mealTimestamp,
         });
-        console.log('Meal log created successfully for post');
+        console.log('✅ Meal log created successfully for post with date:', mealDate);
       } catch (mealLogError) {
         // Log error but don't fail the post creation
         console.error('Error creating meal log for post:', mealLogError);

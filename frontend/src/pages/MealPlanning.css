@@ -599,8 +599,14 @@
   border-top: 1px solid #e0e0e0;
   display: flex;
   gap: 1rem;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: center;
   background: #f8f9fa;
+}
+
+.side-panel-footer-right {
+  display: flex;
+  gap: 1rem;
 }
 
 .side-panel-footer .btn {
@@ -610,6 +616,37 @@
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
+}
+
+.side-panel-footer .btn-primary {
+  background-color: #1a5f3f;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.side-panel-footer .btn-primary:hover:not(:disabled) {
+  background-color: #2d6a4f;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(26, 95, 63, 0.3);
+}
+
+.side-panel-footer .btn-primary:disabled,
+.side-panel-footer .btn-primary.btn-completed {
+  background-color: #28a745;
+  color: white;
+  cursor: not-allowed;
+  opacity: 1;
+}
+
+.side-panel-footer .btn-primary.btn-completed:hover {
+  background-color: #28a745;
+  transform: none;
+  box-shadow: none;
 }
 
 .side-panel-footer .btn-secondary {
@@ -765,7 +802,6 @@
 
 .goal-progress-fill {
   height: 100%;
-  border-radius: 4px;
   transition: width 0.3s ease, left 0.3s ease;
   position: absolute;
   top: 0;
@@ -773,7 +809,8 @@
 }
 
 .goal-progress-current {
-  background: linear-gradient(90deg, #52b788, #95d5b2);
+  background: #28a745; /* Green for completed progress */
+  border-radius: 4px 0 0 4px; /* Only round left side */
   z-index: 1;
 }
 
@@ -784,8 +821,27 @@
     #9e9e9e 4px,
     #bdbdbd 4px,
     #bdbdbd 8px
-  );
+  ); /* Grey with diagonal stripes for meal plan addition */
+  border-radius: 0 4px 4px 0; /* Only round right side */
   z-index: 2;
+}
+
+/* When green bar is alone (no grey bar after it), round the right side */
+.goal-progress-current:only-child {
+  border-radius: 4px;
+}
+
+/* When grey bar is alone (no green bar before it), round the left side */
+.goal-progress-meal:only-child {
+  border-radius: 4px;
+}
+
+.goal-progress-meal.goal-progress-completed {
+  background: #28a745;
+}
+
+.goal-progress-current.goal-progress-completed {
+  background: #28a745;
 }
 
 .no-goals-message {

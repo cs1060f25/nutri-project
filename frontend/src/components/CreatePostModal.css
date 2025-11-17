@@ -70,6 +70,61 @@
   display: block;
 }
 
+.create-post-modal-image-upload {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.create-post-modal-file-input {
+  padding: 0.75rem;
+  border: 2px dashed #d1d5db;
+  border-radius: 8px;
+  background: #f9fafb;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 0.875rem;
+  color: #374151;
+}
+
+.create-post-modal-file-input:hover {
+  border-color: #1a5f3f;
+  background: #f0f9f4;
+}
+
+.create-post-modal-image-preview {
+  position: relative;
+  width: 100%;
+  margin-top: 0.5rem;
+}
+
+.create-post-modal-image-preview img {
+  width: 100%;
+  height: auto;
+  max-height: 300px;
+  object-fit: contain;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+}
+
+.create-post-modal-remove-image {
+  margin-top: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: #dc3545;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.create-post-modal-remove-image:hover {
+  background: #c82333;
+  transform: translateY(-1px);
+}
+
 .create-post-modal-field {
   margin-bottom: 1.5rem;
 }
