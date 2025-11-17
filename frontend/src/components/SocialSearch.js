@@ -246,7 +246,7 @@ const SocialSearch = () => {
           <h3 style={{ marginBottom: '1.5rem' }}>Dining Halls ({locations.length})</h3>
           {locations.map((location) => (
             <div
-              key={location.locationId}
+              key={location.uniqueId || `${location.locationId}-${location.locationName}`}
               className="search-result-card"
               style={{ cursor: 'pointer' }}
               onClick={() => handleLocationClick(location)}

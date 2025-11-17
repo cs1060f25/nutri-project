@@ -737,6 +737,7 @@ module.exports = async (req, res) => {
 
     if (req.method === 'GET' && path === '/search/locations') {
       const q = req.query.q || '';
+      console.log('Search locations query:', q);
       
       // Get all locations from HUDS API
       const HUDS_BASE_URL = process.env.HUDS_API_BASE_URL || 'https://go.prod.apis.huit.harvard.edu/ats/dining/v3';
@@ -774,37 +775,90 @@ module.exports = async (req, res) => {
         return trimmed;
       };
 
+      // Helper to generate a unique ID from location name
+      const generateUniqueId = (locationName) => {
+        // Create a simple hash from the location name
+        let hash = 0;
+        const str = locationName.toLowerCase().trim();
+        for (let i = 0; i < str.length; i++) {
+          const char = str.charCodeAt(i);
+          hash = ((hash << 5) - hash) + char;
+          hash = hash & hash; // Convert to 32-bit integer
+        }
+        // Return positive hash with prefix to ensure uniqueness
+        return `loc-${Math.abs(hash)}-${str.replace(/\s+/g, '-')}`;
+      };
+
       // Expand locations that contain multiple houses (same logic as backend)
-      const expandedLocations = [];
+      // Use a Map to ensure each house name appears only once with a unique ID
+      const locationMap = new Map();
+      
       hudsLocations.forEach(loc => {
         const locationName = loc.location_name;
         
         if (locationName && locationName.includes(' and ')) {
           const houses = locationName.split(' and ').map(h => h.trim());
           houses.forEach(house => {
-            expandedLocations.push({
-              location_number: loc.location_number,
-              location_name: normalizeHouseName(house),
-              original_name: locationName
-            });
+            const normalizedName = normalizeHouseName(house);
+            // Generate unique ID based on normalized name
+            const uniqueId = generateUniqueId(normalizedName);
+            
+            // Only add if we haven't seen this exact house name before
+            if (!locationMap.has(normalizedName.toLowerCase())) {
+              locationMap.set(normalizedName.toLowerCase(), {
+                location_number: loc.location_number,
+                location_name: normalizedName,
+                original_name: locationName,
+                uniqueId: uniqueId
+              });
+            }
           });
         } else {
-          expandedLocations.push({
-            location_number: loc.location_number,
-            location_name: normalizeHouseName(locationName),
-            original_name: locationName
-          });
+          const normalizedName = normalizeHouseName(locationName);
+          // Generate unique ID based on normalized name
+          const uniqueId = generateUniqueId(normalizedName);
+          
+          // Only add if we haven't seen this exact house name before
+          if (!locationMap.has(normalizedName.toLowerCase())) {
+            locationMap.set(normalizedName.toLowerCase(), {
+              location_number: loc.location_number,
+              location_name: normalizedName,
+              original_name: locationName,
+              uniqueId: uniqueId
+            });
+          }
         }
       });
+
+      // Convert map to array
+      const expandedLocations = Array.from(locationMap.values());
 
       // Filter by search query if provided
       let filteredLocations = expandedLocations;
       if (q && q.trim().length > 0) {
         const searchTerm = q.trim().toLowerCase();
-        filteredLocations = expandedLocations.filter(loc => 
-          loc.location_name.toLowerCase().includes(searchTerm) ||
-          loc.original_name.toLowerCase().includes(searchTerm)
-        );
+        console.log('Filtering with search term:', searchTerm);
+        console.log('Expanded locations before filter:', expandedLocations.map(l => l.location_name));
+        
+        filteredLocations = expandedLocations.filter(loc => {
+          // Only match against the specific location name, not the original combined name
+          // This ensures "dunster" only matches "Dunster House", not "Mather House"
+          const locationNameLower = loc.location_name.toLowerCase();
+          
+          // Split into words and check if search term matches the start of any main word
+          // (excluding "house", "hall", etc.)
+          const nameWords = locationNameLower.split(/\s+/);
+          const mainWords = nameWords.filter(word => !['house', 'hall', 'and'].includes(word));
+          
+          // Check if search term matches the beginning of any main word
+          // This ensures "dunster" matches "Dunster House" but not "Mather House"
+          // Only match if the search term starts a word (not just appears anywhere)
+          const matches = mainWords.some(word => word.startsWith(searchTerm));
+          console.log(`Location "${loc.location_name}": mainWords=[${mainWords.join(', ')}], matches=${matches}`);
+          return matches;
+        });
+        
+        console.log('Filtered locations after filter:', filteredLocations.map(l => l.location_name));
       }
 
       // Get post counts for each location
@@ -822,24 +876,35 @@ module.exports = async (req, res) => {
       });
 
       // Build response with post counts
-      const locations = filteredLocations.map(loc => {
-        // Try to match posts by location number or name
-        let postCount = 0;
-        for (const [key, count] of postCountMap.entries()) {
-          const [postLocationId, postLocationName] = key.split('|');
-          if (postLocationId === loc.location_number || 
-              postLocationName === loc.location_name ||
-              postLocationName === loc.original_name) {
-            postCount += count;
-          }
-        }
+      // Use a Map to deduplicate by location name (case-insensitive)
+      const uniqueLocationsMap = new Map();
+      
+      filteredLocations.forEach(loc => {
+        const locationNameKey = loc.location_name.toLowerCase();
         
-        return {
-          locationId: loc.location_number,
-          locationName: loc.location_name,
-          postCount: postCount
-        };
+        // Only keep the first occurrence of each location name
+        if (!uniqueLocationsMap.has(locationNameKey)) {
+          // Try to match posts by location number or name
+          let postCount = 0;
+          for (const [key, count] of postCountMap.entries()) {
+            const [postLocationId, postLocationName] = key.split('|');
+            if (postLocationId === loc.location_number || 
+                postLocationName === loc.location_name ||
+                postLocationName === loc.original_name) {
+              postCount += count;
+            }
+          }
+          
+          uniqueLocationsMap.set(locationNameKey, {
+            locationId: loc.location_number, // Keep original for API compatibility
+            locationName: loc.location_name,
+            postCount: postCount,
+            uniqueId: loc.uniqueId // Use this for React keys
+          });
+        }
       });
+      
+      const locations = Array.from(uniqueLocationsMap.values());
 
       const limit = parseInt(req.query.limit || 20, 10);
       return res.status(200).json({ locations: locations.slice(0, limit), count: locations.length });

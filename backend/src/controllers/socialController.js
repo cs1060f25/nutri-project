@@ -469,10 +469,21 @@ const searchLocations = async (req, res) => {
     let filteredLocations = expandedLocations;
     if (q && q.trim().length > 0) {
       const searchTerm = q.trim().toLowerCase();
-      filteredLocations = expandedLocations.filter(loc => 
-        loc.location_name.toLowerCase().includes(searchTerm) ||
-        loc.original_name.toLowerCase().includes(searchTerm)
-      );
+      filteredLocations = expandedLocations.filter(loc => {
+        // Only match against the specific location name, not the original combined name
+        // This ensures "dunster" only matches "Dunster House", not "Mather House"
+        const locationNameLower = loc.location_name.toLowerCase();
+        
+        // Split into words and check if search term matches the start of any main word
+        // (excluding "house", "hall", etc.)
+        const nameWords = locationNameLower.split(/\s+/);
+        const mainWords = nameWords.filter(word => !['house', 'hall', 'and'].includes(word));
+        
+        // Check if search term matches the beginning of any main word
+        // This ensures "dunster" matches "Dunster House" but not "Mather House"
+        // Only match if the search term starts a word (not just appears anywhere)
+        return mainWords.some(word => word.startsWith(searchTerm));
+      });
     }
 
     // Get post counts for each location
