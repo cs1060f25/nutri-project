@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { Search as SearchIcon } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { searchUsers, searchLocations, sendFriendRequest, getFriends, followDiningHall, unfollowDiningHall, getFollowedDiningHalls } from '../services/socialService';
+import { searchUsers, searchLocations, sendFriendRequest, getFriends, followDiningHall, unfollowDiningHall, getFollowedDiningHalls, getFriendRequests } from '../services/socialService';
 import { getPostsByLocationName } from '../services/socialService';
 import PostCard from './PostCard';
 import '../pages/Social.css';
@@ -24,11 +25,23 @@ const SocialSearch = () => {
     const fetchData = async () => {
       if (accessToken) {
         try {
-          const [friendsData, diningHallsData] = await Promise.all([
+          const [friendsData, diningHallsData, sentRequestsData] = await Promise.all([
             getFriends(accessToken),
             getFollowedDiningHalls(accessToken),
+            getFriendRequests('sent', accessToken),
           ]);
           setFriends(friendsData.friends || []);
+          
+          // Build friend request status map from sent requests
+          const requestStatusMap = {};
+          if (sentRequestsData.requests) {
+            sentRequestsData.requests.forEach(request => {
+              if (request.toUserId) {
+                requestStatusMap[request.toUserId] = 'sent';
+              }
+            });
+          }
+          setFriendRequestStatus(requestStatusMap);
           
           // Build following status map using composite key
           const statusMap = {};
@@ -53,6 +66,25 @@ const SocialSearch = () => {
       if (searchType === 'users') {
         const data = await searchUsers(searchQuery, 20, accessToken);
         setUsers(data.users || []);
+        
+        // Check for existing friend requests for the searched users
+        if (data.users && data.users.length > 0) {
+          try {
+            const sentRequestsData = await getFriendRequests('sent', accessToken);
+            const requestStatusMap = { ...friendRequestStatus };
+            if (sentRequestsData.requests) {
+              sentRequestsData.requests.forEach(request => {
+                if (request.toUserId && data.users.some(u => u.id === request.toUserId)) {
+                  requestStatusMap[request.toUserId] = 'sent';
+                }
+              });
+            }
+            setFriendRequestStatus(requestStatusMap);
+          } catch (err) {
+            console.error('Error fetching friend requests:', err);
+            // Don't fail the search if this fails
+          }
+        }
       } else {
         const data = await searchLocations(searchQuery, 20, accessToken);
         setLocations(data.locations || []);
@@ -83,7 +115,12 @@ const SocialSearch = () => {
       setShowSuccessModal(true);
     } catch (err) {
       console.error('Error sending friend request:', err);
+      // If request already sent, update status instead of showing error
+      if (err.message && err.message.includes('already sent')) {
+        setFriendRequestStatus((prev) => ({ ...prev, [userId]: 'sent' }));
+      } else {
       alert('Failed to send friend request: ' + err.message);
+      }
     }
   };
 
@@ -202,8 +239,9 @@ const SocialSearch = () => {
             onChange={(e) => setSearchQuery(e.target.value)}
             onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
           />
-          <button className="btn btn-primary" onClick={handleSearch} disabled={loading}>
-            {loading ? 'Searching...' : 'Search'}
+          <button className="btn btn-primary search-button" onClick={handleSearch} disabled={loading}>
+            <SearchIcon size={18} className="search-icon" />
+            <span className="search-button-text">{loading ? 'Searching...' : 'Search'}</span>
           </button>
         </div>
       </div>

@@ -39,17 +39,17 @@ const Insights = () => {
 
   const fetchData = useCallback(async () => {
     if (!accessToken) return;
-    
-    setLoading(true);
-    setError('');
-    try {
-      const result = await getRangeProgress(activeRange, accessToken);
-      setData(result);
-    } catch (err) {
-      setError(err.message || 'Failed to load insights');
-    } finally {
-      setLoading(false);
-    }
+
+      setLoading(true);
+      setError('');
+      try {
+        const result = await getRangeProgress(activeRange, accessToken);
+        setData(result);
+      } catch (err) {
+        setError(err.message || 'Failed to load insights');
+      } finally {
+        setLoading(false);
+      }
   }, [accessToken, activeRange]);
 
   useEffect(() => {

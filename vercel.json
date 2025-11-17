@@ -11,10 +11,10 @@
     { "source": "/api/meals/:path*", "destination": "/api/meals" },
     { "source": "/api/meal-plans/:path*", "destination": "/api/meal-plans" },
     { "source": "/api/saved-meal-plans/:path*", "destination": "/api/meal-plans" },
-      { "source": "/api/social/:path*", "destination": "/api/social" },
+    { "source": "/api/social/:path*", "destination": "/api/social" },
       { "source": "/api/photo-upload", "destination": "/api/social" },
       { "source": "/api/analyze-meal", "destination": "/api/analyze-meal" },
-      { "source": "/api/nutrition-progress/:path*", "destination": "/api/nutrition-progress" },
+    { "source": "/api/nutrition-progress/:path*", "destination": "/api/nutrition-progress" },
     { "source": "/api/leaderboard/:path*", "destination": "/api/leaderboard" },
     { "source": "/test-env", "destination": "/api/test-env" },
     { "source": "/(.*)", "destination": "/index.html" }

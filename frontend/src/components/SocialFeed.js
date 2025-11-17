@@ -103,19 +103,19 @@ const SocialFeed = () => {
     <div className="social-feed">
       <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginTop: '1rem', marginBottom: '1.5rem' }}>
         <div style={{ display: 'flex', gap: '1rem', flex: 1 }}>
-          <button
-            className={`btn ${activeTab === 'friends' ? 'btn-primary' : 'btn-secondary'}`}
-            onClick={() => setActiveTab('friends')}
-          >
-            Friends
-          </button>
-          <button
-            className={`btn ${activeTab === 'dining-halls' ? 'btn-primary' : 'btn-secondary'}`}
-            onClick={() => setActiveTab('dining-halls')}
-          >
-            Dining Halls
-          </button>
-        </div>
+        <button
+          className={`btn ${activeTab === 'friends' ? 'btn-primary' : 'btn-secondary'}`}
+          onClick={() => setActiveTab('friends')}
+        >
+          Friends
+        </button>
+        <button
+          className={`btn ${activeTab === 'dining-halls' ? 'btn-primary' : 'btn-secondary'}`}
+          onClick={() => setActiveTab('dining-halls')}
+        >
+          Dining Halls
+        </button>
+      </div>
         {posts.length > 0 && (
           <button
             className={`btn ${showFilters ? 'btn-primary' : 'btn-secondary'}`}
@@ -130,7 +130,7 @@ const SocialFeed = () => {
             title="Toggle filters"
           >
             <Filter size={18} />
-            Filter
+            <span className="filter-button-text">Filter</span>
             {(filterDiningHall || filterVisibility || filterRating || filterMealType) && (
               <span style={{
                 position: 'absolute',
@@ -261,7 +261,7 @@ const SocialFeed = () => {
             Showing {filteredPosts.length} of {posts.length} posts
           </p>
           {filteredPosts.map((post) => (
-            <PostCard key={post.id} post={post} />
+          <PostCard key={post.id} post={post} />
           ))}
         </>
       )}

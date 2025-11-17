@@ -43,19 +43,22 @@
 
 .social-tabs {
   display: flex;
-  gap: 1rem;
+  gap: 0.5rem;
   border-bottom: 2px solid #e0e0e0;
   margin-bottom: 2rem;
+  flex-wrap: nowrap;
+  overflow-x: auto;
 }
 
 .social-tab {
-  padding: 0.75rem 1.5rem;
+  padding: 0.5rem 1rem;
   text-decoration: none;
   color: #666;
   font-weight: 500;
   border-bottom: 3px solid transparent;
   transition: all 0.2s;
   margin-bottom: -2px;
+  white-space: nowrap;
 }
 
 .social-tab:hover {
@@ -257,15 +260,154 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   display: inline-block;
   max-width: 400px;
+  width: 100%;
 }
 
 .post-image img {
-  width: auto;
+  width: 100%;
   height: auto;
   display: block;
-  max-width: 400px;
+  max-width: 100%;
   max-height: 300px;
   object-fit: contain;
+}
+
+/* Responsive styles for small screens */
+@media (max-width: 768px) {
+  .post-image {
+    max-width: 100%;
+  }
+  
+  .post-image img {
+    max-width: 100%;
+    max-height: 250px;
+  }
+}
+
+@media (max-width: 480px) {
+  .post-image img {
+    max-height: 200px;
+  }
+}
+
+  /* Show filter button text on all screen sizes */
+  .filter-button-text {
+    display: inline !important;
+  }
+  
+  /* Center filter button content */
+  button.btn[title="Toggle filters"] {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+  }
+  
+  @media (max-width: 768px) {
+    /* Move filter button below tabs on small screens - Profile page */
+    .profile-header > div[style*="display: flex"] {
+      flex-direction: column !important;
+      align-items: stretch !important;
+    }
+    
+    .profile-header > div[style*="display: flex"] > div[style*="flex: 1"] {
+      width: 100%;
+    }
+    
+    button.btn[title="Toggle filters"] {
+      width: 100%;
+      margin-top: 0 !important;
+      margin-left: 0 !important;
+      justify-content: center;
+    }
+    
+    /* Move filter button below tabs on small screens - Feed page */
+    .social-feed > div[style*="display: flex"] {
+      flex-direction: column !important;
+      align-items: stretch !important;
+    }
+    
+    .social-feed > div[style*="display: flex"] > div[style*="flex: 1"] {
+      width: 100%;
+    }
+    
+    .social-feed button.btn[title="Toggle filters"] {
+      width: 100%;
+      margin-top: 0 !important;
+      margin-left: 0 !important;
+      justify-content: center;
+    }
+    
+    /* Ensure profile tabs maintain consistent height on small screens */
+    .profile-tab {
+      padding: 0.75rem 1.5rem;
+    }
+  
+  /* Shrink filter dropdowns slightly on small screens */
+  .filters-grid {
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  }
+  
+  /* Reduce padding between tabs on small screens */
+  .social-tabs {
+    gap: 0.25rem;
+  }
+  
+  .social-tab {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+  }
+  
+  /* Show magnifying glass icon and hide text on search button */
+  .search-button .search-icon {
+    display: block !important;
+  }
+  
+  .search-button .search-button-text {
+    display: none !important;
+  }
+  
+  .search-button.btn,
+  .search-button.btn-primary {
+    min-width: auto;
+    padding: 0.35rem 0.5rem !important;
+  }
+  
+  /* Make search input take more space on small screens */
+  .search-container > div[style*="display: flex"] {
+    display: flex !important;
+    gap: 0.5rem;
+  }
+  
+  .search-input {
+    flex: 1;
+    min-width: 0;
+    width: 0 !important;
+  }
+  
+  .search-button {
+    flex: none;
+    width: auto !important;
+    max-width: none !important;
+  }
+  
+  /* Stack user info and button vertically on small screens */
+  .search-result-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+  
+  .search-result-header > div:first-child {
+    width: 100%;
+  }
+  
+  .search-result-header .btn,
+  .search-result-header > span {
+    align-self: flex-start;
+    margin-left: 0;
+    margin-top: 0.75rem;
+  }
 }
 
 .post-section-header {
@@ -509,6 +651,8 @@
 .friend-avatar {
   width: 48px;
   height: 48px;
+  min-width: 48px;
+  min-height: 48px;
   border-radius: 50%;
   background: #1a5f3f;
   color: white;
@@ -517,6 +661,8 @@
   justify-content: center;
   font-weight: 600;
   margin-right: 1rem;
+  flex-shrink: 0;
+  aspect-ratio: 1;
 }
 
 .friend-details h3 {
@@ -543,6 +689,22 @@
   border-radius: 8px;
   font-size: 1rem;
   transition: border-color 0.2s;
+}
+
+.search-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.search-button .search-icon {
+  display: none;
+  flex-shrink: 0;
+}
+
+.search-button .search-button-text {
+  display: inline;
 }
 
 .search-input:focus {

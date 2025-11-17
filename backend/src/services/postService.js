@@ -88,9 +88,37 @@ const createPostFromScan = async (userId, scanData) => {
         servingSize: String(item.portionDescription || '1 serving'),
         calories: Number(item.calories || 0),
         protein: Number(item.protein || 0),
-        carbs: Number(item.carbs || 0),
-        fat: Number(item.fat || 0),
+        carbs: Number(item.carbs || item.totalCarb || 0),
+        fat: Number(item.fat || item.totalFat || 0),
       };
+      
+      // Add additional nutrition fields if available
+      if (item.saturatedFat !== undefined && item.saturatedFat !== null) {
+        cleanItem.saturatedFat = typeof item.saturatedFat === 'string' 
+          ? item.saturatedFat 
+          : `${Number(item.saturatedFat || 0).toFixed(2)}g`;
+      }
+      if (item.cholesterol !== undefined && item.cholesterol !== null) {
+        cleanItem.cholesterol = typeof item.cholesterol === 'string' 
+          ? item.cholesterol 
+          : `${Math.round(Number(item.cholesterol || 0))}mg`;
+      }
+      if (item.sodium !== undefined && item.sodium !== null) {
+        cleanItem.sodium = typeof item.sodium === 'string' 
+          ? item.sodium 
+          : `${Math.round(Number(item.sodium || 0))}mg`;
+      }
+      if (item.dietaryFiber !== undefined && item.dietaryFiber !== null) {
+        cleanItem.dietaryFiber = typeof item.dietaryFiber === 'string' 
+          ? item.dietaryFiber 
+          : `${Number(item.dietaryFiber || 0).toFixed(2)}g`;
+      }
+      if (item.sugars !== undefined && item.sugars !== null) {
+        cleanItem.sugars = typeof item.sugars === 'string' 
+          ? item.sugars 
+          : `${Number(item.sugars || 0).toFixed(2)}g`;
+      }
+      
       // Remove any undefined values
       Object.keys(cleanItem).forEach(key => {
         if (cleanItem[key] === undefined) {
@@ -100,12 +128,12 @@ const createPostFromScan = async (userId, scanData) => {
       return cleanItem;
     });
 
-    // Format totals - ensure all are numbers
+    // Format totals - round to 2 decimal places
     const totals = {
-      calories: Number(scanData.nutritionTotals?.calories || 0),
-      protein: Number(scanData.nutritionTotals?.protein || 0),
-      totalCarb: Number(scanData.nutritionTotals?.carbs || 0),
-      totalFat: Number(scanData.nutritionTotals?.fat || 0),
+      calories: Math.round(Number(scanData.nutritionTotals?.calories || 0)),
+      protein: parseFloat(Number(scanData.nutritionTotals?.protein || 0).toFixed(2)),
+      totalCarb: parseFloat(Number(scanData.nutritionTotals?.carbs || 0).toFixed(2)),
+      totalFat: parseFloat(Number(scanData.nutritionTotals?.fat || 0).toFixed(2)),
     };
 
     // Handle timestamp conversion safely
@@ -437,24 +465,24 @@ const getDiningHallFeedPosts = async (userId, limit = 50) => {
 
     // Query for each variation
     for (const locationNameVariation of uniqueVariations) {
-      const query = postsRef
-        .where('locationId', '==', hall.locationId)
+    const query = postsRef
+      .where('locationId', '==', hall.locationId)
         .where('locationName', '==', locationNameVariation);
-      
-      const snapshot = await query.get();
-      snapshot.forEach(doc => {
+    
+    const snapshot = await query.get();
+    snapshot.forEach(doc => {
         // Avoid duplicates by checking if post ID already exists
         if (!seenPostIds.has(doc.id)) {
           seenPostIds.add(doc.id);
-          allPosts.push({
-            id: doc.id,
-            ...doc.data(),
-            timestamp: doc.data().timestamp?.toDate(),
-            createdAt: doc.data().createdAt?.toDate(),
-            updatedAt: doc.data().updatedAt?.toDate(),
-          });
-        }
+      allPosts.push({
+        id: doc.id,
+        ...doc.data(),
+        timestamp: doc.data().timestamp?.toDate(),
+        createdAt: doc.data().createdAt?.toDate(),
+        updatedAt: doc.data().updatedAt?.toDate(),
       });
+        }
+    });
     }
   }
 
@@ -579,23 +607,23 @@ const getPostsByLocationName = async (locationName, limit = 50) => {
   // Query for all variations and combine results
   const allPosts = [];
   for (const variation of uniqueVariations) {
-    const query = db
-      .collection(POSTS_COLLECTION)
+  const query = db
+    .collection(POSTS_COLLECTION)
       .where('locationName', '==', variation);
-    
-    const snapshot = await query.get();
-    snapshot.forEach(doc => {
+
+  const snapshot = await query.get();
+  snapshot.forEach(doc => {
       // Avoid duplicates by checking if post ID already exists
       if (!allPosts.find(p => p.id === doc.id)) {
         allPosts.push({
-          id: doc.id,
-          ...doc.data(),
-          timestamp: doc.data().timestamp?.toDate(),
-          createdAt: doc.data().createdAt?.toDate(),
-          updatedAt: doc.data().updatedAt?.toDate(),
-        });
-      }
+      id: doc.id,
+      ...doc.data(),
+      timestamp: doc.data().timestamp?.toDate(),
+      createdAt: doc.data().createdAt?.toDate(),
+      updatedAt: doc.data().updatedAt?.toDate(),
     });
+      }
+  });
   }
 
   // Sort by timestamp descending in-memory

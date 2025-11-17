@@ -324,9 +324,43 @@
 }
 
 .success-modal .create-post-modal-actions {
+  justify-content: center;
   margin-top: 1.5rem;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1rem;
   padding-top: 0;
   border-top: none;
+}
+
+/* Delete Confirmation Modal */
+.delete-confirmation-message {
+  padding: 1.5rem;
+  text-align: center;
+  font-size: 1rem;
+  line-height: 1.5;
+  color: #333;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 80px;
+}
+
+/* Center buttons in delete confirmation modal */
+.create-post-modal:has(.delete-confirmation-message) .create-post-modal-actions {
+  justify-content: center;
+  margin-bottom: 1rem;
+}
+
+.create-post-modal:has(.delete-confirmation-message) .create-post-modal-delete {
+  margin-right: 0;
+}
+
+/* Make success modal match delete confirmation modal styling */
+.success-modal .create-post-modal-content {
+  padding: 0;
+  padding-bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 80px;
 }
 

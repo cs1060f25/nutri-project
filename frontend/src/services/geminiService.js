@@ -80,21 +80,21 @@ export const analyzeMealImage = async (file) => {
       console.log(`Compressed to ${(fileToUpload.size / 1024 / 1024).toFixed(2)}MB`);
     }
 
-    const formData = new FormData();
+  const formData = new FormData();
     formData.append('image', fileToUpload);
 
-    const response = await fetch(API_ENDPOINT, {
-      method: 'POST',
-      body: formData,
-    });
+  const response = await fetch(API_ENDPOINT, {
+    method: 'POST',
+    body: formData,
+  });
 
-    if (!response.ok) {
+  if (!response.ok) {
       // Handle 413 specifically
       if (response.status === 413) {
         throw new Error('Image is too large even after compression. Please try a smaller image or reduce the image quality.');
       }
       
-      const errorData = await response.json().catch(() => ({}));
+    const errorData = await response.json().catch(() => ({}));
       // Handle error message - could be string or object
       let message = 'Failed to analyze meal image';
       if (errorData?.error) {
@@ -104,10 +104,10 @@ export const analyzeMealImage = async (file) => {
       } else if (errorData?.message) {
         message = errorData.message;
       }
-      throw new Error(message);
-    }
+    throw new Error(message);
+  }
 
-    return response.json();
+  return response.json();
   } catch (error) {
     // Re-throw with better error message if it's a compression error
     if (error.message.includes('Failed to compress') || error.message.includes('Failed to load')) {
