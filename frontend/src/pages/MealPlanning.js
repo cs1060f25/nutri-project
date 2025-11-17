@@ -4,6 +4,7 @@ import { getLocations, getMenuByDate } from '../services/hudsService';
 import { getMealPlans, createMealPlan, deleteMealPlan, updateMealPlan } from '../services/mealPlanService';
 import { getActiveNutritionPlan } from '../services/nutritionPlanService';
 import { getTodayProgress } from '../services/nutritionProgressService';
+import CustomSelect from '../components/CustomSelect';
 import './MealPlanning.css';
 
 const MEAL_TYPES = ['breakfast', 'lunch', 'dinner'];
@@ -350,26 +351,21 @@ const MealPlanning = () => {
   };
 
   // Handle meal type change in modal
-  const handleMealTypeChange = async (e) => {
-    setSelectedMealType(e.target.value);
+  const handleMealTypeChange = async (value) => {
+    setSelectedMealType(value);
     setSelectedItems([]);
     setMenuItems({});
     
     // If location and date are already selected, fetch menu items
-    if (e.target.value && selectedLocationId && selectedDate) {
+    if (value && selectedLocationId && selectedDate) {
       await fetchMenuItems(selectedDate, selectedLocationId);
     }
   };
 
   // Handle location change in modal
-  const handleLocationChange = async (e) => {
-    const selectedIndex = e.target.selectedIndex - 1; // -1 because first option is "Select dining hall"
-    const locationId = e.target.value;
-    
-    // Find the location by index to get the exact one selected (important when multiple locations share same location_number)
-    const location = selectedIndex >= 0 && selectedIndex < locations.length 
-      ? locations[selectedIndex] 
-      : locations.find(loc => loc.location_number === locationId);
+  const handleLocationChange = async (locationId) => {
+    // Find the location by location_number
+    const location = locations.find(loc => loc.location_number === locationId);
     
     setSelectedLocationId(locationId);
     setSelectedLocationName(location ? location.location_name : '');
@@ -1157,36 +1153,39 @@ const MealPlanning = () => {
 
               <div className="form-group">
                 <label>Meal Type</label>
-                <select
+                <CustomSelect
                   value={selectedMealType}
                   onChange={handleMealTypeChange}
-                  className="form-input"
-                >
-                  <option value="">Select meal type</option>
-                  <option value="breakfast">Breakfast</option>
-                  <option value="lunch">Lunch</option>
-                  <option value="dinner">Dinner</option>
-                </select>
+                  options={[
+                    { value: '', label: 'Select meal type' },
+                    { value: 'breakfast', label: 'Breakfast' },
+                    { value: 'lunch', label: 'Lunch' },
+                    { value: 'dinner', label: 'Dinner' }
+                  ]}
+                  placeholder="Select meal type"
+                  className="form-input-wrapper"
+                />
               </div>
 
               <div className="form-group">
                 <label>Dining Hall</label>
-                <select
+                <CustomSelect
                   value={selectedLocationId}
                   onChange={handleLocationChange}
-                  className="form-input"
-                >
-                  <option value="">Select dining hall</option>
-                  {locations.length > 0 ? (
-                    locations.map((loc, index) => (
-                      <option key={`loc-${index}-${loc.location_name}`} value={loc.location_number}>
-                        {loc.location_name}
-                      </option>
-                    ))
-                  ) : (
-                    <option value="" disabled>Loading dining halls...</option>
-                  )}
-                </select>
+                  options={locations.length > 0 
+                    ? [
+                        { value: '', label: 'Select dining hall' },
+                        ...locations.map((loc, index) => ({
+                          value: loc.location_number,
+                          label: loc.location_name
+                        }))
+                      ]
+                    : [{ value: '', label: 'Loading dining halls...' }]
+                  }
+                  placeholder="Select dining hall"
+                  disabled={locations.length === 0}
+                  className="form-input-wrapper"
+                />
               </div>
 
               {menuLoading && (

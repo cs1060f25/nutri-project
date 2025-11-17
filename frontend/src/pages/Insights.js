@@ -8,6 +8,7 @@ import InsightsTrendSummary from '../components/InsightsTrendSummary';
 import InsightsMacroPie from '../components/InsightsMacroPie';
 import InsightsMealTable from '../components/InsightsMealTable';
 import { getMetricName } from '../utils/nutrition';
+import CustomSelect from '../components/CustomSelect';
 
 const formatDateInput = (date) => date.toISOString().split('T')[0];
 
@@ -193,31 +194,31 @@ const Insights = () => {
               {trendView !== 'pie' && metricOptions.length > 0 && (
                 <label className="insights-metric-select">
                   Metric
-                  <select
+                  <CustomSelect
                     value={selectedMetric}
-                    onChange={(event) => setSelectedMetric(event.target.value)}
-                  >
-                    {metricOptions.map(option => (
-                      <option key={option} value={option}>
-                        {getMetricName(option)}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={setSelectedMetric}
+                    options={metricOptions.map(option => ({
+                      value: option,
+                      label: getMetricName(option)
+                    }))}
+                    placeholder="Select metric"
+                    className="insights-metric-select-wrapper"
+                  />
                 </label>
               )}
               {trendView === 'pie' && data?.days?.length > 0 && (
                 <label className="insights-metric-select">
                   Day
-                  <select
+                  <CustomSelect
                     value={selectedMacroDay}
-                    onChange={(event) => setSelectedMacroDay(event.target.value)}
-                  >
-                    {data.days.map(day => (
-                      <option key={day.date} value={day.date}>
-                        {day.date} ({day.mealCount} meals)
-                      </option>
-                    ))}
-                  </select>
+                    onChange={setSelectedMacroDay}
+                    options={data.days.map(day => ({
+                      value: day.date,
+                      label: `${day.date} (${day.mealCount} meals)`
+                    }))}
+                    placeholder="Select day"
+                    className="insights-metric-select-wrapper"
+                  />
                 </label>
               )}
               <div className="insights-view-toggle">

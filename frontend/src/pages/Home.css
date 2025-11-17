@@ -171,6 +171,10 @@
   cursor: not-allowed;
 }
 
+.selector-input-wrapper {
+  width: 100%;
+}
+
 /* ===== Selector Hint ===== */
 .selector-hint {
   display: flex;

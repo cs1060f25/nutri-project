@@ -1,0 +1,245 @@
+.custom-select-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.custom-select-trigger {
+  width: 100%;
+  padding: 0.875rem 3rem 0.875rem 1rem;
+  font-size: 1rem;
+  border: 2px solid #d1e7dd;
+  border-radius: 10px;
+  background: linear-gradient(to bottom, #ffffff 0%, #f8fcfa 100%);
+  color: #1a5f3f;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  text-align: left;
+}
+
+/* Smaller variant for filters */
+.filter-group .custom-select-wrapper .custom-select-trigger {
+  padding: 0.5rem 2.5rem 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  border-radius: 6px;
+  border: 1px solid #d1d5db;
+  background: white;
+  font-weight: 400;
+}
+
+.filter-group .custom-select-wrapper .custom-select-trigger:hover {
+  border-color: #2d6a4f;
+  background: #f8fcfa;
+  box-shadow: 0 2px 4px rgba(45, 106, 79, 0.1);
+}
+
+.filter-group .custom-select-wrapper .custom-select-trigger:focus {
+  border-color: #2d6a4f;
+  box-shadow: 0 0 0 3px rgba(45, 106, 79, 0.1);
+}
+
+.filter-group .custom-select-wrapper .dropdown-arrow {
+  font-size: 0.65rem;
+}
+
+/* Styling for meal plan modal form groups */
+.form-group .custom-select-wrapper .custom-select-trigger {
+  padding: 0.75rem 2.5rem 0.75rem 0.75rem;
+  font-size: 1rem;
+  border-radius: 0;
+  border: 1px solid #ddd;
+  background: white;
+  font-weight: 400;
+}
+
+.form-group .custom-select-wrapper .custom-select-trigger:hover {
+  border-color: #1a5f3f;
+  background: white;
+}
+
+.form-group .custom-select-wrapper .custom-select-trigger:focus {
+  border-color: #1a5f3f;
+  box-shadow: 0 0 0 3px rgba(26, 95, 63, 0.1);
+}
+
+.form-group .custom-select-wrapper .dropdown-arrow {
+  font-size: 0.75rem;
+  right: 0.75rem;
+}
+
+/* Styling for nutrition plan unit select */
+.unit-select-wrapper .custom-select-wrapper .custom-select-trigger {
+  padding: 0.5rem 2.5rem 0.5rem 0.75rem;
+  font-size: 0.75rem;
+  border-radius: 6px;
+  border: 1px solid #d1e7dd;
+  background: #ffffff;
+  color: #1a5f3f;
+  font-weight: 400;
+}
+
+.unit-select-wrapper .custom-select-wrapper .custom-select-trigger:hover {
+  border-color: #2d6a4f;
+  background: #f8fcfa;
+}
+
+.unit-select-wrapper .custom-select-wrapper .custom-select-trigger:focus {
+  border-color: #2d6a4f;
+  box-shadow: 0 0 0 3px rgba(45, 106, 79, 0.1);
+}
+
+.unit-select-wrapper .custom-select-wrapper .dropdown-arrow {
+  font-size: 0.65rem;
+  right: 0.75rem;
+}
+
+/* Styling for insights metric select */
+.insights-metric-select-wrapper.custom-select-wrapper .custom-select-trigger {
+  padding: 8px 2.5rem 8px 12px;
+  font-size: 14px !important;
+  border-radius: 8px;
+  border: 1px solid #cbd5f5;
+  background: white;
+  color: #0f172a;
+  font-weight: 400;
+  min-width: 160px;
+}
+
+.insights-metric-select-wrapper.custom-select-wrapper .custom-select-trigger .selected-value {
+  font-size: 14px !important;
+}
+
+.insights-metric-select-wrapper.custom-select-wrapper .custom-select-trigger:hover {
+  border-color: #1e8554;
+  background: #f8fafc;
+}
+
+.insights-metric-select-wrapper.custom-select-wrapper .custom-select-trigger:focus {
+  border-color: #1e8554;
+  box-shadow: 0 0 0 3px rgba(30, 133, 84, 0.1);
+}
+
+.insights-metric-select-wrapper.custom-select-wrapper .dropdown-arrow {
+  font-size: 0.5rem;
+  right: 12px;
+}
+
+.custom-select-trigger:hover:not(:disabled) {
+  border-color: #2d6a4f;
+  background: linear-gradient(to bottom, #f8fcfa 0%, #e8f5e9 100%);
+  box-shadow: 0 2px 8px rgba(45, 106, 79, 0.1);
+}
+
+.custom-select-trigger:focus {
+  outline: none;
+  border-color: #2d6a4f;
+  box-shadow: 0 0 0 4px rgba(45, 106, 79, 0.15);
+}
+
+.custom-select-trigger:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.selected-value {
+  flex: 1;
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+.dropdown-arrow {
+  font-size: 0.75rem;
+  color: #2d6a4f;
+  transition: transform 0.2s ease;
+  margin-left: 0.5rem;
+  flex-shrink: 0;
+}
+
+.dropdown-arrow.open {
+  transform: rotate(180deg);
+}
+
+.custom-select-dropdown {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  left: 0;
+  right: 0;
+  background: #ffffff;
+  border: 2px solid #d1e7dd;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(26, 95, 63, 0.15);
+  max-height: 320px;
+  overflow-y: auto;
+  z-index: 100;
+  animation: slideDown 0.2s ease;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.custom-select-option {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  border-bottom: 1px solid #f0f7f4;
+}
+
+.custom-select-option:last-child {
+  border-bottom: none;
+}
+
+.custom-select-option:hover {
+  background: linear-gradient(135deg, #f8fcfa 0%, #e8f5e9 100%);
+}
+
+.custom-select-option.selected {
+  background: linear-gradient(135deg, #e8f5e9 0%, #d1e7dd 100%);
+  border-left: 4px solid #2d6a4f;
+}
+
+.option-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.option-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #1a5f3f;
+  line-height: 1.3;
+  word-break: break-word;
+}
+
+/* Scrollbar styling */
+.custom-select-dropdown::-webkit-scrollbar {
+  width: 8px;
+}
+
+.custom-select-dropdown::-webkit-scrollbar-track {
+  background: #f0f7f4;
+  border-radius: 4px;
+}
+
+.custom-select-dropdown::-webkit-scrollbar-thumb {
+  background: #d1e7dd;
+  border-radius: 4px;
+}
+
+.custom-select-dropdown::-webkit-scrollbar-thumb:hover {
+  background: #2d6a4f;
+}
+

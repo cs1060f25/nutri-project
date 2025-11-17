@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Filter } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { getFeedPosts, getDiningHallFeedPosts } from '../services/socialService';
 import PostCard from './PostCard';
+import CustomSelect from './CustomSelect';
 import '../pages/Social.css';
 
 const SocialFeed = () => {
@@ -160,63 +161,64 @@ const SocialFeed = () => {
           <div className="filters-grid">
             <div className="filter-group">
               <label htmlFor="filter-dining-hall">Dining Hall</label>
-              <select
-                id="filter-dining-hall"
+              <CustomSelect
                 value={filterDiningHall}
-                onChange={(e) => setFilterDiningHall(e.target.value)}
-                className="filter-select"
-              >
-                <option value="">All Dining Halls</option>
-                {[...new Set(posts.map(p => p.locationName).filter(Boolean))].map(location => (
-                  <option key={location} value={location}>{location}</option>
-                ))}
-              </select>
+                onChange={setFilterDiningHall}
+                options={[
+                  { value: '', label: 'All Dining Halls' },
+                  ...[...new Set(posts.map(p => p.locationName).filter(Boolean))].map(location => ({
+                    value: location,
+                    label: location
+                  }))
+                ]}
+                placeholder="All Dining Halls"
+              />
             </div>
 
             <div className="filter-group">
               <label htmlFor="filter-visibility">Visibility</label>
-              <select
-                id="filter-visibility"
+              <CustomSelect
                 value={filterVisibility}
-                onChange={(e) => setFilterVisibility(e.target.value)}
-                className="filter-select"
-              >
-                <option value="">All</option>
-                <option value="public">Public</option>
-                <option value="private">Private</option>
-              </select>
+                onChange={setFilterVisibility}
+                options={[
+                  { value: '', label: 'All' },
+                  { value: 'public', label: 'Public' },
+                  { value: 'private', label: 'Private' }
+                ]}
+                placeholder="All"
+              />
             </div>
 
             <div className="filter-group">
               <label htmlFor="filter-rating">Rating</label>
-              <select
-                id="filter-rating"
+              <CustomSelect
                 value={filterRating}
-                onChange={(e) => setFilterRating(e.target.value)}
-                className="filter-select"
-              >
-                <option value="">All Ratings</option>
-                <option value="5">5 Stars</option>
-                <option value="4">4 Stars</option>
-                <option value="3">3 Stars</option>
-                <option value="2">2 Stars</option>
-                <option value="1">1 Star</option>
-              </select>
+                onChange={setFilterRating}
+                options={[
+                  { value: '', label: 'All Ratings' },
+                  { value: '5', label: '5 Stars' },
+                  { value: '4', label: '4 Stars' },
+                  { value: '3', label: '3 Stars' },
+                  { value: '2', label: '2 Stars' },
+                  { value: '1', label: '1 Star' }
+                ]}
+                placeholder="All Ratings"
+              />
             </div>
 
             <div className="filter-group">
               <label htmlFor="filter-meal-type">Meal Type</label>
-              <select
-                id="filter-meal-type"
+              <CustomSelect
                 value={filterMealType}
-                onChange={(e) => setFilterMealType(e.target.value)}
-                className="filter-select"
-              >
-                <option value="">All Meal Types</option>
-                <option value="Breakfast">Breakfast</option>
-                <option value="Lunch">Lunch</option>
-                <option value="Dinner">Dinner</option>
-              </select>
+                onChange={setFilterMealType}
+                options={[
+                  { value: '', label: 'All Meal Types' },
+                  { value: 'Breakfast', label: 'Breakfast' },
+                  { value: 'Lunch', label: 'Lunch' },
+                  { value: 'Dinner', label: 'Dinner' }
+                ]}
+                placeholder="All Meal Types"
+              />
             </div>
           </div>
 

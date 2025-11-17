@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { getLeaderboard, getFilterOptions } from '../services/leaderboardService';
+import CustomSelect from '../components/CustomSelect';
 import './Leaderboard.css';
 
 const Leaderboard = () => {
@@ -84,46 +85,50 @@ const Leaderboard = () => {
       <div className="leaderboard-filters">
         <div className="filter-group">
           <label htmlFor="classYear">Class Year</label>
-          <select
-            id="classYear"
+          <CustomSelect
             value={filters.classYear}
-            onChange={(e) => handleFilterChange('classYear', e.target.value)}
-          >
-            <option value="">All Classes</option>
-            {filterOptions.classYears.map(year => (
-              <option key={year} value={year}>{year}</option>
-            ))}
-          </select>
+            onChange={(value) => handleFilterChange('classYear', value)}
+            options={[
+              { value: '', label: 'All Classes' },
+              ...filterOptions.classYears.map(year => ({
+                value: year,
+                label: year
+              }))
+            ]}
+            placeholder="All Classes"
+          />
         </div>
 
         <div className="filter-group">
           <label htmlFor="residence">Dining Hall</label>
-          <select
-            id="residence"
+          <CustomSelect
             value={filters.residence}
-            onChange={(e) => handleFilterChange('residence', e.target.value)}
-          >
-            <option value="">All Dining Halls</option>
-            {filterOptions.residences.map(residence => (
-              <option key={residence} value={residence}>{residence}</option>
-            ))}
-          </select>
+            onChange={(value) => handleFilterChange('residence', value)}
+            options={[
+              { value: '', label: 'All Dining Halls' },
+              ...filterOptions.residences.map(residence => ({
+                value: residence,
+                label: residence
+              }))
+            ]}
+            placeholder="All Dining Halls"
+          />
         </div>
 
         <div className="filter-group">
           <label htmlFor="dietaryPattern">Eater Type</label>
-          <select
-            id="dietaryPattern"
+          <CustomSelect
             value={filters.dietaryPattern}
-            onChange={(e) => handleFilterChange('dietaryPattern', e.target.value)}
-          >
-            <option value="">All Types</option>
-            {filterOptions.dietaryPatterns.map(pattern => (
-              <option key={pattern} value={pattern}>
-                {pattern.charAt(0).toUpperCase() + pattern.slice(1).replace(/-/g, ' ')}
-              </option>
-            ))}
-          </select>
+            onChange={(value) => handleFilterChange('dietaryPattern', value)}
+            options={[
+              { value: '', label: 'All Types' },
+              ...filterOptions.dietaryPatterns.map(pattern => ({
+                value: pattern,
+                label: pattern.charAt(0).toUpperCase() + pattern.slice(1).replace(/-/g, ' ')
+              }))
+            ]}
+            placeholder="All Types"
+          />
         </div>
 
         {hasActiveFilters && (

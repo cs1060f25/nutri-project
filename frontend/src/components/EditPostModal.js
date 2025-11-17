@@ -3,6 +3,7 @@ import { X, Star } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { getLocations } from '../services/hudsService';
 import { updatePost, deletePost } from '../services/socialService';
+import CustomSelect from './CustomSelect';
 import './CreatePostModal.css';
 
 // All 12 houses (including Quincy which has its own menu)
@@ -266,46 +267,43 @@ const EditPostModal = ({ isOpen, onClose, post, onPostUpdated, onPostDeleted }) 
           {/* Meal Type */}
           <div className="create-post-modal-field">
             <label htmlFor="meal-type">Meal Type</label>
-            <select
-              id="meal-type"
+            <CustomSelect
               value={mealType}
-              onChange={(e) => setMealType(e.target.value)}
-              className="create-post-modal-select"
-            >
-              <option value="">Select meal type</option>
-              <option value="Breakfast">Breakfast</option>
-              <option value="Lunch">Lunch</option>
-              <option value="Dinner">Dinner</option>
-            </select>
+              onChange={setMealType}
+              options={[
+                { value: '', label: 'Select meal type' },
+                { value: 'Breakfast', label: 'Breakfast' },
+                { value: 'Lunch', label: 'Lunch' },
+                { value: 'Dinner', label: 'Dinner' }
+              ]}
+              placeholder="Select meal type"
+            />
           </div>
 
           {/* Dining Hall Selection */}
           <div className="create-post-modal-field">
             <label htmlFor="dining-hall">Dining Hall</label>
-            <select
-              id="dining-hall"
+            <CustomSelect
               value={selectedLocation.locationId}
-              onChange={(e) => {
-                const uniqueId = e.target.value;
+              onChange={(uniqueId) => {
                 const selected = diningHalls.find(h => `${h.location_number}|${h.location_name}` === uniqueId);
                 setSelectedLocation({
                   locationId: uniqueId,
                   locationName: selected?.location_name || ''
                 });
               }}
-              required
-              className="create-post-modal-select"
-            >
-              <option value="">Select a dining hall</option>
-              {diningHalls.map((hall) => {
-                const uniqueId = `${hall.location_number}|${hall.location_name}`;
-                return (
-                  <option key={uniqueId} value={uniqueId}>
-                    {hall.location_name}
-                  </option>
-                );
-              })}
-            </select>
+              options={[
+                { value: '', label: 'Select a dining hall' },
+                ...diningHalls.map((hall) => {
+                  const uniqueId = `${hall.location_number}|${hall.location_name}`;
+                  return {
+                    value: uniqueId,
+                    label: hall.location_name
+                  };
+                })
+              ]}
+              placeholder="Select a dining hall"
+            />
           </div>
 
           {/* Star Rating */}
@@ -351,15 +349,15 @@ const EditPostModal = ({ isOpen, onClose, post, onPostUpdated, onPostDeleted }) 
           {/* Public/Private Toggle */}
           <div className="create-post-modal-field">
             <label htmlFor="post-visibility">Post Visibility</label>
-            <select
-              id="post-visibility"
+            <CustomSelect
               value={isPublic ? 'public' : 'private'}
-              onChange={(e) => setIsPublic(e.target.value === 'public')}
-              className="create-post-modal-select"
-            >
-              <option value="public">Public - Visible to everyone</option>
-              <option value="private">Private - Only visible to you</option>
-            </select>
+              onChange={(value) => setIsPublic(value === 'public')}
+              options={[
+                { value: 'public', label: 'Public - Visible to everyone' },
+                { value: 'private', label: 'Private - Only visible to you' }
+              ]}
+              placeholder="Select visibility"
+            />
           </div>
 
           {error && (
