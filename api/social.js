@@ -1,5 +1,6 @@
 // Consolidated Vercel serverless function for ALL social endpoints
 const admin = require('firebase-admin');
+const axios = require('axios');
 
 // Initialize Firebase Admin SDK
 if (!admin.apps.length) {
@@ -735,29 +736,111 @@ module.exports = async (req, res) => {
     }
 
     if (req.method === 'GET' && path === '/search/locations') {
-      const q = req.query.q;
-      if (!q || q.trim().length === 0) {
-        return res.status(400).json(createErrorResponse('INVALID_REQUEST', 'Search query is required'));
+      const q = req.query.q || '';
+      
+      // Get all locations from HUDS API
+      const HUDS_BASE_URL = process.env.HUDS_API_BASE_URL || 'https://go.prod.apis.huit.harvard.edu/ats/dining/v3';
+      const HUDS_API_KEY = process.env.HUDS_API_KEY;
+      
+      let hudsLocations = [];
+      try {
+        const response = await axios.get(`${HUDS_BASE_URL}/locations`, {
+          headers: {
+            'X-Api-Key': HUDS_API_KEY,
+            'Accept': 'application/json',
+          },
+        });
+        hudsLocations = response.data || [];
+      } catch (error) {
+        console.error('Error fetching HUDS locations:', error);
+        // Fallback to empty array if HUDS API fails
+        hudsLocations = [];
       }
+      
+      // Helper to normalize house names (same as backend)
+      const normalizeHouseName = (houseName) => {
+        const trimmed = houseName.trim();
+        const baseName = trimmed.replace(/\s+House\s*$/i, '').trim();
+        const ALL_HOUSES = [
+          'Pforzheimer', 'Cabot', 'Currier', 'Kirkland', 'Leverett', 'Lowell',
+          'Eliot', 'Adams', 'Mather', 'Dunster', 'Winthrop', 'Quincy'
+        ];
+        const isHouse = ALL_HOUSES.some(base => 
+          base.toLowerCase() === baseName.toLowerCase()
+        );
+        if (isHouse && !trimmed.endsWith('House')) {
+          return `${trimmed} House`;
+        }
+        return trimmed;
+      };
 
-      const searchTerm = q.trim().toLowerCase();
-      const snapshot = await getDb().collection(POSTS_COLLECTION).get();
-      const locationMap = new Map();
-
-      snapshot.forEach(doc => {
-        const postData = doc.data();
-        const locationId = postData.locationId;
-        const locationName = postData.locationName;
-
-        if (locationName && locationName.toLowerCase().includes(searchTerm)) {
-          if (!locationMap.has(locationId)) {
-            locationMap.set(locationId, { locationId, locationName, postCount: 0 });
-          }
-          locationMap.get(locationId).postCount++;
+      // Expand locations that contain multiple houses (same logic as backend)
+      const expandedLocations = [];
+      hudsLocations.forEach(loc => {
+        const locationName = loc.location_name;
+        
+        if (locationName && locationName.includes(' and ')) {
+          const houses = locationName.split(' and ').map(h => h.trim());
+          houses.forEach(house => {
+            expandedLocations.push({
+              location_number: loc.location_number,
+              location_name: normalizeHouseName(house),
+              original_name: locationName
+            });
+          });
+        } else {
+          expandedLocations.push({
+            location_number: loc.location_number,
+            location_name: normalizeHouseName(locationName),
+            original_name: locationName
+          });
         }
       });
 
-      const locations = Array.from(locationMap.values());
+      // Filter by search query if provided
+      let filteredLocations = expandedLocations;
+      if (q && q.trim().length > 0) {
+        const searchTerm = q.trim().toLowerCase();
+        filteredLocations = expandedLocations.filter(loc => 
+          loc.location_name.toLowerCase().includes(searchTerm) ||
+          loc.original_name.toLowerCase().includes(searchTerm)
+        );
+      }
+
+      // Get post counts for each location
+      const postsSnapshot = await getDb().collection(POSTS_COLLECTION).get();
+      
+      const postCountMap = new Map();
+      postsSnapshot.forEach(doc => {
+        const postData = doc.data();
+        const locationId = postData.locationId;
+        const locationName = postData.locationName;
+        
+        // Match by location number or name
+        const key = `${locationId}|${locationName}`;
+        postCountMap.set(key, (postCountMap.get(key) || 0) + 1);
+      });
+
+      // Build response with post counts
+      const locations = filteredLocations.map(loc => {
+        // Try to match posts by location number or name
+        let postCount = 0;
+        for (const [key, count] of postCountMap.entries()) {
+          const [postLocationId, postLocationName] = key.split('|');
+          if (postLocationId === loc.location_number || 
+              postLocationName === loc.location_name ||
+              postLocationName === loc.original_name) {
+            postCount += count;
+          }
+        }
+        
+        return {
+          locationId: loc.location_number,
+          locationName: loc.location_name,
+          postCount: postCount
+        };
+      });
+
       const limit = parseInt(req.query.limit || 20, 10);
       return res.status(200).json({ locations: locations.slice(0, limit), count: locations.length });
     }
