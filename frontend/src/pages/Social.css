@@ -253,15 +253,18 @@
   margin-top: 0.5rem;
   border-radius: 8px;
   overflow: hidden;
-  background: #f3f4f6;
+  background: transparent;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  display: inline-block;
+  max-width: 400px;
 }
 
 .post-image img {
-  width: 100%;
+  width: auto;
   height: auto;
   display: block;
-  max-height: 500px;
+  max-width: 400px;
+  max-height: 300px;
   object-fit: contain;
 }
 
