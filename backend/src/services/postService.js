@@ -770,6 +770,179 @@ const deletePost = async (userId, postId) => {
     throw new Error('Unauthorized: You can only delete your own posts');
   }
 
+  // Delete associated meal log if the post has mealDate
+  // (posts created from scans/meal planning have meal logs, but other posts might not)
+  // Note: mealType is helpful but not required - we'll try to match by date if mealType is missing
+  if (postData.mealDate) {
+    try {
+      const mealLogService = require('./mealLogService');
+      const mealDate = typeof postData.mealDate === 'string' 
+        ? postData.mealDate 
+        : postData.mealDate.toDate ? postData.mealDate.toDate().toISOString().split('T')[0]
+        : new Date(postData.mealDate).toISOString().split('T')[0];
+      
+      console.log(`[deletePost] Looking for meal logs to delete for post ${postId}:`, {
+        userId,
+        mealDate,
+        mealType: postData.mealType || '(not set)',
+        postDataKeys: Object.keys(postData),
+        postMealDate: postData.mealDate,
+        postMealType: postData.mealType,
+      });
+      
+      // Get meal logs for this date
+      // Use a direct Firestore query to ensure we get all meal logs for this date
+      const db = getDb();
+      const mealsRef = db
+        .collection('users')
+        .doc(userId)
+        .collection('meals');
+      
+      // Query directly by mealDate to ensure we find the meal log
+      const mealLogsSnapshot = await mealsRef
+        .where('mealDate', '==', mealDate)
+        .get();
+      
+      const mealsArray = [];
+      mealLogsSnapshot.forEach(doc => {
+        mealsArray.push({
+          id: doc.id,
+          ...doc.data(),
+        });
+      });
+      
+      console.log(`[deletePost] Found ${mealsArray.length} meal logs for date ${mealDate}`);
+      if (mealsArray.length > 0) {
+        console.log(`[deletePost] Meal log details:`, mealsArray.map(m => ({
+          id: m.id,
+          mealDate: m.mealDate,
+          mealType: m.mealType,
+          mealName: m.mealName,
+        })));
+      }
+      
+      // Find and delete meal logs matching the post's mealType and date
+      // Normalize mealType for comparison (handle case differences and variations)
+      const normalizeMealType = (type) => {
+        if (!type) return '';
+        return String(type).toLowerCase().trim();
+      };
+      
+      const postMealTypeNormalized = normalizeMealType(postData.mealType);
+      const hasPostMealType = postData.mealType && postMealTypeNormalized.length > 0;
+      
+      const matchingMealLogs = mealsArray.filter(meal => {
+        // Normalize meal types for comparison
+        const mealTypeNormalized = normalizeMealType(meal.mealType);
+        const mealNameNormalized = normalizeMealType(meal.mealName);
+        
+        // Match if mealType or mealName matches (case-insensitive)
+        // If post has no mealType, skip mealType matching and match by date only
+        const mealTypeMatch = !hasPostMealType || 
+                             mealTypeNormalized === postMealTypeNormalized ||
+                             mealNameNormalized === postMealTypeNormalized;
+        
+        // Normalize dates for comparison
+        let mealDateStr = '';
+        if (meal.mealDate) {
+          if (typeof meal.mealDate === 'string') {
+            mealDateStr = meal.mealDate.split('T')[0];
+          } else if (meal.mealDate.toDate) {
+            mealDateStr = meal.mealDate.toDate().toISOString().split('T')[0];
+          } else {
+            mealDateStr = new Date(meal.mealDate).toISOString().split('T')[0];
+          }
+        }
+        
+        const dateMatch = mealDateStr === mealDate;
+        
+        console.log(`[deletePost] Comparing meal log ${meal.id}:`, {
+          mealType: meal.mealType,
+          mealName: meal.mealName,
+          mealTypeNormalized,
+          mealNameNormalized,
+          postMealTypeNormalized,
+          mealTypeMatch,
+          mealDate: meal.mealDate,
+          mealDateStr,
+          postMealDate: mealDate,
+          dateMatch,
+          matches: mealTypeMatch && dateMatch,
+        });
+        
+        return mealTypeMatch && dateMatch;
+      }) || [];
+      
+      console.log(`[deletePost] Found ${matchingMealLogs.length} matching meal logs to delete`);
+      
+      // If no exact matches found, try a more lenient approach:
+      // If mealType is missing from meal log but post has it, or vice versa, still try to match by date
+      if (matchingMealLogs.length === 0 && mealsArray.length > 0) {
+        console.log(`[deletePost] No exact matches found, trying lenient matching by date only`);
+        // Try to match by date only if mealType is missing or doesn't match
+        const lenientMatches = mealsArray.filter(meal => {
+          // Normalize dates for comparison
+          let mealDateStr = '';
+          if (meal.mealDate) {
+            if (typeof meal.mealDate === 'string') {
+              mealDateStr = meal.mealDate.split('T')[0];
+            } else if (meal.mealDate.toDate) {
+              mealDateStr = meal.mealDate.toDate().toISOString().split('T')[0];
+            } else {
+              mealDateStr = new Date(meal.mealDate).toISOString().split('T')[0];
+            }
+          }
+          const dateMatch = mealDateStr === mealDate;
+          
+          // If date matches and either:
+          // 1. Meal log has no mealType (null/undefined/empty)
+          // 2. Post has no mealType (shouldn't happen, but handle it)
+          // 3. There's only one meal log for this date (likely the one we want)
+          const mealHasNoType = !meal.mealType && !meal.mealName;
+          const shouldMatch = dateMatch && (mealHasNoType || mealsArray.length === 1);
+          
+          console.log(`[deletePost] Lenient match check for meal log ${meal.id}:`, {
+            dateMatch,
+            mealHasNoType,
+            mealLogsCount: mealsArray.length,
+            shouldMatch,
+          });
+          
+          return shouldMatch;
+        });
+        
+        if (lenientMatches.length > 0) {
+          console.log(`[deletePost] Found ${lenientMatches.length} meal log(s) via lenient matching`);
+          matchingMealLogs.push(...lenientMatches);
+        }
+      }
+      
+      // Delete matching meal logs
+      let deletedCount = 0;
+      for (const mealLog of matchingMealLogs) {
+        try {
+          await mealLogService.deleteMealLog(userId, mealLog.id);
+          deletedCount++;
+          console.log(`[deletePost] Deleted meal log ${mealLog.id}`);
+        } catch (mealLogError) {
+          console.error(`[deletePost] Error deleting meal log ${mealLog.id}:`, mealLogError);
+          // Continue deleting other meal logs even if one fails
+        }
+      }
+      
+      console.log(`[deletePost] Successfully deleted ${deletedCount} meal log(s) for post ${postId}`);
+    } catch (mealLogError) {
+      console.error('[deletePost] Error finding/deleting meal logs for post:', mealLogError);
+      // Continue with post deletion even if meal log deletion fails
+    }
+  } else {
+    console.log(`[deletePost] Post ${postId} does not have mealDate, skipping meal log deletion:`, {
+      hasMealDate: !!postData.mealDate,
+      hasMealType: !!postData.mealType,
+      postDataKeys: Object.keys(postData),
+    });
+  }
+
   // Images are stored in Firestore as base64, so no separate deletion needed
 
   await postRef.delete();

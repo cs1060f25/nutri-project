@@ -68,6 +68,20 @@ const Insights = () => {
     };
   }, [fetchData]);
 
+  // Refresh data when page becomes visible (user returns to tab/window)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden && accessToken) {
+        fetchData();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [fetchData, accessToken]);
+
   const metricOptions = useMemo(() => {
     if (!data?.trend?.metrics) return [];
     return Object.keys(data.trend.metrics);

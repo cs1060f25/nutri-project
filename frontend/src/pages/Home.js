@@ -338,6 +338,7 @@ const Home = () => {
       
       try {
         setProgressLoading(true);
+        // Add a cache-busting parameter to ensure fresh data
         const progress = await getTodayProgress(accessToken);
         setProgressData(progress);
       } catch (err) {
@@ -363,6 +364,20 @@ const Home = () => {
       window.removeEventListener('mealLogUpdated', handleMealLogUpdate);
     };
   }, [fetchProgress]);
+
+  // Refresh progress when page becomes visible (user returns to tab/window)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden && accessToken) {
+        fetchProgress();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [fetchProgress, accessToken]);
 
   const openNutritionModal = (recipe) => {
     setSelectedRecipe(recipe);
@@ -987,7 +1002,11 @@ const Home = () => {
           {/* Nutrition Progress Card */}
           {!progressLoading && (
             <div className="progress-card-wrapper">
-              <NutritionProgress progressData={progressWithHypothetical || progressData} />
+              <NutritionProgress 
+                progressData={progressWithHypothetical || progressData} 
+                onRefresh={fetchProgress}
+                refreshing={progressLoading}
+              />
             </div>
           )}
 

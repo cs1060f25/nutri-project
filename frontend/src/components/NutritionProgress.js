@@ -1,7 +1,8 @@
 import React from 'react';
+import { RefreshCw } from 'lucide-react';
 import './NutritionProgress.css';
 
-const NutritionProgress = ({ progressData }) => {
+const NutritionProgress = ({ progressData, onRefresh, refreshing }) => {
   if (!progressData || !progressData.hasActivePlan) {
     return (
       <div className="nutrition-progress-card">
@@ -10,6 +11,16 @@ const NutritionProgress = ({ progressData }) => {
             <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
           </svg>
           <h2 className="progress-title">Today's Progress</h2>
+          {onRefresh && (
+            <button
+              onClick={onRefresh}
+              className="progress-refresh-button"
+              disabled={refreshing}
+              title="Refresh progress"
+            >
+              <RefreshCw size={18} className={refreshing ? 'spinning' : ''} />
+            </button>
+          )}
         </div>
         <div className="no-plan-content">
           <svg className="no-plan-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -72,6 +83,16 @@ const NutritionProgress = ({ progressData }) => {
             </span>
           )}
         </h2>
+        {onRefresh && (
+          <button
+            onClick={onRefresh}
+            className="progress-refresh-button"
+            disabled={refreshing}
+            title="Refresh progress"
+          >
+            <RefreshCw size={18} className={refreshing ? 'spinning' : ''} />
+          </button>
+        )}
         <div className="meals-stat">
           <svg className="meal-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2M7 2v20M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3z"/>
