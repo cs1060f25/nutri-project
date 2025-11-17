@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Filter } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { getFeedPosts, getDiningHallFeedPosts } from '../services/socialService';
 import PostCard from './PostCard';
@@ -8,7 +9,54 @@ const SocialFeed = () => {
   const { accessToken } = useAuth();
   const [activeTab, setActiveTab] = useState('friends'); // 'friends' or 'dining-halls'
   const [posts, setPosts] = useState([]);
+  const [filteredPosts, setFilteredPosts] = useState([]);
   const [loading, setLoading] = useState(true);
+  
+  // Filter states
+  const [showFilters, setShowFilters] = useState(false);
+  const [filterDiningHall, setFilterDiningHall] = useState('');
+  const [filterVisibility, setFilterVisibility] = useState('');
+  const [filterRating, setFilterRating] = useState('');
+  const [filterMealType, setFilterMealType] = useState('');
+
+  // Filter posts based on filter criteria
+  useEffect(() => {
+    let filtered = [...posts];
+
+    // Filter by dining hall
+    if (filterDiningHall) {
+      filtered = filtered.filter(post => 
+        post.locationName === filterDiningHall || post.locationId === filterDiningHall
+      );
+    }
+
+    // Filter by visibility
+    if (filterVisibility === 'public') {
+      filtered = filtered.filter(post => post.isPublic !== false);
+    } else if (filterVisibility === 'private') {
+      filtered = filtered.filter(post => post.isPublic === false);
+    }
+
+    // Filter by rating
+    if (filterRating) {
+      const ratingNum = parseInt(filterRating, 10);
+      filtered = filtered.filter(post => post.rating === ratingNum);
+    }
+
+    // Filter by meal type
+    if (filterMealType) {
+      filtered = filtered.filter(post => 
+        post.mealType === filterMealType || post.mealName === filterMealType
+      );
+    }
+
+    setFilteredPosts(filtered);
+  }, [posts, filterDiningHall, filterVisibility, filterRating, filterMealType]);
+
+  // Reset filter visibility when switching tabs
+  useEffect(() => {
+    setShowFilters(false);
+  }, [activeTab]);
 
   useEffect(() => {
     const fetchFeed = async () => {
@@ -22,11 +70,14 @@ const SocialFeed = () => {
         } else {
           data = await getDiningHallFeedPosts(50, accessToken);
         }
-        setPosts(data.posts || []);
+        const postsList = data.posts || [];
+        setPosts(postsList);
+        setFilteredPosts(postsList);
       } catch (err) {
         // Treat errors as no posts instead of showing error message
         console.error('Error fetching feed:', err);
         setPosts([]);
+        setFilteredPosts([]);
       } finally {
         setLoading(false);
       }
@@ -49,20 +100,142 @@ const SocialFeed = () => {
 
   return (
     <div className="social-feed">
-      <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem', marginBottom: '1.5rem' }}>
-        <button
-          className={`btn ${activeTab === 'friends' ? 'btn-primary' : 'btn-secondary'}`}
-          onClick={() => setActiveTab('friends')}
-        >
-          Friends
-        </button>
-        <button
-          className={`btn ${activeTab === 'dining-halls' ? 'btn-primary' : 'btn-secondary'}`}
-          onClick={() => setActiveTab('dining-halls')}
-        >
-          Dining Halls
-        </button>
+      <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginTop: '1rem', marginBottom: '1.5rem' }}>
+        <div style={{ display: 'flex', gap: '1rem', flex: 1 }}>
+          <button
+            className={`btn ${activeTab === 'friends' ? 'btn-primary' : 'btn-secondary'}`}
+            onClick={() => setActiveTab('friends')}
+          >
+            Friends
+          </button>
+          <button
+            className={`btn ${activeTab === 'dining-halls' ? 'btn-primary' : 'btn-secondary'}`}
+            onClick={() => setActiveTab('dining-halls')}
+          >
+            Dining Halls
+          </button>
+        </div>
+        {posts.length > 0 && (
+          <button
+            className={`btn ${showFilters ? 'btn-primary' : 'btn-secondary'}`}
+            onClick={() => setShowFilters(!showFilters)}
+            style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '0.5rem',
+              padding: '0.5rem 1rem',
+              position: 'relative'
+            }}
+            title="Toggle filters"
+          >
+            <Filter size={18} />
+            Filter
+            {(filterDiningHall || filterVisibility || filterRating || filterMealType) && (
+              <span style={{
+                position: 'absolute',
+                top: '-4px',
+                right: '-4px',
+                backgroundColor: '#dc2626',
+                color: 'white',
+                borderRadius: '50%',
+                width: '18px',
+                height: '18px',
+                fontSize: '10px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontWeight: 'bold'
+              }}>
+                {(filterDiningHall ? 1 : 0) + (filterVisibility ? 1 : 0) + (filterRating ? 1 : 0) + (filterMealType ? 1 : 0)}
+              </span>
+            )}
+          </button>
+        )}
       </div>
+
+      {/* Filter Section */}
+      {posts.length > 0 && showFilters && (
+        <div className="profile-filters">
+          <h3 style={{ marginBottom: '1rem', fontSize: '1.1rem', fontWeight: 600 }}>Filter Posts</h3>
+          <div className="filters-grid">
+            <div className="filter-group">
+              <label htmlFor="filter-dining-hall">Dining Hall</label>
+              <select
+                id="filter-dining-hall"
+                value={filterDiningHall}
+                onChange={(e) => setFilterDiningHall(e.target.value)}
+                className="filter-select"
+              >
+                <option value="">All Dining Halls</option>
+                {[...new Set(posts.map(p => p.locationName).filter(Boolean))].map(location => (
+                  <option key={location} value={location}>{location}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="filter-group">
+              <label htmlFor="filter-visibility">Visibility</label>
+              <select
+                id="filter-visibility"
+                value={filterVisibility}
+                onChange={(e) => setFilterVisibility(e.target.value)}
+                className="filter-select"
+              >
+                <option value="">All</option>
+                <option value="public">Public</option>
+                <option value="private">Private</option>
+              </select>
+            </div>
+
+            <div className="filter-group">
+              <label htmlFor="filter-rating">Rating</label>
+              <select
+                id="filter-rating"
+                value={filterRating}
+                onChange={(e) => setFilterRating(e.target.value)}
+                className="filter-select"
+              >
+                <option value="">All Ratings</option>
+                <option value="5">5 Stars</option>
+                <option value="4">4 Stars</option>
+                <option value="3">3 Stars</option>
+                <option value="2">2 Stars</option>
+                <option value="1">1 Star</option>
+              </select>
+            </div>
+
+            <div className="filter-group">
+              <label htmlFor="filter-meal-type">Meal Type</label>
+              <select
+                id="filter-meal-type"
+                value={filterMealType}
+                onChange={(e) => setFilterMealType(e.target.value)}
+                className="filter-select"
+              >
+                <option value="">All Meal Types</option>
+                <option value="Breakfast">Breakfast</option>
+                <option value="Lunch">Lunch</option>
+                <option value="Dinner">Dinner</option>
+              </select>
+            </div>
+          </div>
+
+          {(filterDiningHall || filterVisibility || filterRating || filterMealType) && (
+            <button
+              className="btn btn-secondary"
+              onClick={() => {
+                setFilterDiningHall('');
+                setFilterVisibility('');
+                setFilterRating('');
+                setFilterMealType('');
+              }}
+              style={{ marginTop: '1rem' }}
+            >
+              Clear Filters
+            </button>
+          )}
+        </div>
+      )}
 
       {posts.length === 0 ? (
         <div className="empty-state">
@@ -72,10 +245,23 @@ const SocialFeed = () => {
             {emptyMessage}
           </div>
         </div>
+      ) : filteredPosts.length === 0 ? (
+        <div className="empty-state">
+          <div className="empty-state-icon">🔍</div>
+          <div className="empty-state-title">No posts match your filters</div>
+          <div className="empty-state-message">
+            Try adjusting your filter criteria.
+          </div>
+        </div>
       ) : (
-        posts.map((post) => (
-          <PostCard key={post.id} post={post} />
-        ))
+        <>
+          <p style={{ marginBottom: '1rem', color: '#666' }}>
+            Showing {filteredPosts.length} of {posts.length} posts
+          </p>
+          {filteredPosts.map((post) => (
+            <PostCard key={post.id} post={post} />
+          ))}
+        </>
       )}
     </div>
   );

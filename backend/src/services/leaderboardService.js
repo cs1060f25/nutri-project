@@ -24,15 +24,51 @@ const getLeaderboard = async (filters = {}, limit = 100) => {
     // Check if all filters are empty (show all users)
     const hasFilters = filters.classYear || filters.residence || filters.dietaryPattern;
     
-    // Step 1: Get all posts (both public and private)
+    // Step 1: Get all valid users from Firebase Auth first
+    // This ensures we only include users that actually exist in Auth (not deleted)
+    const authUsersResult = await admin.auth().listUsers(1000); // Get up to 1000 users
+    const validAuthUserIds = new Set();
+    authUsersResult.users.forEach(user => {
+      validAuthUserIds.add(user.uid);
+    });
+
+    // Step 2: Get user profiles from Firestore, but only include those that exist in Auth
+    // Only include users that have valid data (email is required) AND exist in Auth
+    const usersSnapshot = await db.collection(USERS_COLLECTION).get();
+    const userProfiles = {};
+    const userIds = [];
+    const validUserIds = new Set(); // Track valid user IDs for post filtering
+    
+    usersSnapshot.forEach(doc => {
+      if (doc.exists) {
+        const userData = doc.data();
+        const userId = doc.id;
+        // Only include users that:
+        // 1. Have an email (required field for valid users)
+        // 2. Still exist in Firebase Auth (not deleted)
+        if (userData && userData.email && validAuthUserIds.has(userId)) {
+          userProfiles[userId] = userData;
+          userIds.push(userId);
+          validUserIds.add(userId);
+        }
+      }
+    });
+
+    if (userIds.length === 0) {
+      return [];
+    }
+
+    // Step 3: Get all posts (both public and private)
+    // Only count posts from users that exist in both Firestore AND Firebase Auth
     const postsSnapshot = await db.collection(POSTS_COLLECTION).get();
     
-    // Step 2: Count posts per user
+    // Step 4: Count posts per user (only for valid users)
     const userPostCounts = {};
     postsSnapshot.forEach(doc => {
       const postData = doc.data();
       const userId = postData.userId;
-      if (userId) {
+      // Only count posts from users that exist in the users collection
+      if (userId && validUserIds.has(userId)) {
         if (!userPostCounts[userId]) {
           userPostCounts[userId] = {
             userId,
@@ -48,29 +84,13 @@ const getLeaderboard = async (filters = {}, limit = 100) => {
       }
     });
 
-    // Step 3: Get user profiles
-    // Always get all users so we can filter by profile fields (dietaryPattern, classYear, residence)
-    // even if they have 0 posts
-    const usersSnapshot = await db.collection(USERS_COLLECTION).get();
-    const userProfiles = {};
-    const userIds = [];
-    
-    usersSnapshot.forEach(doc => {
-      if (doc.exists) {
-        userProfiles[doc.id] = doc.data();
-        userIds.push(doc.id);
-      }
-    });
-
-    if (userIds.length === 0) {
-      return [];
-    }
-
-    // Step 4: Combine post counts with user profiles and apply filters
+    // Step 5: Combine post counts with user profiles and apply filters
+    // Only process users that exist in both the users collection and have valid profiles
     const leaderboard = [];
     for (const userId of userIds) {
       const profile = userProfiles[userId];
-      if (!profile) continue;
+      // Skip if profile doesn't exist or doesn't have required fields
+      if (!profile || !profile.email) continue;
 
       // Apply filters
       if (filters.classYear) {
@@ -110,7 +130,7 @@ const getLeaderboard = async (filters = {}, limit = 100) => {
       });
     }
 
-    // Step 5: Sort by post count (descending) and limit
+    // Step 6: Sort by post count (descending) and limit
     leaderboard.sort((a, b) => b.postCount - a.postCount);
     
     // Add rank
@@ -132,6 +152,13 @@ const getFilterOptions = async () => {
   const db = getDb();
   
   try {
+    // Get valid users from Firebase Auth first
+    const authUsersResult = await admin.auth().listUsers(1000);
+    const validAuthUserIds = new Set();
+    authUsersResult.users.forEach(user => {
+      validAuthUserIds.add(user.uid);
+    });
+
     const usersSnapshot = await db.collection(USERS_COLLECTION).get();
     
     const classYears = new Set();
@@ -140,6 +167,12 @@ const getFilterOptions = async () => {
 
     usersSnapshot.forEach(doc => {
       const data = doc.data();
+      const userId = doc.id;
+      
+      // Only process users that:
+      // 1. Have an email (valid users)
+      // 2. Still exist in Firebase Auth (not deleted)
+      if (!data || !data.email || !validAuthUserIds.has(userId)) return;
       
       // Use classYear field, or extract from email as fallback
       if (data.classYear) {

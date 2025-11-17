@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Star, Edit, Lock, Globe } from 'lucide-react';
+import { Star, Edit } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import EditPostModal from './EditPostModal';
 import '../pages/Social.css';
@@ -55,33 +55,13 @@ const PostCard = ({ post, showDelete = false, onPostUpdated, onPostDeleted, show
           <div className="post-user-info">
             <div className="post-user-name">{post.userName}</div>
             <div className="post-meta">
-              {post.mealDate && (
-                <span className="post-date">
-                  {new Date(post.mealDate + 'T00:00:00').toLocaleDateString('en-US', {
-                    year: 'numeric',
-                    month: 'short',
-                    day: 'numeric'
-                  })}
-                </span>
-              )}
-              {post.mealDate && ' • '}
               {formatDate(post.timestamp)} •{' '}
               <span className="post-location">{post.locationName}</span>
               {showVisibility && (
                 <>
                   {' • '}
                   <span className="post-visibility">
-                    {post.isPublic === false ? (
-                      <>
-                        <Lock size={14} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '4px' }} />
-                        Private
-                      </>
-                    ) : (
-                      <>
-                        <Globe size={14} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '4px' }} />
-                        Public
-                      </>
-                    )}
+                    {(post.isPublic === false || post.isPublic === 'false') ? 'Private' : 'Public'}
                   </span>
                 </>
               )}
@@ -126,33 +106,33 @@ const PostCard = ({ post, showDelete = false, onPostUpdated, onPostDeleted, show
         )}
 
         {/* Star Rating */}
-        {post.rating && (
-          <div className="post-rating-section">
-            <h3 className="post-section-header">Rating</h3>
-            <div className="post-rating">
-              {[1, 2, 3, 4, 5].map((star) => (
-                <Star
-                  key={star}
-                  size={20}
-                  fill={star <= post.rating ? '#fbbf24' : 'none'}
-                  stroke={star <= post.rating ? '#fbbf24' : '#d1d5db'}
-                  style={{ marginRight: '2px' }}
-                />
-              ))}
+        <div className="post-rating-section">
+          <h3 className="post-section-header">Rating</h3>
+          <div className="post-rating">
+            {[1, 2, 3, 4, 5].map((star) => (
+              <Star
+                key={star}
+                size={20}
+                fill={post.rating && star <= post.rating ? '#fbbf24' : 'none'}
+                stroke={post.rating && star <= post.rating ? '#fbbf24' : '#d1d5db'}
+                style={{ marginRight: '2px' }}
+              />
+            ))}
+            {post.rating && post.rating > 0 && (
               <span style={{ marginLeft: '8px', color: '#6b7280' }}>{post.rating} / 5</span>
-            </div>
+            )}
           </div>
-        )}
+        </div>
 
         {/* Review/Comment */}
-        {post.review && (
-          <div className="post-review-section">
-            <h3 className="post-section-header">Review</h3>
-            <div className="post-review">
-              <p className="post-review-text">{post.review}</p>
-            </div>
+        <div className="post-review-section">
+          <h3 className="post-section-header">Review</h3>
+          <div className="post-review">
+            <p className="post-review-text">
+              {post.review ? post.review : <em>No review</em>}
+            </p>
           </div>
-        )}
+        </div>
 
         {/* Food Items with Nutrition Values */}
         {post.items && post.items.length > 0 && (

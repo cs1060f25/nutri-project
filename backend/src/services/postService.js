@@ -323,9 +323,27 @@ const getFeedPosts = async (userId, limit = 50) => {
 
 /**
  * Get feed posts from followed dining halls
+ * Handles location name variations like "Dunster" and "Dunster House"
  */
 const getDiningHallFeedPosts = async (userId, limit = 50) => {
   const db = getDb();
+
+  // Normalize location name helper (same as getPostsByLocationName)
+  const normalizeHouseName = (houseName) => {
+    const trimmed = houseName.trim();
+    const baseName = trimmed.replace(/\s+House\s*$/i, '').trim();
+    const ALL_HOUSES = [
+      'Pforzheimer', 'Cabot', 'Currier', 'Kirkland', 'Leverett', 'Lowell',
+      'Eliot', 'Adams', 'Mather', 'Dunster', 'Winthrop', 'Quincy'
+    ];
+    const isHouse = ALL_HOUSES.some(base => 
+      base.toLowerCase() === baseName.toLowerCase()
+    );
+    if (isHouse && !trimmed.endsWith('House')) {
+      return `${trimmed} House`;
+    }
+    return trimmed;
+  };
 
   // Get user's followed dining halls
   const { getFollowedDiningHalls } = require('./diningHallFollowService');
@@ -336,27 +354,46 @@ const getDiningHallFeedPosts = async (userId, limit = 50) => {
   }
 
   // Get posts from followed dining halls
-  // Match by both locationId and locationName to get posts from specific dining halls
+  // Match by locationId and handle locationName variations
   const postsRef = db.collection(POSTS_COLLECTION);
   const allPosts = [];
+  const seenPostIds = new Set(); // Track seen post IDs to avoid duplicates
 
-  // For each followed dining hall, get posts matching both locationId and locationName
-  // Remove orderBy to avoid requiring composite index - sort in-memory instead
+  // For each followed dining hall, get posts matching locationId and locationName variations
   for (const hall of followedHalls) {
-    const query = postsRef
-      .where('locationId', '==', hall.locationId)
-      .where('locationName', '==', hall.locationName);
+    // Normalize the hall's location name and generate variations
+    const normalizedName = normalizeHouseName(hall.locationName);
+    const baseName = normalizedName.replace(/\s+House\s*$/i, '').trim();
+    const variations = [
+      normalizedName, // "Dunster House"
+      baseName, // "Dunster"
+      hall.locationName, // Original (in case it's different)
+    ];
     
-    const snapshot = await query.get();
-    snapshot.forEach(doc => {
-      allPosts.push({
-        id: doc.id,
-        ...doc.data(),
-        timestamp: doc.data().timestamp?.toDate(),
-        createdAt: doc.data().createdAt?.toDate(),
-        updatedAt: doc.data().updatedAt?.toDate(),
+    // Remove duplicates
+    const uniqueVariations = [...new Set(variations)];
+
+    // Query for each variation
+    for (const locationNameVariation of uniqueVariations) {
+      const query = postsRef
+        .where('locationId', '==', hall.locationId)
+        .where('locationName', '==', locationNameVariation);
+      
+      const snapshot = await query.get();
+      snapshot.forEach(doc => {
+        // Avoid duplicates by checking if post ID already exists
+        if (!seenPostIds.has(doc.id)) {
+          seenPostIds.add(doc.id);
+          allPosts.push({
+            id: doc.id,
+            ...doc.data(),
+            timestamp: doc.data().timestamp?.toDate(),
+            createdAt: doc.data().createdAt?.toDate(),
+            updatedAt: doc.data().updatedAt?.toDate(),
+          });
+        }
       });
-    });
+    }
   }
 
   // Sort all posts by timestamp descending (with fallback to createdAt)
@@ -442,37 +479,72 @@ const getPostsByLocation = async (locationId, limit = 50) => {
 
 /**
  * Get posts by location name (for search)
+ * Handles variations like "Dunster" and "Dunster House"
  */
 const getPostsByLocationName = async (locationName, limit = 50) => {
   const db = getDb();
 
-  // Remove orderBy to avoid requiring composite index - sort in-memory instead
-  const query = db
-    .collection(POSTS_COLLECTION)
-    .where('locationName', '==', locationName);
+  // Normalize the location name to handle variations
+  const normalizeHouseName = (houseName) => {
+    const trimmed = houseName.trim();
+    const baseName = trimmed.replace(/\s+House\s*$/i, '').trim();
+    const ALL_HOUSES = [
+      'Pforzheimer', 'Cabot', 'Currier', 'Kirkland', 'Leverett', 'Lowell',
+      'Eliot', 'Adams', 'Mather', 'Dunster', 'Winthrop', 'Quincy'
+    ];
+    const isHouse = ALL_HOUSES.some(base => 
+      base.toLowerCase() === baseName.toLowerCase()
+    );
+    if (isHouse && !trimmed.endsWith('House')) {
+      return `${trimmed} House`;
+    }
+    return trimmed;
+  };
 
-  const snapshot = await query.get();
-  const posts = [];
+  const normalizedName = normalizeHouseName(locationName);
+  
+  // Generate variations to search for (with and without "House")
+  const baseName = normalizedName.replace(/\s+House\s*$/i, '').trim();
+  const variations = [
+    normalizedName, // "Dunster House"
+    baseName, // "Dunster"
+    locationName, // Original input (in case it's different)
+  ];
+  
+  // Remove duplicates
+  const uniqueVariations = [...new Set(variations)];
 
-  snapshot.forEach(doc => {
-    posts.push({
-      id: doc.id,
-      ...doc.data(),
-      timestamp: doc.data().timestamp?.toDate(),
-      createdAt: doc.data().createdAt?.toDate(),
-      updatedAt: doc.data().updatedAt?.toDate(),
+  // Query for all variations and combine results
+  const allPosts = [];
+  for (const variation of uniqueVariations) {
+    const query = db
+      .collection(POSTS_COLLECTION)
+      .where('locationName', '==', variation);
+    
+    const snapshot = await query.get();
+    snapshot.forEach(doc => {
+      // Avoid duplicates by checking if post ID already exists
+      if (!allPosts.find(p => p.id === doc.id)) {
+        allPosts.push({
+          id: doc.id,
+          ...doc.data(),
+          timestamp: doc.data().timestamp?.toDate(),
+          createdAt: doc.data().createdAt?.toDate(),
+          updatedAt: doc.data().updatedAt?.toDate(),
+        });
+      }
     });
-  });
+  }
 
   // Sort by timestamp descending in-memory
-  posts.sort((a, b) => {
+  allPosts.sort((a, b) => {
     const aTime = a.timestamp || a.createdAt || new Date(0);
     const bTime = b.timestamp || b.createdAt || new Date(0);
     return bTime - aTime;
   });
 
   // Return limited results
-  return posts.slice(0, limit);
+  return allPosts.slice(0, limit);
 };
 
 /**
