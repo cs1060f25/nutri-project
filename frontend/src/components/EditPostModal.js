@@ -221,6 +221,10 @@ const EditPostModal = ({ isOpen, onClose, post, onPostUpdated, onPostDeleted }) 
         }
       }
 
+      // Dispatch event to update progress on Home and Insights pages
+      // (since deleting a post also deletes its associated meal log)
+      window.dispatchEvent(new CustomEvent('mealLogUpdated'));
+      
       onClose();
       if (onPostDeleted) {
         onPostDeleted();
