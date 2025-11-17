@@ -48,6 +48,7 @@ const CreatePostModal = ({ isOpen, onClose, scanData, imageUrl, imageFile, initi
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [uploadedImage, setUploadedImage] = useState(null);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [uploadedImagePreview, setUploadedImagePreview] = useState(null);
   
   // Check if this is from meal planning (no imageUrl or imageFile provided)
@@ -262,8 +263,8 @@ const CreatePostModal = ({ isOpen, onClose, scanData, imageUrl, imageFile, initi
       window.dispatchEvent(new CustomEvent('mealLogUpdated'));
       
       onClose();
-      // Optionally show success message
-      alert('Post created successfully!');
+      // Show success modal
+      setShowSuccessModal(true);
     } catch (err) {
       console.error('Failed to create post:', err);
       setError(err.message || 'Failed to create post');
@@ -272,24 +273,25 @@ const CreatePostModal = ({ isOpen, onClose, scanData, imageUrl, imageFile, initi
     }
   };
 
-  if (!isOpen) return null;
-
   const foodItems = [
     ...(scanData?.matchedItems || []).map(item => item.matchedName || item.predictedName),
     ...(scanData?.unmatchedDishes || [])
   ];
 
   return (
-    <div className="create-post-modal-overlay" onClick={onClose}>
-      <div className="create-post-modal" onClick={(e) => e.stopPropagation()}>
-        <div className="create-post-modal-header">
-          <h2>Create Post</h2>
-          <button className="create-post-modal-close" onClick={onClose}>
-            <X size={20} />
-          </button>
-        </div>
+    <>
+      {/* Main Create Post Modal */}
+      {isOpen && (
+        <div className="create-post-modal-overlay" onClick={onClose}>
+          <div className="create-post-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="create-post-modal-header">
+              <h2>Create Post</h2>
+              <button className="create-post-modal-close" onClick={onClose}>
+                <X size={20} />
+              </button>
+            </div>
 
-        <form onSubmit={handleSubmit} className="create-post-modal-form">
+            <form onSubmit={handleSubmit} className="create-post-modal-form">
           {/* Image Preview from Food Scanner */}
           {imageUrl && !isFromMealPlanning && (
             <div className="create-post-modal-image">
@@ -487,8 +489,36 @@ const CreatePostModal = ({ isOpen, onClose, scanData, imageUrl, imageFile, initi
             </button>
           </div>
         </form>
-      </div>
-    </div>
+          </div>
+        </div>
+      )}
+
+      {/* Success Modal */}
+      {showSuccessModal && (
+        <div className="create-post-modal-overlay" onClick={() => setShowSuccessModal(false)}>
+          <div className="create-post-modal success-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="create-post-modal-header">
+              <button className="create-post-modal-close" onClick={() => setShowSuccessModal(false)}>×</button>
+            </div>
+
+            <div className="create-post-modal-content">
+              <div className="success-message">
+                Post created successfully!
+              </div>
+            </div>
+
+            <div className="create-post-modal-actions">
+              <button
+                className="create-post-modal-submit"
+                onClick={() => setShowSuccessModal(false)}
+              >
+                OK
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 };
 

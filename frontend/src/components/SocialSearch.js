@@ -4,6 +4,7 @@ import { searchUsers, searchLocations, sendFriendRequest, getFriends, followDini
 import { getPostsByLocationName } from '../services/socialService';
 import PostCard from './PostCard';
 import '../pages/Social.css';
+import '../components/CreatePostModal.css';
 
 const SocialSearch = () => {
   const { accessToken } = useAuth();
@@ -17,6 +18,7 @@ const SocialSearch = () => {
   const [friends, setFriends] = useState([]);
   const [friendRequestStatus, setFriendRequestStatus] = useState({});
   const [followingStatus, setFollowingStatus] = useState({});
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -78,7 +80,7 @@ const SocialSearch = () => {
     try {
       await sendFriendRequest(userId, accessToken);
       setFriendRequestStatus((prev) => ({ ...prev, [userId]: 'sent' }));
-      alert('Friend request sent!');
+      setShowSuccessModal(true);
     } catch (err) {
       console.error('Error sending friend request:', err);
       alert('Failed to send friend request: ' + err.message);
@@ -293,6 +295,32 @@ const SocialSearch = () => {
           <div className="empty-state-title">No results found</div>
           <div className="empty-state-message">
             Try a different search term
+          </div>
+        </div>
+      )}
+
+      {/* Success Modal */}
+      {showSuccessModal && (
+        <div className="create-post-modal-overlay" onClick={() => setShowSuccessModal(false)}>
+          <div className="create-post-modal success-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="create-post-modal-header">
+              <button className="create-post-modal-close" onClick={() => setShowSuccessModal(false)}>×</button>
+            </div>
+
+            <div className="create-post-modal-content">
+              <div className="success-message">
+                Friend request sent!
+              </div>
+            </div>
+
+            <div className="create-post-modal-actions">
+              <button
+                className="create-post-modal-submit"
+                onClick={() => setShowSuccessModal(false)}
+              >
+                OK
+              </button>
+            </div>
           </div>
         </div>
       )}
