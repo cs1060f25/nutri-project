@@ -481,6 +481,17 @@
   }
 }
 
+.scanner-save-log-btn {
+  width: 50%;
+  max-width: 300px;
+}
+
+@media (max-width: 640px) {
+  .scanner-save-log-btn {
+    width: 100%;
+  }
+}
+
 .scanner-results-banner {
   border-radius: 28px;
   padding: 2.5rem;

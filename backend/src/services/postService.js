@@ -58,6 +58,219 @@ const createPost = async (userId, mealId, mealData) => {
 };
 
 /**
+ * Create a post from a scan (image analysis)
+ */
+const createPostFromScan = async (userId, scanData) => {
+  try {
+    const db = getDb();
+
+    // Get user info
+    const userRef = db.collection(USERS_COLLECTION).doc(userId);
+    const userDoc = await userRef.get();
+
+    if (!userDoc.exists) {
+      throw new Error('User not found');
+    }
+
+    const userData = userDoc.data();
+
+    if (!userData.firstName || !userData.lastName) {
+      throw new Error('User profile incomplete');
+    }
+
+    // Convert matchedItems to post items format
+    // Ensure all values are Firestore-compatible (no undefined, functions, etc.)
+    const items = (scanData.matchedItems || []).map(item => {
+      const cleanItem = {
+        recipeId: item.recipeId || null,
+        recipeName: String(item.matchedName || item.predictedName || 'Unknown dish'),
+        quantity: Number(item.estimatedServings || 1),
+        servingSize: String(item.portionDescription || '1 serving'),
+        calories: Number(item.calories || 0),
+        protein: Number(item.protein || 0),
+        carbs: Number(item.carbs || 0),
+        fat: Number(item.fat || 0),
+      };
+      // Remove any undefined values
+      Object.keys(cleanItem).forEach(key => {
+        if (cleanItem[key] === undefined) {
+          delete cleanItem[key];
+        }
+      });
+      return cleanItem;
+    });
+
+    // Format totals - ensure all are numbers
+    const totals = {
+      calories: Number(scanData.nutritionTotals?.calories || 0),
+      protein: Number(scanData.nutritionTotals?.protein || 0),
+      totalCarb: Number(scanData.nutritionTotals?.carbs || 0),
+      totalFat: Number(scanData.nutritionTotals?.fat || 0),
+    };
+
+    // Handle timestamp conversion safely
+    let timestampValue;
+    if (scanData.timestamp) {
+      try {
+        const date = new Date(scanData.timestamp);
+        if (isNaN(date.getTime())) {
+          // Invalid date, use server timestamp
+          timestampValue = admin.firestore.FieldValue.serverTimestamp();
+        } else {
+          timestampValue = admin.firestore.Timestamp.fromDate(date);
+        }
+      } catch (err) {
+        console.warn('Error converting timestamp, using server timestamp:', err);
+        timestampValue = admin.firestore.FieldValue.serverTimestamp();
+      }
+    } else {
+      timestampValue = admin.firestore.FieldValue.serverTimestamp();
+    }
+
+    // Only include image if it's provided and not too large
+    // Firestore has a 1MB limit per document, and base64 is ~33% larger
+    // Clean matchedItems to ensure Firestore compatibility
+    // Handle different property names (matchedName, predictedName, name, etc.)
+    const cleanMatchedItems = (scanData.matchedItems || []).map(item => {
+      if (!item || typeof item !== 'object') {
+        return null; // Skip invalid items
+      }
+      
+      const clean = {};
+      // Handle recipeId (can be string or number)
+      if (item.recipeId !== undefined && item.recipeId !== null) {
+        clean.recipeId = String(item.recipeId);
+      }
+      // Handle name fields - check multiple possible property names
+      const name = item.matchedName || item.predictedName || item.name || 'Unknown dish';
+      if (name) {
+        clean.matchedName = String(name);
+        if (item.predictedName && item.predictedName !== name) {
+          clean.predictedName = String(item.predictedName);
+        }
+      }
+      // Handle numeric fields with safe conversion
+      if (item.estimatedServings !== undefined && item.estimatedServings !== null) {
+        clean.estimatedServings = Number(item.estimatedServings) || 1;
+      }
+      if (item.portionDescription !== undefined && item.portionDescription !== null) {
+        clean.portionDescription = String(item.portionDescription);
+      }
+      if (item.calories !== undefined && item.calories !== null) {
+        clean.calories = Number(item.calories) || 0;
+      }
+      if (item.protein !== undefined && item.protein !== null) {
+        clean.protein = Number(item.protein) || 0;
+      }
+      if (item.carbs !== undefined && item.carbs !== null) {
+        clean.carbs = Number(item.carbs) || 0;
+      }
+      if (item.fat !== undefined && item.fat !== null) {
+        clean.fat = Number(item.fat) || 0;
+      }
+      return clean;
+    }).filter(item => item !== null); // Remove any null items
+
+    // Clean unmatchedDishes - ensure all are strings
+    const cleanUnmatchedDishes = (scanData.unmatchedDishes || [])
+      .filter(dish => dish !== null && dish !== undefined)
+      .map(dish => String(dish));
+
+    const postData = {
+      userId: String(userId),
+      userEmail: String(userData.email || ''),
+      userName: String(`${userData.firstName || ''} ${userData.lastName || ''}`.trim()),
+      userFirstName: String(userData.firstName || ''),
+      userLastName: String(userData.lastName || ''),
+      // Scan-specific fields
+      mealDate: scanData.mealDate ? String(scanData.mealDate) : null,
+      mealType: scanData.mealType ? String(scanData.mealType) : null,
+      mealName: scanData.mealType ? String(scanData.mealType) : null, // Also set mealName for consistency with other posts
+      rating: Number(scanData.rating),
+      review: (typeof scanData.review === 'string' && scanData.review.trim().length > 0) ? String(scanData.review) : null,
+      locationId: String(scanData.locationId), // Ensure it's a string
+      locationName: String(scanData.locationName || ''),
+      isPublic: scanData.isPublic !== undefined ? Boolean(scanData.isPublic) : true, // Default to public
+      items,
+      totals,
+      matchedItems: cleanMatchedItems,
+      unmatchedDishes: cleanUnmatchedDishes,
+      timestamp: timestampValue,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    };
+
+    // Only add image if it exists and is reasonable size (under 500KB base64)
+    if (scanData.image && scanData.image.length < 500000) {
+      postData.image = scanData.image;
+    } else if (scanData.image) {
+      console.warn('Image too large for Firestore, skipping. Size:', scanData.image.length);
+    }
+
+    // Validate data types before saving to Firestore
+    // Firestore doesn't accept undefined values
+    Object.keys(postData).forEach(key => {
+      if (postData[key] === undefined) {
+        delete postData[key];
+      }
+    });
+
+    console.log('About to save post to Firestore. Post data keys:', Object.keys(postData));
+    console.log('Post data sample:', {
+      userId: postData.userId,
+      locationId: postData.locationId,
+      locationName: postData.locationName,
+      rating: postData.rating,
+      itemsCount: postData.items?.length,
+      matchedItemsCount: postData.matchedItems?.length,
+      hasImage: !!postData.image,
+      imageSize: postData.image?.length
+    });
+
+    try {
+      console.log('Calling Firestore add()...');
+      const postRef = await db.collection(POSTS_COLLECTION).add(postData);
+      console.log('Firestore add() succeeded. Post ID:', postRef.id);
+      
+      const postDoc = await postRef.get();
+      if (!postDoc.exists) {
+        throw new Error('Post was created but document does not exist');
+      }
+      
+      const savedPostData = postDoc.data();
+      console.log('Post document retrieved successfully');
+
+      return {
+        id: postDoc.id,
+        ...savedPostData,
+        timestamp: savedPostData.timestamp?.toDate(),
+        createdAt: savedPostData.createdAt?.toDate(),
+        updatedAt: savedPostData.updatedAt?.toDate(),
+      };
+    } catch (firestoreError) {
+      console.error('Firestore operation failed:', firestoreError);
+      console.error('Firestore error code:', firestoreError.code);
+      console.error('Firestore error message:', firestoreError.message);
+      throw new Error(`Firestore error: ${firestoreError.message || firestoreError.code || 'Unknown error'}`);
+    }
+  } catch (error) {
+    console.error('Error in createPostFromScan:', error);
+    console.error('Scan data received:', {
+      hasImage: !!scanData.image,
+      imageSize: scanData.image?.length,
+      locationId: scanData.locationId,
+      locationName: scanData.locationName,
+      mealDate: scanData.mealDate,
+      mealType: scanData.mealType,
+      rating: scanData.rating,
+      matchedItemsCount: scanData.matchedItems?.length,
+      unmatchedDishesCount: scanData.unmatchedDishes?.length,
+    });
+    throw error;
+  }
+};
+
+/**
  * Get feed posts (posts from friends)
  */
 const getFeedPosts = async (userId, limit = 50) => {
@@ -263,6 +476,91 @@ const getPostsByLocationName = async (locationName, limit = 50) => {
 };
 
 /**
+ * Update a post
+ */
+const updatePost = async (userId, postId, updateData) => {
+  const db = getDb();
+  const postRef = db.collection(POSTS_COLLECTION).doc(postId);
+  const postDoc = await postRef.get();
+
+  if (!postDoc.exists) {
+    throw new Error('Post not found');
+  }
+
+  const postData = postDoc.data();
+
+  // Verify ownership
+  if (postData.userId !== userId) {
+    throw new Error('Unauthorized: You can only update your own posts');
+  }
+
+  // Build update object with only allowed fields
+  const allowedFields = [
+    'mealDate',
+    'mealType',
+    'mealName',
+    'rating',
+    'review',
+    'locationId',
+    'locationName',
+    'isPublic',
+  ];
+
+  const updateObject = {
+    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+  };
+
+  // Add allowed fields if they're provided
+  allowedFields.forEach(field => {
+    if (updateData[field] !== undefined) {
+      if (field === 'rating') {
+        updateObject[field] = Number(updateData[field]);
+      } else if (field === 'review') {
+        // Handle review: null or empty string becomes null
+        const review = typeof updateData[field] === 'string' && updateData[field].trim().length > 0
+          ? String(updateData[field].trim())
+          : null;
+        updateObject[field] = review;
+      } else if (field === 'mealDate') {
+        updateObject[field] = updateData[field] ? String(updateData[field]) : null;
+      } else if (field === 'mealType' || field === 'mealName') {
+        updateObject[field] = updateData[field] ? String(updateData[field]) : null;
+      } else if (field === 'locationId' || field === 'locationName') {
+        updateObject[field] = String(updateData[field] || '');
+      } else if (field === 'isPublic') {
+        updateObject[field] = Boolean(updateData[field]);
+      }
+    }
+  });
+
+  // Handle image update (if provided and not too large)
+  if (updateData.image !== undefined) {
+    if (updateData.image && updateData.image.length < 500000) {
+      updateObject.image = updateData.image;
+    } else if (updateData.image === null) {
+      // Allow removing image by setting to null
+      updateObject.image = null;
+    } else if (updateData.image) {
+      console.warn('Image too large for Firestore, skipping. Size:', updateData.image.length);
+    }
+  }
+
+  await postRef.update(updateObject);
+
+  // Get updated post
+  const updatedDoc = await postRef.get();
+  const updatedData = updatedDoc.data();
+
+  return {
+    id: updatedDoc.id,
+    ...updatedData,
+    timestamp: updatedData.timestamp?.toDate(),
+    createdAt: updatedData.createdAt?.toDate(),
+    updatedAt: updatedData.updatedAt?.toDate(),
+  };
+};
+
+/**
  * Delete a post
  */
 const deletePost = async (userId, postId) => {
@@ -288,11 +586,13 @@ const deletePost = async (userId, postId) => {
 
 module.exports = {
   createPost,
+  createPostFromScan,
   getFeedPosts,
   getDiningHallFeedPosts,
   getPostsByUser,
   getPostsByLocation,
   getPostsByLocationName,
+  updatePost,
   deletePost,
 };
 

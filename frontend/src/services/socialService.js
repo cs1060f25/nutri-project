@@ -111,6 +111,16 @@ export const createPost = async (mealId, accessToken) => {
   return handleApiError(response, 'Failed to create post');
 };
 
+export const createPostFromScan = async (scanData, accessToken) => {
+  const response = await fetch(`${API_BASE}/api/social/posts/scan`, {
+    method: 'POST',
+    headers: getAuthHeaders(accessToken),
+    body: JSON.stringify(scanData),
+  });
+
+  return handleApiError(response, 'Failed to create post from scan');
+};
+
 export const getFeedPosts = async (limit = 50, accessToken) => {
   const response = await fetch(`${API_BASE}/api/social/posts/feed?limit=${limit}`, {
     method: 'GET',
@@ -146,6 +156,16 @@ export const getPostsByLocationName = async (locationName, limit = 50, accessTok
   });
 
   return handleApiError(response, 'Failed to get location posts');
+};
+
+export const updatePost = async (postId, updateData, accessToken) => {
+  const response = await fetch(`${API_BASE}/api/social/posts/${postId}`, {
+    method: 'PUT',
+    headers: getAuthHeaders(accessToken),
+    body: JSON.stringify(updateData),
+  });
+
+  return handleApiError(response, 'Failed to update post');
 };
 
 export const deletePost = async (postId, accessToken) => {

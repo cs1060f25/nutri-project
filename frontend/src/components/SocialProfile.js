@@ -9,6 +9,7 @@ const SocialProfile = () => {
   const { user, accessToken } = useAuth();
   const [activeTab, setActiveTab] = useState('posts'); // 'posts', 'friends', or 'dining-halls'
   const [posts, setPosts] = useState([]);
+  const [filteredPosts, setFilteredPosts] = useState([]);
   const [friends, setFriends] = useState([]);
   const [friendRequests, setFriendRequests] = useState([]);
   const [followedDiningHalls, setFollowedDiningHalls] = useState([]);
@@ -18,6 +19,12 @@ const SocialProfile = () => {
   const [friendPosts, setFriendPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  
+  // Filter states
+  const [filterDiningHall, setFilterDiningHall] = useState('');
+  const [filterVisibility, setFilterVisibility] = useState('');
+  const [filterRating, setFilterRating] = useState('');
+  const [filterMealType, setFilterMealType] = useState('');
 
   // Fetch friends and dining halls count on initial load (for button labels)
   useEffect(() => {
@@ -39,6 +46,42 @@ const SocialProfile = () => {
     fetchCounts();
   }, [accessToken]);
 
+  // Filter posts based on filter criteria
+  useEffect(() => {
+    if (activeTab !== 'posts') return;
+
+    let filtered = [...posts];
+
+    // Filter by dining hall
+    if (filterDiningHall) {
+      filtered = filtered.filter(post => 
+        post.locationName === filterDiningHall || post.locationId === filterDiningHall
+      );
+    }
+
+    // Filter by visibility
+    if (filterVisibility === 'public') {
+      filtered = filtered.filter(post => post.isPublic !== false);
+    } else if (filterVisibility === 'private') {
+      filtered = filtered.filter(post => post.isPublic === false);
+    }
+
+    // Filter by rating
+    if (filterRating) {
+      const ratingNum = parseInt(filterRating, 10);
+      filtered = filtered.filter(post => post.rating === ratingNum);
+    }
+
+    // Filter by meal type
+    if (filterMealType) {
+      filtered = filtered.filter(post => 
+        post.mealType === filterMealType || post.mealName === filterMealType
+      );
+    }
+
+    setFilteredPosts(filtered);
+  }, [posts, filterDiningHall, filterVisibility, filterRating, filterMealType, activeTab]);
+
   // Fetch tab-specific data when tab changes
   useEffect(() => {
     const fetchData = async () => {
@@ -51,7 +94,9 @@ const SocialProfile = () => {
           if (!userId) return;
           try {
             const postsData = await getPostsByUser(userId, 50, accessToken);
-            setPosts(postsData.posts || []);
+            const postsList = postsData.posts || [];
+            setPosts(postsList);
+            setFilteredPosts(postsList);
             setError(null);
           } catch (err) {
             // For user's own profile, treat errors as no posts instead of showing error
@@ -165,6 +210,40 @@ const SocialProfile = () => {
     }
   };
 
+  const handlePostUpdated = async () => {
+    // Refresh posts after update
+    if (activeTab === 'posts' && user) {
+      const userId = user?.id || user?.uid;
+      if (userId) {
+        try {
+          const postsData = await getPostsByUser(userId, 50, accessToken);
+          const postsList = postsData.posts || [];
+          setPosts(postsList);
+          // Filters will be reapplied via useEffect
+        } catch (err) {
+          console.error('Error refreshing posts:', err);
+        }
+      }
+    }
+  };
+
+  const handlePostDeleted = async () => {
+    // Refresh posts after delete
+    if (activeTab === 'posts' && user) {
+      const userId = user?.id || user?.uid;
+      if (userId) {
+        try {
+          const postsData = await getPostsByUser(userId, 50, accessToken);
+          const postsList = postsData.posts || [];
+          setPosts(postsList);
+          // Filters will be reapplied via useEffect
+        } catch (err) {
+          console.error('Error refreshing posts:', err);
+        }
+      }
+    }
+  };
+
   const getInitials = (name) => {
     if (!name) return '?';
     const parts = name.split(' ');
@@ -209,6 +288,90 @@ const SocialProfile = () => {
 
       {activeTab === 'posts' && (
         <div className="profile-posts">
+          {/* Filter Section */}
+          {posts.length > 0 && (
+            <div className="profile-filters">
+              <h3 style={{ marginBottom: '1rem', fontSize: '1.1rem', fontWeight: 600 }}>Filter Posts</h3>
+              <div className="filters-grid">
+                <div className="filter-group">
+                  <label htmlFor="filter-dining-hall">Dining Hall</label>
+                  <select
+                    id="filter-dining-hall"
+                    value={filterDiningHall}
+                    onChange={(e) => setFilterDiningHall(e.target.value)}
+                    className="filter-select"
+                  >
+                    <option value="">All Dining Halls</option>
+                    {[...new Set(posts.map(p => p.locationName).filter(Boolean))].map(location => (
+                      <option key={location} value={location}>{location}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="filter-group">
+                  <label htmlFor="filter-visibility">Visibility</label>
+                  <select
+                    id="filter-visibility"
+                    value={filterVisibility}
+                    onChange={(e) => setFilterVisibility(e.target.value)}
+                    className="filter-select"
+                  >
+                    <option value="">All</option>
+                    <option value="public">Public</option>
+                    <option value="private">Private</option>
+                  </select>
+                </div>
+
+                <div className="filter-group">
+                  <label htmlFor="filter-rating">Rating</label>
+                  <select
+                    id="filter-rating"
+                    value={filterRating}
+                    onChange={(e) => setFilterRating(e.target.value)}
+                    className="filter-select"
+                  >
+                    <option value="">All Ratings</option>
+                    <option value="5">5 Stars</option>
+                    <option value="4">4 Stars</option>
+                    <option value="3">3 Stars</option>
+                    <option value="2">2 Stars</option>
+                    <option value="1">1 Star</option>
+                  </select>
+                </div>
+
+                <div className="filter-group">
+                  <label htmlFor="filter-meal-type">Meal Type</label>
+                  <select
+                    id="filter-meal-type"
+                    value={filterMealType}
+                    onChange={(e) => setFilterMealType(e.target.value)}
+                    className="filter-select"
+                  >
+                    <option value="">All Meal Types</option>
+                    <option value="Breakfast">Breakfast</option>
+                    <option value="Lunch">Lunch</option>
+                    <option value="Dinner">Dinner</option>
+                  </select>
+                </div>
+              </div>
+
+              {(filterDiningHall || filterVisibility || filterRating || filterMealType) && (
+                <button
+                  className="btn btn-secondary"
+                  onClick={() => {
+                    setFilterDiningHall('');
+                    setFilterVisibility('');
+                    setFilterRating('');
+                    setFilterMealType('');
+                  }}
+                  style={{ marginTop: '1rem' }}
+                >
+                  Clear Filters
+                </button>
+              )}
+            </div>
+          )}
+
           {posts.length === 0 ? (
             <div className="empty-state">
               <div className="empty-state-icon">📝</div>
@@ -217,10 +380,30 @@ const SocialProfile = () => {
                 Share your meals to create posts!
               </div>
             </div>
+          ) : filteredPosts.length === 0 ? (
+            <div className="empty-state">
+              <div className="empty-state-icon">🔍</div>
+              <div className="empty-state-title">No posts match your filters</div>
+              <div className="empty-state-message">
+                Try adjusting your filter criteria.
+              </div>
+            </div>
           ) : (
-            posts.map((post) => (
-              <PostCard key={post.id} post={post} showDelete={true} />
-            ))
+            <>
+              <p style={{ marginBottom: '1rem', color: '#666' }}>
+                Showing {filteredPosts.length} of {posts.length} posts
+              </p>
+              {filteredPosts.map((post) => (
+                <PostCard 
+                  key={post.id} 
+                  post={post} 
+                  showDelete={true} 
+                  showVisibility={true}
+                  onPostUpdated={handlePostUpdated}
+                  onPostDeleted={handlePostDeleted}
+                />
+              ))}
+            </>
           )}
         </div>
       )}

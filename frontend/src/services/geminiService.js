@@ -11,7 +11,15 @@ export const analyzeMealImage = async (file) => {
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
-    const message = errorData?.error || 'Failed to analyze meal image';
+    // Handle error message - could be string or object
+    let message = 'Failed to analyze meal image';
+    if (errorData?.error) {
+      message = typeof errorData.error === 'string' 
+        ? errorData.error 
+        : errorData.error?.message || JSON.stringify(errorData.error);
+    } else if (errorData?.message) {
+      message = errorData.message;
+    }
     throw new Error(message);
   }
 
