@@ -107,7 +107,12 @@ module.exports = async (req, res) => {
       const { locationId } = req.query;
       const today = formatDate(new Date());
       const params = { date: today };
-      if (locationId) params.locationId = locationId;
+      if (locationId) {
+        // Ensure locationId is a string for the API
+        params.locationId = String(locationId);
+      }
+
+      console.log('Fetching today\'s menu with params:', params);
 
       const response = await axios.get(`${BASE_URL}/recipes`, {
         headers: {
@@ -117,7 +122,9 @@ module.exports = async (req, res) => {
         params,
       });
 
-      const recipes = response.data;
+      const recipes = response.data || [];
+      console.log(`Received ${recipes.length} recipes for today`);
+
       const menuByLocation = {};
 
       recipes.forEach(recipe => {
@@ -155,7 +162,15 @@ module.exports = async (req, res) => {
         menuByLocation[locNum].meals[mealNum].categories[categoryNum].recipes.push(recipe);
       });
 
-      return res.status(200).json(Object.values(menuByLocation));
+      const result = Object.values(menuByLocation);
+      console.log(`Returning ${result.length} locations with menu data`);
+      
+      // If filtering by locationId and no results, return empty array instead of error
+      if (locationId && result.length === 0) {
+        console.warn(`No menu data found for locationId: ${locationId} on ${today}`);
+      }
+
+      return res.status(200).json(result);
     }
     
     // Route: GET /api/huds/menu/date

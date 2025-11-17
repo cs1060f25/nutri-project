@@ -274,24 +274,24 @@ const SocialProfile = () => {
       <div className="profile-header">
         <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginTop: '1rem', marginBottom: '1.5rem' }}>
           <div style={{ display: 'flex', gap: '1rem', flex: 1 }}>
-            <button
-              className={`btn ${activeTab === 'posts' ? 'btn-primary' : 'btn-secondary'}`}
-              onClick={() => setActiveTab('posts')}
-            >
-              My Posts
-            </button>
-            <button
-              className={`btn ${activeTab === 'friends' ? 'btn-primary' : 'btn-secondary'}`}
-              onClick={() => setActiveTab('friends')}
-            >
-              Friends ({friends.length})
-            </button>
-            <button
-              className={`btn ${activeTab === 'dining-halls' ? 'btn-primary' : 'btn-secondary'}`}
-              onClick={() => setActiveTab('dining-halls')}
-            >
-              Dining Halls ({followedDiningHalls.length})
-            </button>
+          <button
+            className={`btn ${activeTab === 'posts' ? 'btn-primary' : 'btn-secondary'}`}
+            onClick={() => setActiveTab('posts')}
+          >
+            My Posts
+          </button>
+          <button
+            className={`btn ${activeTab === 'friends' ? 'btn-primary' : 'btn-secondary'}`}
+            onClick={() => setActiveTab('friends')}
+          >
+            Friends ({friends.length})
+          </button>
+          <button
+            className={`btn ${activeTab === 'dining-halls' ? 'btn-primary' : 'btn-secondary'}`}
+            onClick={() => setActiveTab('dining-halls')}
+          >
+            Dining Halls ({followedDiningHalls.length})
+          </button>
           </div>
           {activeTab === 'posts' && posts.length > 0 && (
             <button
@@ -307,7 +307,7 @@ const SocialProfile = () => {
               title="Toggle filters"
             >
               <Filter size={18} />
-              Filter
+              <span className="filter-button-text">Filter</span>
               {(filterDiningHall || filterVisibility || filterRating || filterMealType) && (
                 <span style={{
                   position: 'absolute',

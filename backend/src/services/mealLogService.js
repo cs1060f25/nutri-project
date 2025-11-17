@@ -121,7 +121,8 @@ const getMealLogs = async (userId, filters = {}) => {
   if (filters.endDate) {
     query = query.where('mealDate', '<=', filters.endDate);
   }
-  if (filters.mealType) {
+  // Only filter by mealType in query if we don't have date filters (to avoid composite index)
+  if (filters.mealType && !hasDateFilters) {
     query = query.where('mealType', '==', filters.mealType);
   }
 
@@ -140,7 +141,7 @@ const getMealLogs = async (userId, filters = {}) => {
 
   const snapshot = await query.get();
   
-  const meals = [];
+  let meals = [];
   snapshot.forEach(doc => {
     meals.push({
       id: doc.id,
@@ -151,11 +152,18 @@ const getMealLogs = async (userId, filters = {}) => {
     });
   });
 
+  // Filter by mealType in memory if we had date filters
+  if (hasDateFilters && filters.mealType) {
+    meals = meals.filter(meal => 
+      meal.mealType?.toLowerCase() === filters.mealType.toLowerCase()
+    );
+  }
+
   // Sort in memory if we had date filters (to avoid index requirement)
   if (hasDateFilters) {
     meals.sort((a, b) => {
-      const aTime = a.timestamp?.getTime() || 0;
-      const bTime = b.timestamp?.getTime() || 0;
+      const aTime = a.timestamp?.getTime() || a.createdAt?.getTime() || 0;
+      const bTime = b.timestamp?.getTime() || b.createdAt?.getTime() || 0;
       return bTime - aTime; // Descending (most recent first)
     });
     

@@ -1270,12 +1270,12 @@ module.exports = async (req, res) => {
     // Search routes
     if (req.method === 'GET' && path === '/search/users') {
       try {
-        const q = req.query.q;
-        if (!q || q.trim().length === 0) {
-          return res.status(400).json(createErrorResponse('INVALID_REQUEST', 'Search query is required'));
-        }
+      const q = req.query.q;
+      if (!q || q.trim().length === 0) {
+        return res.status(400).json(createErrorResponse('INVALID_REQUEST', 'Search query is required'));
+      }
 
-        const searchTerm = q.trim().toLowerCase();
+      const searchTerm = q.trim().toLowerCase();
         const db = getDb();
         
         // Step 1: Get all valid users from Firebase Auth first
@@ -1302,11 +1302,11 @@ module.exports = async (req, res) => {
         // Step 2: Get all users from Firestore and filter by search term
         // Only include users that exist in Firebase Auth (not deleted)
         const snapshot = await db.collection(USERS_COLLECTION).get();
-        const matchingUsers = [];
+      const matchingUsers = [];
 
-        snapshot.forEach(doc => {
+      snapshot.forEach(doc => {
           try {
-            const userData = doc.data();
+        const userData = doc.data();
             const userId = doc.id;
             
             // Only include users that:
@@ -1322,28 +1322,28 @@ module.exports = async (req, res) => {
               return;
             }
 
-            const fullName = `${userData.firstName || ''} ${userData.lastName || ''}`.toLowerCase();
-            const email = (userData.email || '').toLowerCase();
-            const residence = (userData.residence || '').toLowerCase();
+        const fullName = `${userData.firstName || ''} ${userData.lastName || ''}`.toLowerCase();
+        const email = (userData.email || '').toLowerCase();
+        const residence = (userData.residence || '').toLowerCase();
 
-            if (fullName.includes(searchTerm) || email.includes(searchTerm) || residence.includes(searchTerm)) {
-              matchingUsers.push({
-                id: doc.id,
-                email: userData.email,
-                firstName: userData.firstName,
-                lastName: userData.lastName,
-                residence: userData.residence,
-                name: `${userData.firstName} ${userData.lastName}`,
-              });
+        if (fullName.includes(searchTerm) || email.includes(searchTerm) || residence.includes(searchTerm)) {
+          matchingUsers.push({
+            id: doc.id,
+            email: userData.email,
+            firstName: userData.firstName,
+            lastName: userData.lastName,
+            residence: userData.residence,
+            name: `${userData.firstName} ${userData.lastName}`,
+          });
             }
           } catch (docError) {
             console.error(`Error processing user document ${doc.id}:`, docError.message || docError);
             // Continue processing other documents
-          }
-        });
+        }
+      });
 
-        const limit = parseInt(req.query.limit || 20, 10);
-        return res.status(200).json({ users: matchingUsers.slice(0, limit), count: matchingUsers.length });
+      const limit = parseInt(req.query.limit || 20, 10);
+      return res.status(200).json({ users: matchingUsers.slice(0, limit), count: matchingUsers.length });
       } catch (error) {
         console.error('Error in search/users endpoint:', error);
         return res.status(500).json(createErrorResponse('INTERNAL_ERROR', 'A server error has occurred'));

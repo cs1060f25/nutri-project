@@ -290,21 +290,29 @@ const getDailySummary = async (userId, date) => {
     const meal = doc.data();
     mealCount++;
     
-    // Calculate totals from items if nutrition not directly available
+    // Use calculateTotals helper which handles both formats
     if (meal.items && Array.isArray(meal.items)) {
-      meal.items.forEach(item => {
-        if (item.nutrition) {
-          dailyTotals.calories += parseNutrient(item.nutrition.calories || 0);
-          dailyTotals.protein += parseNutrient(item.nutrition.protein || 0);
-          dailyTotals.totalFat += parseNutrient(item.nutrition.totalFat || 0);
-          dailyTotals.saturatedFat += parseNutrient(item.nutrition.saturatedFat || 0);
-          dailyTotals.totalCarb += parseNutrient(item.nutrition.totalCarb || 0);
-          dailyTotals.dietaryFiber += parseNutrient(item.nutrition.dietaryFiber || 0);
-          dailyTotals.sugars += parseNutrient(item.nutrition.sugars || 0);
-          dailyTotals.sodium += parseNutrient(item.nutrition.sodium || 0);
-        }
-      });
+      const mealTotals = calculateTotals(meal.items);
+      dailyTotals.calories += mealTotals.calories;
+      dailyTotals.protein += mealTotals.protein;
+      dailyTotals.totalFat += mealTotals.totalFat;
+      dailyTotals.saturatedFat += mealTotals.saturatedFat;
+      dailyTotals.totalCarb += mealTotals.totalCarb;
+      dailyTotals.dietaryFiber += mealTotals.dietaryFiber;
+      dailyTotals.sugars += mealTotals.sugars;
+      dailyTotals.sodium += mealTotals.sodium;
+    } else if (meal.totals) {
+      // If meal has pre-calculated totals, use those
+      dailyTotals.calories += parseNutrient(meal.totals.calories || 0);
+      dailyTotals.protein += parseNutrient(meal.totals.protein || 0);
+      dailyTotals.totalFat += parseNutrient(meal.totals.totalFat || 0);
+      dailyTotals.saturatedFat += parseNutrient(meal.totals.saturatedFat || 0);
+      dailyTotals.totalCarb += parseNutrient(meal.totals.totalCarb || 0);
+      dailyTotals.dietaryFiber += parseNutrient(meal.totals.dietaryFiber || 0);
+      dailyTotals.sugars += parseNutrient(meal.totals.sugars || 0);
+      dailyTotals.sodium += parseNutrient(meal.totals.sodium || 0);
     } else if (meal.nutrition) {
+      // Legacy format: nutrition directly on meal
       dailyTotals.calories += parseNutrient(meal.nutrition.calories || 0);
       dailyTotals.protein += parseNutrient(meal.nutrition.protein || 0);
       dailyTotals.totalFat += parseNutrient(meal.nutrition.totalFat || 0);
@@ -324,6 +332,7 @@ const getDailySummary = async (userId, date) => {
 };
 
 // Calculate totals from meal items
+// Handles both formats: item.nutrition (old format) and direct properties (new format from posts)
 const calculateTotals = (items) => {
   const totals = {
     calories: 0,
@@ -341,15 +350,30 @@ const calculateTotals = (items) => {
   }
 
   items.forEach(item => {
+    const qty = item.quantity || 1;
+    
+    // Check if nutrition is nested (old format) or direct (new format from posts)
     if (item.nutrition) {
-      totals.calories += parseNutrient(item.nutrition.calories || 0);
-      totals.protein += parseNutrient(item.nutrition.protein || 0);
-      totals.totalFat += parseNutrient(item.nutrition.totalFat || 0);
-      totals.saturatedFat += parseNutrient(item.nutrition.saturatedFat || 0);
-      totals.totalCarb += parseNutrient(item.nutrition.totalCarb || 0);
-      totals.dietaryFiber += parseNutrient(item.nutrition.dietaryFiber || 0);
-      totals.sugars += parseNutrient(item.nutrition.sugars || 0);
-      totals.sodium += parseNutrient(item.nutrition.sodium || 0);
+      // Old format: nutrition nested in item.nutrition
+      totals.calories += parseNutrient(item.nutrition.calories || 0) * qty;
+      totals.protein += parseNutrient(item.nutrition.protein || 0) * qty;
+      totals.totalFat += parseNutrient(item.nutrition.totalFat || 0) * qty;
+      totals.saturatedFat += parseNutrient(item.nutrition.saturatedFat || 0) * qty;
+      totals.totalCarb += parseNutrient(item.nutrition.totalCarb || 0) * qty;
+      totals.dietaryFiber += parseNutrient(item.nutrition.dietaryFiber || 0) * qty;
+      totals.sugars += parseNutrient(item.nutrition.sugars || 0) * qty;
+      totals.sodium += parseNutrient(item.nutrition.sodium || 0) * qty;
+    } else {
+      // New format: nutrition values directly on item (from posts/meal plans)
+      // These values may have units (e.g., "10g"), so parseNutrient handles that
+      totals.calories += parseNutrient(item.calories || 0) * qty;
+      totals.protein += parseNutrient(item.protein || 0) * qty;
+      totals.totalFat += parseNutrient(item.totalFat || 0) * qty;
+      totals.saturatedFat += parseNutrient(item.saturatedFat || 0) * qty;
+      totals.totalCarb += parseNutrient(item.totalCarb || 0) * qty;
+      totals.dietaryFiber += parseNutrient(item.dietaryFiber || 0) * qty;
+      totals.sugars += parseNutrient(item.sugars || 0) * qty;
+      totals.sodium += parseNutrient(item.sodium || 0) * qty;
     }
   });
 

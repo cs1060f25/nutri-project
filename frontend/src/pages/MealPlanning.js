@@ -152,11 +152,24 @@ const MealPlanning = () => {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [deleteType, setDeleteType] = useState('mealPlan'); // 'mealPlan' or 'savedMealPlan'
   const [deleteTargetId, setDeleteTargetId] = useState(null);
+  
+  // Detect screen size for 3-day view on small screens
+  const [isSmallScreen, setIsSmallScreen] = useState(window.innerWidth <= 768);
+  
+  useEffect(() => {
+    const handleResize = () => {
+      setIsSmallScreen(window.innerWidth <= 768);
+    };
+    
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
-  // Calculate week dates
+  // Calculate week dates (3 days on small screens, 7 on large screens)
   const getWeekDates = () => {
     const dates = [];
-    for (let i = 0; i < 7; i++) {
+    const daysToShow = isSmallScreen ? 3 : 7;
+    for (let i = 0; i < daysToShow; i++) {
       const date = new Date(currentWeekStart);
       date.setDate(currentWeekStart.getDate() + i);
       dates.push(date);
@@ -203,21 +216,30 @@ const MealPlanning = () => {
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
 
-  // Navigate weeks
+  // Navigate weeks (3 days on small screens, 7 on large screens)
   const navigateWeek = (direction) => {
     const newDate = new Date(currentWeekStart);
-    newDate.setDate(currentWeekStart.getDate() + (direction * 7));
+    const daysToMove = isSmallScreen ? 3 : 7;
+    newDate.setDate(currentWeekStart.getDate() + (direction * daysToMove));
     setCurrentWeekStart(newDate);
   };
 
-  // Go to today's week
+  // Go to today's week (or 3-day segment containing today)
   const goToToday = () => {
     const today = new Date();
-    const day = today.getDay();
-    const diff = today.getDate() - day;
-    const startOfWeek = new Date(today.setDate(diff));
-    startOfWeek.setHours(0, 0, 0, 0);
-    setCurrentWeekStart(startOfWeek);
+    if (isSmallScreen) {
+      // For 3-day view, start from today (or go back to include today in the 3-day window)
+      const startDate = new Date(today);
+      startDate.setHours(0, 0, 0, 0);
+      setCurrentWeekStart(startDate);
+    } else {
+      // For week view, start from Sunday of current week
+      const day = today.getDay();
+      const diff = today.getDate() - day;
+      const startOfWeek = new Date(today.setDate(diff));
+      startOfWeek.setHours(0, 0, 0, 0);
+      setCurrentWeekStart(startOfWeek);
+    }
   };
 
   // Houses that share menus (11 houses, excluding Quincy)
@@ -340,7 +362,7 @@ const MealPlanning = () => {
       try {
         setLoading(true);
         const startDate = formatDate(weekDates[0]);
-        const endDate = formatDate(weekDates[6]);
+        const endDate = formatDate(weekDates[weekDates.length - 1]);
         const data = await getMealPlans(startDate, endDate, accessToken);
         setMealPlans(data.mealPlans || []);
       } catch (error) {
@@ -351,7 +373,7 @@ const MealPlanning = () => {
     };
     fetchMealPlans();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [accessToken, currentWeekStart]);
+  }, [accessToken, currentWeekStart, isSmallScreen]);
 
   // Fetch saved meal plans
   useEffect(() => {
@@ -426,27 +448,30 @@ const MealPlanning = () => {
   useEffect(() => {
     const handleMealLogUpdated = async () => {
       if (selectedMealPlan && accessToken) {
-        try {
-          // Query only by date to avoid index requirement, then filter by meal type in memory
-          const mealLogs = await getMealLogs({
-            startDate: selectedMealPlan.date,
-            endDate: selectedMealPlan.date,
-          }, accessToken);
-          
-          // Compare case-insensitively since meal plans use lowercase but meal logs might use capitalized
-          // Normalize dates to YYYY-MM-DD format for comparison
-          const isCompleted = mealLogs.meals && mealLogs.meals.some(meal => {
-            const mealDateStr = meal.mealDate ? String(meal.mealDate).split('T')[0] : '';
-            const planDateStr = selectedMealPlan.date ? String(selectedMealPlan.date).split('T')[0] : '';
-            const dateMatch = mealDateStr === planDateStr;
-            const typeMatch = meal.mealType?.toLowerCase() === selectedMealPlan.mealType?.toLowerCase();
-            return dateMatch && typeMatch;
-          });
-          
-          setIsMealPlanCompleted(isCompleted || false);
-        } catch (error) {
-          console.error('Error checking meal plan completion:', error);
-        }
+        // Add a small delay to ensure the meal log is saved to Firestore
+        setTimeout(async () => {
+          try {
+            // Query only by date to avoid index requirement, then filter by meal type in memory
+            const mealLogs = await getMealLogs({
+              startDate: selectedMealPlan.date,
+              endDate: selectedMealPlan.date,
+            }, accessToken);
+            
+            // Compare case-insensitively since meal plans use lowercase but meal logs might use capitalized
+            // Normalize dates to YYYY-MM-DD format for comparison
+            const isCompleted = mealLogs.meals && mealLogs.meals.some(meal => {
+              const mealDateStr = meal.mealDate ? String(meal.mealDate).split('T')[0] : '';
+              const planDateStr = selectedMealPlan.date ? String(selectedMealPlan.date).split('T')[0] : '';
+              const dateMatch = mealDateStr === planDateStr;
+              const typeMatch = meal.mealType?.toLowerCase() === selectedMealPlan.mealType?.toLowerCase();
+              return dateMatch && typeMatch;
+            });
+            
+            setIsMealPlanCompleted(isCompleted || false);
+          } catch (error) {
+            console.error('Error checking meal plan completion:', error);
+          }
+        }, 1000); // Wait 1 second for Firestore to save
       }
     };
 
@@ -555,7 +580,7 @@ const MealPlanning = () => {
             // Use getTodaysMenu for today (same as home page)
             menuData = await getTodaysMenu(locationId);
           } else {
-            menuData = await getMenuByDate(date, locationId);
+          menuData = await getMenuByDate(date, locationId);
           }
         } catch (error) {
           // If the selected location fails, try a few common location numbers
@@ -566,7 +591,7 @@ const MealPlanning = () => {
               if (isToday) {
                 menuData = await getTodaysMenu(fallbackLoc);
               } else {
-                menuData = await getMenuByDate(date, fallbackLoc);
+              menuData = await getMenuByDate(date, fallbackLoc);
               }
               success = true;
               break;
@@ -584,13 +609,28 @@ const MealPlanning = () => {
           // Use getTodaysMenu for today (same as home page)
           menuData = await getTodaysMenu(locationId);
         } else {
-          menuData = await getMenuByDate(date, locationId);
+        menuData = await getMenuByDate(date, locationId);
         }
       }
       
       // Flatten menu structure to get all items
       // The API already filters by location, so we only need to filter by meal type
       const items = [];
+      
+      // Log for debugging
+      console.log('Menu data received:', {
+        date,
+        locationId,
+        isToday,
+        menuDataLength: menuData?.length || 0,
+        selectedMealType,
+        menuData: menuData?.map(loc => ({
+          locationNumber: loc.locationNumber,
+          locationName: loc.locationName,
+          mealCount: Object.keys(loc.meals || {}).length
+        }))
+      });
+      
       if (menuData && menuData.length > 0) {
         menuData.forEach(location => {
           // The API already filtered by locationId, so all locations in menuData are relevant
@@ -685,8 +725,23 @@ const MealPlanning = () => {
       });
       
       setMenuItems(groupedItems);
+      
+      // Log final result
+      console.log('Menu items processed:', {
+        totalItems: items.length,
+        filteredItems: filteredItems.length,
+        groupedCategories: Object.keys(groupedItems).length,
+        hasItems: filteredItems.length > 0
+      });
     } catch (error) {
       console.error('Error fetching menu items:', error);
+      console.error('Error details:', {
+        message: error.message,
+        stack: error.stack,
+        date,
+        locationId,
+        selectedMealType
+      });
       setMenuItems({});
     } finally {
       setMenuLoading(false);
@@ -777,7 +832,7 @@ const MealPlanning = () => {
 
       // Refresh meal plans
       const startDate = formatDate(weekDates[0]);
-      const endDate = formatDate(weekDates[6]);
+      const endDate = formatDate(weekDates[weekDates.length - 1]);
       const data = await attemptApiCall((token) => getMealPlans(startDate, endDate, token));
       setMealPlans(data.mealPlans || []);
 
@@ -908,17 +963,17 @@ const MealPlanning = () => {
     try {
       if (deleteType === 'mealPlan') {
         await deleteMealPlan(deleteTargetId, accessToken);
-        
-        // Refresh meal plans
-        const startDate = formatDate(weekDates[0]);
-        const endDate = formatDate(weekDates[6]);
-        const data = await getMealPlans(startDate, endDate, accessToken);
-        setMealPlans(data.mealPlans || []);
-        
-        // Close side panel
-        setIsSidePanelOpen(false);
-        setSelectedMealPlan(null);
-        setDailyProgress(null);
+      
+      // Refresh meal plans
+      const startDate = formatDate(weekDates[0]);
+      const endDate = formatDate(weekDates[weekDates.length - 1]);
+      const data = await getMealPlans(startDate, endDate, accessToken);
+      setMealPlans(data.mealPlans || []);
+      
+      // Close side panel
+      setIsSidePanelOpen(false);
+      setSelectedMealPlan(null);
+      setDailyProgress(null);
       } else if (deleteType === 'savedMealPlan') {
         await deleteSavedMealPlan(deleteTargetId, accessToken);
         
@@ -1174,6 +1229,11 @@ const MealPlanning = () => {
           plan.id === savedPlanId ? { ...plan, stars: rating } : plan
         )
       );
+      
+      // Also update selectedSavedPlan if the modal is open for this plan
+      if (selectedSavedPlan && selectedSavedPlan.id === savedPlanId) {
+        setSelectedSavedPlan(prev => ({ ...prev, stars: rating }));
+      }
     } catch (error) {
       console.error('Error updating star rating:', error);
       alert('Failed to update rating');
@@ -1250,13 +1310,13 @@ const MealPlanning = () => {
       <div className="week-navigation-container">
         <div className="week-navigation">
           <button className="btn btn-secondary" onClick={() => navigateWeek(-1)}>
-            ← Previous Week
+            {isSmallScreen ? '← Previous 3 Days' : '← Previous Week'}
           </button>
           <h2>
-            {formatDateDisplay(weekDates[0])} - {formatDateDisplay(weekDates[6])}
+            {formatDateDisplay(weekDates[0])} - {formatDateDisplay(weekDates[weekDates.length - 1])}
           </h2>
           <button className="btn btn-secondary" onClick={() => navigateWeek(1)}>
-            Next Week →
+            {isSmallScreen ? 'Next 3 Days →' : 'Next Week →'}
           </button>
           <button className="btn btn-secondary" onClick={goToToday} style={{ marginLeft: '1rem' }}>
             Today
@@ -1471,7 +1531,10 @@ const MealPlanning = () => {
                         <span
                           key={star}
                           className={`star ${star <= (savedPlan.stars || 0) ? 'filled' : ''}`}
-                          onClick={() => handleUpdateStarRating(savedPlan.id, star)}
+                          onClick={(e) => {
+                            e.stopPropagation(); // Prevent opening the modal
+                            handleUpdateStarRating(savedPlan.id, star);
+                          }}
                           style={{ cursor: 'pointer' }}
                           title={`Rate ${star} star${star !== 1 ? 's' : ''}`}
                         >
@@ -1862,7 +1925,7 @@ const MealPlanning = () => {
                     <line x1="12" y1="15" x2="12" y2="3"></line>
                   </svg>
                 </button>
-                <button className="side-panel-close" onClick={handleCloseSidePanel}>×</button>
+              <button className="side-panel-close" onClick={handleCloseSidePanel}>×</button>
               </div>
             </div>
             
@@ -1981,19 +2044,19 @@ const MealPlanning = () => {
                                         return (
                                           <>
                                             {current > 0 && (
-                                              <div 
+                                            <div 
                                                 className={`goal-progress-fill goal-progress-current ${isMealPlanCompleted ? 'goal-progress-completed' : ''}`}
                                                 style={{ width: `${Math.max(currentPercent, 1)}%` }}
-                                              ></div>
+                                            ></div>
                                             )}
                                             {mealPercent > 0 && (
-                                              <div 
+                                            <div 
                                                 className={`goal-progress-fill goal-progress-meal ${isMealPlanCompleted ? 'goal-progress-completed' : ''}`}
-                                                style={{ 
-                                                  width: `${mealPercent}%`,
-                                                  left: `${currentPercent}%`
-                                                }}
-                                              ></div>
+                                              style={{ 
+                                                width: `${mealPercent}%`,
+                                                left: `${currentPercent}%`
+                                              }}
+                                            ></div>
                                             )}
                                           </>
                                         );
@@ -2138,12 +2201,12 @@ const MealPlanning = () => {
                 {isMealPlanCompleted ? 'Completed' : 'Complete'}
               </button>
               <div className="side-panel-footer-right">
-                <button className="btn btn-secondary" onClick={handleUpdate}>
-                  Update
-                </button>
-                <button className="btn btn-danger" onClick={handleDelete}>
-                  Delete
-                </button>
+              <button className="btn btn-secondary" onClick={handleUpdate}>
+                Update
+              </button>
+              <button className="btn btn-danger" onClick={handleDelete}>
+                Delete
+              </button>
               </div>
             </div>
           </div>
@@ -2154,22 +2217,34 @@ const MealPlanning = () => {
       {showCompleteModal && completeModalScanData && selectedMealPlan && (
         <CreatePostModal
           isOpen={showCompleteModal}
-          onClose={() => {
+          onClose={async () => {
             setShowCompleteModal(false);
             setCompleteModalScanData(null);
             // Re-check if meal plan is completed after closing
+            // Add a small delay to ensure the meal log is saved to Firestore
             if (selectedMealPlan && accessToken) {
-              // Query only by date to avoid index requirement, then filter by meal type in memory
-              getMealLogs({
-                startDate: selectedMealPlan.date,
-                endDate: selectedMealPlan.date,
-              }, accessToken).then(mealLogs => {
-                const isCompleted = mealLogs.meals && mealLogs.meals.some(meal => 
-                  meal.mealDate === selectedMealPlan.date &&
-                  meal.mealType === selectedMealPlan.mealType
-                );
-                setIsMealPlanCompleted(isCompleted || false);
-              }).catch(err => console.error('Error checking completion:', err));
+              setTimeout(async () => {
+                try {
+                  // Query only by date to avoid index requirement, then filter by meal type in memory
+                  const mealLogs = await getMealLogs({
+                    startDate: selectedMealPlan.date,
+                    endDate: selectedMealPlan.date,
+                  }, accessToken);
+                  
+                  // Use the same comparison logic as the event listener
+                  const isCompleted = mealLogs.meals && mealLogs.meals.some(meal => {
+                    const mealDateStr = meal.mealDate ? String(meal.mealDate).split('T')[0] : '';
+                    const planDateStr = selectedMealPlan.date ? String(selectedMealPlan.date).split('T')[0] : '';
+                    const dateMatch = mealDateStr === planDateStr;
+                    const typeMatch = meal.mealType?.toLowerCase() === selectedMealPlan.mealType?.toLowerCase();
+                    return dateMatch && typeMatch;
+                  });
+                  
+                  setIsMealPlanCompleted(isCompleted || false);
+                } catch (err) {
+                  console.error('Error checking completion:', err);
+                }
+              }, 1000); // Wait 1 second for Firestore to save
             }
           }}
           scanData={completeModalScanData}

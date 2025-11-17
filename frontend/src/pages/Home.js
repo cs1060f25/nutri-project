@@ -334,18 +334,18 @@ const Home = () => {
 
   // Fetch nutrition progress
   const fetchProgress = useCallback(async () => {
-    if (!accessToken) return;
-    
-    try {
-      setProgressLoading(true);
-      const progress = await getTodayProgress(accessToken);
-      setProgressData(progress);
-    } catch (err) {
-      console.error('Error fetching nutrition progress:', err);
-      // Don't show error to user - just fail silently for progress
-    } finally {
-      setProgressLoading(false);
-    }
+      if (!accessToken) return;
+      
+      try {
+        setProgressLoading(true);
+        const progress = await getTodayProgress(accessToken);
+        setProgressData(progress);
+      } catch (err) {
+        console.error('Error fetching nutrition progress:', err);
+        // Don't show error to user - just fail silently for progress
+      } finally {
+        setProgressLoading(false);
+      }
   }, [accessToken]);
 
   useEffect(() => {
@@ -1016,7 +1016,7 @@ const Home = () => {
                   options={[
                     { value: '', label: 'Select a dining hall' },
                     ...expandedLocations.map((loc, idx) => {
-                      const uniqueId = `${loc.location_number}|${loc.location_name}`;
+                    const uniqueId = `${loc.location_number}|${loc.location_name}`;
                       return {
                         value: uniqueId,
                         label: loc.location_name
@@ -1105,7 +1105,7 @@ const Home = () => {
                   options={[
                     { value: '', label: 'Select a dining hall' },
                     ...expandedLocations.map((loc, idx) => {
-                      const uniqueId = `${loc.location_number}|${loc.location_name}`;
+                    const uniqueId = `${loc.location_number}|${loc.location_name}`;
                       return {
                         value: uniqueId,
                         label: loc.location_name

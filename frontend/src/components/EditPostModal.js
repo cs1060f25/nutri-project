@@ -48,6 +48,7 @@ const EditPostModal = ({ isOpen, onClose, post, onPostUpdated, onPostDeleted }) 
   const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState(null);
+  const [showDeleteConfirmationModal, setShowDeleteConfirmationModal] = useState(false);
 
   // Initialize form with post data
   useEffect(() => {
@@ -189,11 +190,13 @@ const EditPostModal = ({ isOpen, onClose, post, onPostUpdated, onPostDeleted }) 
     }
   };
 
-  const handleDelete = async () => {
-    if (!window.confirm('Are you sure you want to delete this post? This action cannot be undone.')) {
-      return;
-    }
+  const handleDelete = () => {
+    // Show confirmation modal
+    setShowDeleteConfirmationModal(true);
+  };
 
+  const handleConfirmDelete = async () => {
+    setShowDeleteConfirmationModal(false);
     setDeleting(true);
     setError(null);
 
@@ -222,7 +225,6 @@ const EditPostModal = ({ isOpen, onClose, post, onPostUpdated, onPostDeleted }) 
       if (onPostDeleted) {
         onPostDeleted();
       }
-      alert('Post deleted successfully!');
     } catch (err) {
       console.error('Failed to delete post:', err);
       setError(err.message || 'Failed to delete post');
@@ -231,19 +233,20 @@ const EditPostModal = ({ isOpen, onClose, post, onPostUpdated, onPostDeleted }) 
     }
   };
 
-  if (!isOpen || !post) return null;
-
   return (
-    <div className="create-post-modal-overlay" onClick={onClose}>
-      <div className="create-post-modal" onClick={(e) => e.stopPropagation()}>
-        <div className="create-post-modal-header">
-          <h2>Edit Post</h2>
-          <button className="create-post-modal-close" onClick={onClose}>
-            <X size={20} />
-          </button>
-        </div>
+    <>
+      {/* Main Edit Modal */}
+      {isOpen && post && (
+        <div className="create-post-modal-overlay" onClick={onClose}>
+          <div className="create-post-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="create-post-modal-header">
+              <h2>Edit Post</h2>
+              <button className="create-post-modal-close" onClick={onClose}>
+                <X size={20} />
+              </button>
+            </div>
 
-        <form onSubmit={handleUpdate} className="create-post-modal-form">
+            <form onSubmit={handleUpdate} className="create-post-modal-form">
           {/* Image Preview */}
           {post.image && (
             <div className="create-post-modal-image">
@@ -391,10 +394,46 @@ const EditPostModal = ({ isOpen, onClose, post, onPostUpdated, onPostDeleted }) 
             >
               {loading ? 'Updating...' : 'Update'}
             </button>
-          </div>
-        </form>
+            </div>
+          </form>
+        </div>
       </div>
-    </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirmationModal && (
+        <div className="create-post-modal-overlay" onClick={() => setShowDeleteConfirmationModal(false)}>
+          <div className="create-post-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="create-post-modal-header">
+              <h2>Confirm Delete</h2>
+              <button className="create-post-modal-close" onClick={() => setShowDeleteConfirmationModal(false)}>×</button>
+            </div>
+
+            <div className="create-post-modal-content">
+              <div className="delete-confirmation-message">
+                Are you sure you want to delete this post? This action cannot be undone.
+              </div>
+            </div>
+
+            <div className="create-post-modal-actions">
+              <button
+                className="create-post-modal-cancel"
+                onClick={() => setShowDeleteConfirmationModal(false)}
+              >
+                Cancel
+              </button>
+              <button
+                className="create-post-modal-delete"
+                onClick={handleConfirmDelete}
+                disabled={deleting}
+              >
+                {deleting ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 };
 
