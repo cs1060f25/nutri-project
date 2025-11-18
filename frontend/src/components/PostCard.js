@@ -158,32 +158,32 @@ const PostCard = ({ post, showDelete = false, onPostUpdated, onPostDeleted, show
                 nutritionDetails.push(`${Math.round(Number(item.calories) || 0)} cal`);
               }
               if (item.protein !== undefined && item.protein !== null) {
-                nutritionDetails.push(`${parseFloat(Number(item.protein) || 0).toFixed(2)}g protein`);
+                nutritionDetails.push(`${Math.round(Number(item.protein) || 0)}g protein`);
               }
               if (item.carbs !== undefined && item.carbs !== null) {
-                nutritionDetails.push(`${parseFloat(Number(item.carbs) || 0).toFixed(2)}g carbs`);
+                nutritionDetails.push(`${Math.round(Number(item.carbs) || 0)}g carbs`);
               } else if (item.totalCarb !== undefined && item.totalCarb !== null) {
                 // Handle both carbs and totalCarb for backward compatibility
                 const carbValue = typeof item.totalCarb === 'string' 
                   ? parseFloat(item.totalCarb.replace(/[^0-9.]/g, '')) 
                   : Number(item.totalCarb) || 0;
-                nutritionDetails.push(`${parseFloat(carbValue).toFixed(2)}g carbs`);
+                nutritionDetails.push(`${Math.round(carbValue)}g carbs`);
               }
               if (item.fat !== undefined && item.fat !== null) {
-                nutritionDetails.push(`${parseFloat(Number(item.fat) || 0).toFixed(2)}g fat`);
+                nutritionDetails.push(`${Math.round(Number(item.fat) || 0)}g fat`);
               } else if (item.totalFat !== undefined && item.totalFat !== null) {
                 // Handle both fat and totalFat for backward compatibility
                 const fatValue = typeof item.totalFat === 'string' 
                   ? parseFloat(item.totalFat.replace(/[^0-9.]/g, '')) 
                   : Number(item.totalFat) || 0;
-                nutritionDetails.push(`${parseFloat(fatValue).toFixed(2)}g fat`);
+                nutritionDetails.push(`${Math.round(fatValue)}g fat`);
               }
               if (item.saturatedFat !== undefined && item.saturatedFat !== null && item.saturatedFat !== '0g' && item.saturatedFat !== 0) {
                 const satFatValue = typeof item.saturatedFat === 'string' 
                   ? parseFloat(item.saturatedFat.replace(/[^0-9.]/g, '')) 
                   : Number(item.saturatedFat) || 0;
                 if (satFatValue > 0) {
-                  nutritionDetails.push(`${parseFloat(satFatValue).toFixed(2)}g sat fat`);
+                  nutritionDetails.push(`${Math.round(satFatValue)}g sat fat`);
                 }
               }
               if (item.cholesterol !== undefined && item.cholesterol !== null && item.cholesterol !== '0mg' && item.cholesterol !== 0) {
@@ -207,7 +207,7 @@ const PostCard = ({ post, showDelete = false, onPostUpdated, onPostDeleted, show
                   ? parseFloat(item.dietaryFiber.replace(/[^0-9.]/g, '')) 
                   : Number(item.dietaryFiber) || 0;
                 if (fiberValue > 0) {
-                  nutritionDetails.push(`${parseFloat(fiberValue).toFixed(2)}g fiber`);
+                  nutritionDetails.push(`${Math.round(fiberValue)}g fiber`);
                 }
               }
               if (item.sugars !== undefined && item.sugars !== null && item.sugars !== '0g' && item.sugars !== 0) {
@@ -215,7 +215,7 @@ const PostCard = ({ post, showDelete = false, onPostUpdated, onPostDeleted, show
                   ? parseFloat(item.sugars.replace(/[^0-9.]/g, '')) 
                   : Number(item.sugars) || 0;
                 if (sugarsValue > 0) {
-                  nutritionDetails.push(`${parseFloat(sugarsValue).toFixed(2)}g sugars`);
+                  nutritionDetails.push(`${Math.round(sugarsValue)}g sugars`);
                 }
               }
               
@@ -245,19 +245,19 @@ const PostCard = ({ post, showDelete = false, onPostUpdated, onPostDeleted, show
               {post.totals.protein !== undefined && post.totals.protein !== null && (
                 <div className="post-total-item">
                   <div className="post-total-label">Protein</div>
-                  <div className="post-total-value">{parseFloat(Number(post.totals.protein) || 0).toFixed(2)}g</div>
+                  <div className="post-total-value">{Math.round(Number(post.totals.protein) || 0)}g</div>
                 </div>
               )}
               {(post.totals.totalCarb !== undefined && post.totals.totalCarb !== null) || (post.totals.carbs !== undefined && post.totals.carbs !== null) ? (
                 <div className="post-total-item">
                   <div className="post-total-label">Carbs</div>
-                  <div className="post-total-value">{parseFloat(Number(post.totals.totalCarb || post.totals.carbs || 0)).toFixed(2)}g</div>
+                  <div className="post-total-value">{Math.round(Number(post.totals.totalCarb || post.totals.carbs || 0))}g</div>
                 </div>
               ) : null}
               {post.totals.totalFat !== undefined && post.totals.totalFat !== null && (
                 <div className="post-total-item">
                   <div className="post-total-label">Fat</div>
-                  <div className="post-total-value">{parseFloat(Number(post.totals.totalFat) || 0).toFixed(2)}g</div>
+                  <div className="post-total-value">{Math.round(Number(post.totals.totalFat) || 0)}g</div>
                 </div>
               )}
             </div>

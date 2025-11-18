@@ -23,7 +23,7 @@ const Auth = () => {
 
   // Multi-step registration form state
   const [registrationStep, setRegistrationStep] = useState(1);
-  const totalSteps = 6;
+  const totalSteps = 7;
 
   // Additional registration fields
   const [birthday, setBirthday] = useState('');
@@ -140,6 +140,9 @@ const Auth = () => {
   const validateCurrentStep = () => {
     switch (registrationStep) {
       case 1:
+        // Intro page - always allow to proceed
+        return true;
+      case 2:
         if (!firstName || !lastName || !residence || !email || !password || !confirmPassword) {
           setError('Please fill in all fields');
           return false;
@@ -153,7 +156,7 @@ const Auth = () => {
           return false;
         }
         return true;
-      case 2:
+      case 3:
         if (!birthday || !classYear || !gender || !heightFeet || !heightInches || !weight || !activityLevel) {
           setError('Please fill in all fields');
           return false;
@@ -176,22 +179,22 @@ const Auth = () => {
           return false;
         }
         return true;
-      case 3:
+      case 4:
         if (!dietaryPattern) {
           setError('Please select a dietary pattern');
           return false;
         }
         return true;
-      case 4:
-        // Step 4 (Allergies & Health) is optional, so always valid
-        return true;
       case 5:
+        // Step 5 (Allergies & Health) is optional, so always valid
+        return true;
+      case 6:
         if (!primaryGoal) {
           setError('Please select your primary goal');
           return false;
         }
         return true;
-      case 6:
+      case 7:
         if (!dataAgreementAccepted) {
           setError('You must accept the data agreement to create an account');
           return false;
@@ -438,16 +441,18 @@ const Auth = () => {
               : isLogin 
               ? 'Sign in to continue to your dashboard' 
               : registrationStep === 1 
-              ? 'Step 1 of 6: Create your account'
+              ? 'Welcome to our app!'
               : registrationStep === 2
-              ? 'Step 2 of 6: Tell us about yourself'
+              ? 'Step 2 of 7: Create your account'
               : registrationStep === 3
-              ? 'Step 3 of 6: Dietary preferences'
+              ? 'Step 3 of 7: Tell us about yourself'
               : registrationStep === 4
-              ? 'Step 4 of 6: Health & allergies'
+              ? 'Step 4 of 7: Dietary preferences'
               : registrationStep === 5
-              ? 'Step 5 of 6: Your goals'
-              : 'Step 6 of 6: Data Agreement'}
+              ? 'Step 5 of 7: Health & allergies'
+              : registrationStep === 6
+              ? 'Step 6 of 7: Your goals'
+              : 'Step 7 of 7: Data Agreement'}
           </p>
         </div>
 
@@ -593,8 +598,31 @@ const Auth = () => {
           {/* Multi-Step Registration Form */}
           {!isLogin && !isForgotPassword && (
             <>
-              {/* Step 1: Basic Info */}
+              {/* Step 1: Welcome/Intro */}
               {registrationStep === 1 && (
+                <div className="registration-intro">
+                  <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
+                    <p style={{ fontSize: '1rem', color: '#666', lineHeight: '1.6', marginBottom: '1.5rem', maxWidth: '600px', margin: '0 auto 1.5rem' }}>
+                      Track your dining hall meals, monitor your nutrition goals, and get personalized recommendations based on Harvard University Dining Services menus.
+                    </p>
+                    <div style={{ background: '#f0f9f4', padding: '1.5rem', borderRadius: '8px', marginTop: '1.5rem', maxWidth: '600px', margin: '1.5rem auto 0' }}>
+                      <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
+                        <div>
+                          <h4 style={{ fontSize: '1rem', fontWeight: 600, color: '#1a5f3f', marginBottom: '0.5rem' }}>
+                            Your Data is Private & Secure
+                          </h4>
+                          <p style={{ fontSize: '0.875rem', color: '#666', lineHeight: '1.5', margin: 0 }}>
+                            All information you provide is kept private and secure. Your data is only used to make calculations, estimates, and recommendations within the app.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Step 2: Basic Info */}
+              {registrationStep === 2 && (
             <>
               <div className="form-row">
                 <div className="form-group">
@@ -739,8 +767,8 @@ const Auth = () => {
                 </>
               )}
 
-              {/* Step 2: Biometric Info */}
-              {registrationStep === 2 && (
+              {/* Step 3: Biometric Info */}
+              {registrationStep === 3 && (
                 <>
                   <div className="form-row">
                     <div className="form-group">
@@ -873,8 +901,8 @@ const Auth = () => {
                 </>
               )}
 
-              {/* Step 3: Dietary Preferences */}
-              {registrationStep === 3 && (
+              {/* Step 4: Dietary Preferences */}
+              {registrationStep === 4 && (
                 <>
                   <div className="form-group">
                     <label htmlFor="dietaryPattern">Dietary Pattern</label>
@@ -922,8 +950,8 @@ const Auth = () => {
                 </>
               )}
 
-              {/* Step 4: Allergies & Health Conditions */}
-              {registrationStep === 4 && (
+              {/* Step 5: Allergies & Health Conditions */}
+              {registrationStep === 5 && (
                 <>
                   <div className="form-group">
                     <label>Food Allergies (select all that apply)</label>
@@ -961,8 +989,8 @@ const Auth = () => {
                 </>
               )}
 
-              {/* Step 5: Goals */}
-              {registrationStep === 5 && (
+              {/* Step 6: Goals */}
+              {registrationStep === 6 && (
                 <>
                   <div className="form-group">
                     <label htmlFor="primaryGoal">Primary Goal</label>
@@ -988,8 +1016,8 @@ const Auth = () => {
                 </>
               )}
 
-              {/* Step 6: Data Agreement */}
-              {registrationStep === 6 && (
+              {/* Step 7: Data Agreement */}
+              {registrationStep === 7 && (
                 <>
                   <div className="form-group" style={{ marginBottom: '0' }}>
                     <h3 style={{
