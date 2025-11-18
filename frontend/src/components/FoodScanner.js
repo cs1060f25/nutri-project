@@ -6,9 +6,9 @@ import './FoodScanner.css';
 
 const formatNumber = (value) => {
   if (value === undefined || value === null || Number.isNaN(Number(value))) {
-    return '0.00';
+    return '0';
   }
-  return Number(value).toFixed(2);
+  return Math.round(Number(value)).toString();
 };
 
 const FoodScanner = () => {
@@ -289,6 +289,10 @@ const FoodScanner = () => {
       <CreatePostModal
         isOpen={showPostModal}
         onClose={() => setShowPostModal(false)}
+        onSuccess={() => {
+          setShowPostModal(false);
+          resetScanner(); // Reset scanner to upload state after successful save
+        }}
         scanData={results}
         imageUrl={previewUrl}
         imageFile={selectedFile}
