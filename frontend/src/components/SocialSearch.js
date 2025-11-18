@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Search as SearchIcon } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { searchUsers, searchLocations, sendFriendRequest, getFriends, followDiningHall, unfollowDiningHall, getFollowedDiningHalls, getFriendRequests } from '../services/socialService';
+import { searchUsers, searchLocations, sendFriendRequest, getFriends, removeFriend, followDiningHall, unfollowDiningHall, getFollowedDiningHalls, getFriendRequests, getPostsByUser } from '../services/socialService';
 import { getPostsByLocationName } from '../services/socialService';
 import PostCard from './PostCard';
 import '../pages/Social.css';
@@ -15,6 +15,8 @@ const SocialSearch = () => {
   const [locations, setLocations] = useState([]);
   const [locationPosts, setLocationPosts] = useState([]);
   const [selectedLocation, setSelectedLocation] = useState(null);
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [userPosts, setUserPosts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [friends, setFriends] = useState([]);
   const [friendRequestStatus, setFriendRequestStatus] = useState({});
@@ -99,11 +101,24 @@ const SocialSearch = () => {
 
   const handleLocationClick = async (location) => {
     setSelectedLocation(location);
+    setSelectedUser(null); // Clear user selection
     try {
       const data = await getPostsByLocationName(location.locationName, 50, accessToken);
       setLocationPosts(data.posts || []);
     } catch (err) {
       console.error('Error fetching location posts:', err);
+      alert('Failed to load posts: ' + err.message);
+    }
+  };
+
+  const handleUserClick = async (user) => {
+    setSelectedUser(user);
+    setSelectedLocation(null); // Clear location selection
+    try {
+      const data = await getPostsByUser(user.id, 50, accessToken);
+      setUserPosts(data.posts || []);
+    } catch (err) {
+      console.error('Error fetching user posts:', err);
       alert('Failed to load posts: ' + err.message);
     }
   };
@@ -207,6 +222,94 @@ const SocialSearch = () => {
     );
   }
 
+  if (selectedUser) {
+    const isFriend = friends.some((f) => f.id === selectedUser.id);
+    const hasSentRequest = friendRequestStatus[selectedUser.id] === 'sent';
+
+    return (
+      <div className="full-width-detail-page">
+        <button
+          className="btn btn-secondary"
+          onClick={() => {
+            setSelectedUser(null);
+            setUserPosts([]);
+          }}
+          style={{ marginBottom: '1rem' }}
+        >
+          ← Back to Search
+        </button>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
+          <div>
+            <h2>{selectedUser.name}</h2>
+            <p style={{ color: '#666', marginTop: '0.5rem' }}>
+              {selectedUser.email} {selectedUser.residence && `• ${selectedUser.residence}`}
+            </p>
+          </div>
+          <div onClick={(e) => e.stopPropagation()}>
+            {isFriend ? (
+              <button
+                className="btn btn-secondary"
+                onClick={async () => {
+                  if (window.confirm('Are you sure you want to remove this friend?')) {
+                    try {
+                      await removeFriend(selectedUser.id, accessToken);
+                      // Refresh friends list
+                      const friendsData = await getFriends(accessToken);
+                      setFriends(friendsData.friends || []);
+                      // Update friend status
+                      const updatedIsFriend = friendsData.friends?.some((f) => f.id === selectedUser.id);
+                      if (!updatedIsFriend) {
+                        // If no longer friends, refresh the view
+                        setSelectedUser(null);
+                        setUserPosts([]);
+                      }
+                    } catch (err) {
+                      console.error('Error removing friend:', err);
+                      alert('Failed to remove friend: ' + err.message);
+                    }
+                  }
+                }}
+              >
+                Unfriend
+              </button>
+            ) : hasSentRequest ? (
+              <span style={{ color: '#666', padding: '0.5rem 1rem' }}>Friend Request Sent</span>
+            ) : (
+              <button
+                className="btn btn-primary"
+                onClick={async () => {
+                  try {
+                    await handleSendFriendRequest(selectedUser.id);
+                  } catch (err) {
+                    console.error('Error sending friend request:', err);
+                  }
+                }}
+              >
+                Add Friend
+              </button>
+            )}
+          </div>
+        </div>
+        <p style={{ color: '#666', marginBottom: '1.5rem' }}>
+          {userPosts.length} {userPosts.length === 1 ? 'post' : 'posts'}
+        </p>
+        {userPosts.length === 0 ? (
+          <div className="empty-state">
+            <div className="empty-state-icon">📭</div>
+            <div className="empty-state-title">No posts yet</div>
+            <div className="empty-state-message">
+              This user hasn't shared any meals yet.
+            </div>
+          </div>
+        ) : (
+          userPosts.map((post) => (
+            <PostCard key={post.id} post={post} />
+          ))
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="social-search">
        <div className="search-container">
@@ -250,9 +353,20 @@ const SocialSearch = () => {
         <div className="search-results">
           <h3 style={{ marginBottom: '1rem' }}>Users ({users.length})</h3>
           {users.map((user) => (
-            <div key={user.id} className="search-result-card">
+            <div 
+              key={user.id} 
+              className="search-result-card"
+              style={{ cursor: 'pointer' }}
+              onClick={(e) => {
+                // Don't navigate if clicking on the button
+                if (e.target.tagName === 'BUTTON' || e.target.closest('button')) {
+                  return;
+                }
+                handleUserClick(user);
+              }}
+            >
               <div className="search-result-header">
-                <div style={{ display: 'flex', alignItems: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', flex: 1 }}>
                   <div className="friend-avatar" style={{ marginRight: '1rem' }}>
                     {getInitials(user.name)}
                   </div>
@@ -263,18 +377,20 @@ const SocialSearch = () => {
                     </div>
                   </div>
                 </div>
-                {isFriend(user.id) ? (
-                  <span style={{ color: '#1a5f3f', fontWeight: 500 }}>Friend</span>
-                ) : friendRequestStatus[user.id] === 'sent' ? (
-                  <span style={{ color: '#666' }}>Request Sent</span>
-                ) : (
-                  <button
-                    className="btn btn-primary"
-                    onClick={() => handleSendFriendRequest(user.id)}
-                  >
-                    Add Friend
-                  </button>
-                )}
+                <div onClick={(e) => e.stopPropagation()}>
+                  {isFriend(user.id) ? (
+                    <span style={{ color: '#1a5f3f', fontWeight: 500 }}>Friend</span>
+                  ) : friendRequestStatus[user.id] === 'sent' ? (
+                    <span style={{ color: '#666' }}>Request Sent</span>
+                  ) : (
+                    <button
+                      className="btn btn-primary"
+                      onClick={() => handleSendFriendRequest(user.id)}
+                    >
+                      Add Friend
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           ))}

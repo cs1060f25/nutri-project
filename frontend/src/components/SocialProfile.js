@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Filter } from 'lucide-react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { getFriends, getFriendRequests, acceptFriendRequest, rejectFriendRequest, removeFriend, getFollowedDiningHalls, unfollowDiningHall, getPostsByLocationName } from '../services/socialService';
+import { getFriends, getFriendRequests, acceptFriendRequest, rejectFriendRequest, removeFriend, sendFriendRequest, getFollowedDiningHalls, unfollowDiningHall, getPostsByLocationName } from '../services/socialService';
 import { getPostsByUser } from '../services/socialService';
 import PostCard from './PostCard';
 import CustomSelect from './CustomSelect';
@@ -28,6 +28,8 @@ const SocialProfile = () => {
   const [friends, setFriends] = useState([]);
   const [friendRequests, setFriendRequests] = useState([]);
   const [followedDiningHalls, setFollowedDiningHalls] = useState([]);
+  const [friendRequestStatus, setFriendRequestStatus] = useState({});
+  const [isFriendStatus, setIsFriendStatus] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [locationPosts, setLocationPosts] = useState([]);
   const [selectedFriend, setSelectedFriend] = useState(null);
@@ -54,13 +56,29 @@ const SocialProfile = () => {
         ]);
         setFriends(friendsData.friends || []);
         setFollowedDiningHalls(diningHallsData.diningHalls || []);
+        
+        // Check if viewing another user's profile and if they're a friend
+        if (!isOwnProfile && profileUserId) {
+          const isFriend = friendsData.friends?.some(f => f.id === profileUserId);
+          setIsFriendStatus(isFriend || false);
+          
+          // Check for pending friend requests
+          try {
+            const sentRequests = await getFriendRequests('sent', accessToken);
+            if (sentRequests.requests?.some(r => r.toUserId === profileUserId)) {
+              setFriendRequestStatus({ [profileUserId]: 'sent' });
+            }
+          } catch (err) {
+            console.error('Error checking friend requests:', err);
+          }
+        }
       } catch (err) {
         console.error('Error fetching counts:', err);
       }
     };
 
     fetchCounts();
-  }, [accessToken]);
+  }, [accessToken, profileUserId, isOwnProfile]);
 
   // Filter posts based on filter criteria
   useEffect(() => {
@@ -188,9 +206,27 @@ const SocialProfile = () => {
       // Refresh friends
       const friendsData = await getFriends(accessToken);
       setFriends(friendsData.friends || []);
+      // Update friend status if viewing that user's profile
+      if (profileUserId === friendId) {
+        setIsFriendStatus(false);
+      }
     } catch (err) {
       console.error('Error removing friend:', err);
       alert('Failed to remove friend: ' + err.message);
+    }
+  };
+
+  const handleSendFriendRequest = async (userId) => {
+    try {
+      await sendFriendRequest(userId, accessToken);
+      setFriendRequestStatus((prev) => ({ ...prev, [userId]: 'sent' }));
+    } catch (err) {
+      console.error('Error sending friend request:', err);
+      if (err.message && err.message.includes('already sent')) {
+        setFriendRequestStatus((prev) => ({ ...prev, [userId]: 'sent' }));
+      } else {
+        alert('Failed to send friend request: ' + err.message);
+      }
     }
   };
 
@@ -284,6 +320,30 @@ const SocialProfile = () => {
   return (
     <div className="social-profile">
       <div className="profile-header">
+        {!isOwnProfile && (
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+            <div></div>
+            <div>
+              {isFriendStatus ? (
+                <button
+                  className="btn btn-secondary"
+                  onClick={() => handleRemoveFriend(profileUserId)}
+                >
+                  Unfriend
+                </button>
+              ) : friendRequestStatus[profileUserId] === 'sent' ? (
+                <span style={{ color: '#666', padding: '0.5rem 1rem' }}>Friend Request Sent</span>
+              ) : (
+                <button
+                  className="btn btn-primary"
+                  onClick={() => handleSendFriendRequest(profileUserId)}
+                >
+                  Add Friend
+                </button>
+              )}
+            </div>
+          </div>
+        )}
         <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginTop: '1rem', marginBottom: '1.5rem' }}>
           <div style={{ display: 'flex', gap: '1rem', flex: 1 }}>
           <button
