@@ -531,6 +531,11 @@ const searchUsers = async (req, res) => {
         return;
       }
 
+      // Exclude the current user from search results
+      if (req.user && req.user.uid === userId) {
+        return;
+      }
+
       const fullName = `${userData.firstName || ''} ${userData.lastName || ''}`.toLowerCase();
       const email = (userData.email || '').toLowerCase();
       const residence = (userData.residence || '').toLowerCase();
