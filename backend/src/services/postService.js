@@ -279,7 +279,7 @@ const createPostFromScan = async (userId, scanData) => {
       const mealLogItems = items.map(item => ({
         recipeId: item.recipeId || null,
         recipeName: item.recipeName || 'Unknown dish',
-        quantity: item.quantity || 1,
+        quantity: 1, // Scanner items already have totals (multiplied by servings), so quantity must be 1 to avoid double multiplication
         servingSize: item.servingSize || '1 serving',
         // Format nutrition values with units (required for calculateTotals to parse correctly)
         calories: String(item.calories || 0),
@@ -304,13 +304,14 @@ const createPostFromScan = async (userId, scanData) => {
         locationId: scanData.locationId,
         locationName: scanData.locationName,
         itemsCount: mealLogItems.length,
-        firstItem: mealLogItems[0] ? {
-          recipeName: mealLogItems[0].recipeName,
-          calories: mealLogItems[0].calories,
-          protein: mealLogItems[0].protein,
-          totalCarb: mealLogItems[0].totalCarb,
-          totalFat: mealLogItems[0].totalFat,
-        } : null,
+        allItems: mealLogItems.map(item => ({
+          recipeName: item.recipeName,
+          quantity: item.quantity,
+          calories: item.calories,
+          protein: item.protein,
+          totalCarb: item.totalCarb,
+          totalFat: item.totalFat,
+        })),
       });
 
       try {
@@ -321,9 +322,10 @@ const createPostFromScan = async (userId, scanData) => {
           locationId: scanData.locationId,
           locationName: scanData.locationName,
           items: mealLogItems,
+          totals: totals, // Add totals field - this is the source of truth (1209 calories from scanner)
           timestamp: mealTimestamp,
         });
-        console.log('✅ Meal log created successfully for post with date:', mealDate);
+        console.log('✅ Meal log created successfully for post with date:', mealDate, 'totals:', totals);
       } catch (mealLogError) {
         // Log error but don't fail the post creation
         console.error('Error creating meal log for post:', mealLogError);

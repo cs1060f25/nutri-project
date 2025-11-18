@@ -496,9 +496,21 @@ module.exports = async (req, res) => {
         sodium: 0,
       };
 
-      meals.forEach(meal => {
+      console.log(`📊 Found ${meals.length} meal(s) for ${today}`);
+      meals.forEach((meal, index) => {
+        console.log(`  Meal ${index + 1}:`, {
+          hasTotals: !!meal.totals,
+          totalsCalories: meal.totals?.calories,
+          hasItems: !!meal.items,
+          itemsCount: meal.items?.length,
+          mealType: meal.mealType,
+          mealDate: meal.mealDate
+        });
+        
         if (meal.totals) {
-          consumed.calories += parseNutrient(meal.totals.calories);
+          const mealCalories = parseNutrient(meal.totals.calories);
+          console.log(`    Adding ${mealCalories} calories from totals`);
+          consumed.calories += mealCalories;
           consumed.protein += parseNutrient(meal.totals.protein);
           consumed.totalFat += parseNutrient(meal.totals.totalFat);
           consumed.saturatedFat += parseNutrient(meal.totals.saturatedFat);
@@ -506,8 +518,11 @@ module.exports = async (req, res) => {
           consumed.fiber += parseNutrient(meal.totals.dietaryFiber);
           consumed.sugars += parseNutrient(meal.totals.sugars);
           consumed.sodium += parseNutrient(meal.totals.sodium);
+        } else {
+          console.log(`    ⚠️ Meal ${index + 1} has no totals field - skipping`);
         }
       });
+      console.log(`📊 Total calories calculated: ${consumed.calories}`);
 
       // Calculate progress for each metric
       const metrics = planData.metrics || {};

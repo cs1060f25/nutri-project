@@ -1004,8 +1004,6 @@ const Home = () => {
             <div className="progress-card-wrapper">
               <NutritionProgress 
                 progressData={progressWithHypothetical || progressData} 
-                onRefresh={fetchProgress}
-                refreshing={progressLoading}
               />
             </div>
           )}

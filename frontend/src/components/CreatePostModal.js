@@ -35,7 +35,7 @@ const normalizeHouseName = (houseName) => {
   return trimmed;
 };
 
-const CreatePostModal = ({ isOpen, onClose, scanData, imageUrl, imageFile, initialData }) => {
+const CreatePostModal = ({ isOpen, onClose, onSuccess, scanData, imageUrl, imageFile, initialData }) => {
   const { accessToken, refreshAccessToken } = useAuth();
   const [diningHalls, setDiningHalls] = useState([]);
   const [selectedLocation, setSelectedLocation] = useState({ locationId: '', locationName: '' });
@@ -48,7 +48,6 @@ const CreatePostModal = ({ isOpen, onClose, scanData, imageUrl, imageFile, initi
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [uploadedImage, setUploadedImage] = useState(null);
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [uploadedImagePreview, setUploadedImagePreview] = useState(null);
   
   // Check if this is from meal planning (no imageUrl or imageFile provided)
@@ -324,9 +323,15 @@ const CreatePostModal = ({ isOpen, onClose, scanData, imageUrl, imageFile, initi
       // Dispatch event to notify other components (Home, Insights) to refresh progress
       window.dispatchEvent(new CustomEvent('mealLogUpdated'));
       
-      onClose();
-      // Show success modal
-      setShowSuccessModal(true);
+      // Keep modal open during delay, then close and reset scanner
+      if (onSuccess) {
+        setTimeout(() => {
+          onClose();
+          onSuccess();
+        }, 1000); // 1 second delay with modal open
+      } else {
+        onClose();
+      }
     } catch (err) {
       console.error('Failed to create post:', err);
       setError(err.message || 'Failed to create post');
@@ -555,31 +560,6 @@ const CreatePostModal = ({ isOpen, onClose, scanData, imageUrl, imageFile, initi
         </div>
       )}
 
-      {/* Success Modal */}
-      {showSuccessModal && (
-        <div className="create-post-modal-overlay" onClick={() => setShowSuccessModal(false)}>
-          <div className="create-post-modal success-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="create-post-modal-header">
-              <button className="create-post-modal-close" onClick={() => setShowSuccessModal(false)}>×</button>
-            </div>
-
-            <div className="create-post-modal-content">
-              <div className="success-message">
-                Post created successfully!
-              </div>
-            </div>
-
-            <div className="create-post-modal-actions">
-              <button
-                className="create-post-modal-submit"
-                onClick={() => setShowSuccessModal(false)}
-              >
-                OK
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </>
   );
 };

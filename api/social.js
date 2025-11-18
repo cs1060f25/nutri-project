@@ -660,7 +660,7 @@ const createPostFromScan = async (userId, scanData) => {
       const mealLogItems = items.map(item => ({
         recipeId: item.recipeId || null,
         recipeName: item.recipeName || 'Unknown dish',
-        quantity: item.quantity || 1,
+        quantity: 1, // Scanner items already have totals (multiplied by servings), so quantity must be 1 to avoid double multiplication
         servingSize: item.servingSize || '1 serving',
         calories: String(item.calories || 0),
         protein: `${item.protein || 0}g`,
@@ -709,15 +709,29 @@ const createPostFromScan = async (userId, scanData) => {
         });
       };
 
-      await createMealLog(userId, userData.email || '', {
+      const mealLogData = {
         mealDate,
         mealType: scanData.mealType || null,
         mealName: scanData.mealType || null,
         locationId: scanData.locationId,
         locationName: scanData.locationName,
         items: mealLogItems,
+        totals: totals, // Add totals field - this is the source of truth (1266 calories)
         timestamp: mealTimestamp,
+      };
+      
+      console.log('💾 Saving meal log with totals:', {
+        mealDate,
+        totalsCalories: totals.calories,
+        totalsProtein: totals.protein,
+        totalsCarbs: totals.totalCarb,
+        totalsFat: totals.totalFat,
+        itemsCount: mealLogItems.length,
+        firstItemCalories: mealLogItems[0]?.calories,
+        firstItemQuantity: mealLogItems[0]?.quantity
       });
+      
+      await createMealLog(userId, userData.email || '', mealLogData);
     } catch (mealLogError) {
       console.error('Error creating meal log for post:', mealLogError);
       // Don't fail the post creation if meal log fails
