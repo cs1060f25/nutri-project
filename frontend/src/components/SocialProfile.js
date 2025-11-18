@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Filter } from 'lucide-react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { getFriends, getFriendRequests, acceptFriendRequest, rejectFriendRequest, removeFriend, getFollowedDiningHalls, unfollowDiningHall, getPostsByLocationName } from '../services/socialService';
 import { getPostsByUser } from '../services/socialService';
@@ -8,8 +9,20 @@ import CustomSelect from './CustomSelect';
 import '../pages/Social.css';
 
 const SocialProfile = () => {
+  const { userId: urlUserId } = useParams();
+  const navigate = useNavigate();
   const { user, accessToken } = useAuth();
+  // Use userId from URL if provided, otherwise use current user
+  const profileUserId = urlUserId || (user?.id || user?.uid);
+  const isOwnProfile = !urlUserId || profileUserId === (user?.id || user?.uid);
   const [activeTab, setActiveTab] = useState('posts'); // 'posts', 'friends', or 'dining-halls'
+  
+  // Reset to posts tab if viewing another user's profile and on friends/dining-halls tab
+  useEffect(() => {
+    if (!isOwnProfile && (activeTab === 'friends' || activeTab === 'dining-halls')) {
+      setActiveTab('posts');
+    }
+  }, [isOwnProfile, activeTab]);
   const [posts, setPosts] = useState([]);
   const [filteredPosts, setFilteredPosts] = useState([]);
   const [friends, setFriends] = useState([]);
@@ -93,15 +106,14 @@ const SocialProfile = () => {
   // Fetch tab-specific data when tab changes
   useEffect(() => {
     const fetchData = async () => {
-      if (!accessToken || !user) return;
+      if (!accessToken || !profileUserId) return;
 
       try {
         setLoading(true);
         if (activeTab === 'posts') {
-          const userId = user?.id || user?.uid;
-          if (!userId) return;
+          if (!profileUserId) return;
           try {
-            const postsData = await getPostsByUser(userId, 50, accessToken);
+            const postsData = await getPostsByUser(profileUserId, 50, accessToken);
             const postsList = postsData.posts || [];
             setPosts(postsList);
             setFilteredPosts(postsList);
@@ -112,7 +124,8 @@ const SocialProfile = () => {
             setPosts([]);
             setError(null);
           }
-        } else if (activeTab === 'friends') {
+        } else if (activeTab === 'friends' && isOwnProfile) {
+          // Only show friends tab for own profile
           const [friendsData, requestsData] = await Promise.all([
             getFriends(accessToken),
             getFriendRequests('received', accessToken),
@@ -120,7 +133,8 @@ const SocialProfile = () => {
           setFriends(friendsData.friends || []);
           setFriendRequests(requestsData.requests || []);
           setError(null);
-        } else if (activeTab === 'dining-halls') {
+        } else if (activeTab === 'dining-halls' && isOwnProfile) {
+          // Only show dining halls tab for own profile
           const diningHallsData = await getFollowedDiningHalls(accessToken);
           setFollowedDiningHalls(diningHallsData.diningHalls || []);
           setError(null);
@@ -134,7 +148,7 @@ const SocialProfile = () => {
     };
 
     fetchData();
-  }, [accessToken, user, activeTab]);
+  }, [accessToken, profileUserId, activeTab, isOwnProfile]);
 
   const handleAcceptRequest = async (requestId) => {
     try {
@@ -221,10 +235,9 @@ const SocialProfile = () => {
   const handlePostUpdated = async () => {
     // Refresh posts after update
     if (activeTab === 'posts' && user) {
-      const userId = user?.id || user?.uid;
-      if (userId) {
+      if (profileUserId) {
         try {
-          const postsData = await getPostsByUser(userId, 50, accessToken);
+          const postsData = await getPostsByUser(profileUserId, 50, accessToken);
           const postsList = postsData.posts || [];
           setPosts(postsList);
           // Filters will be reapplied via useEffect
@@ -238,10 +251,9 @@ const SocialProfile = () => {
   const handlePostDeleted = async () => {
     // Refresh posts after delete
     if (activeTab === 'posts' && user) {
-      const userId = user?.id || user?.uid;
-      if (userId) {
+      if (profileUserId) {
         try {
-          const postsData = await getPostsByUser(userId, 50, accessToken);
+          const postsData = await getPostsByUser(profileUserId, 50, accessToken);
           const postsList = postsData.posts || [];
           setPosts(postsList);
           // Filters will be reapplied via useEffect
@@ -278,20 +290,24 @@ const SocialProfile = () => {
             className={`btn ${activeTab === 'posts' ? 'btn-primary' : 'btn-secondary'}`}
             onClick={() => setActiveTab('posts')}
           >
-            My Posts
+            {isOwnProfile ? 'My Posts' : 'Posts'}
           </button>
-          <button
-            className={`btn ${activeTab === 'friends' ? 'btn-primary' : 'btn-secondary'}`}
-            onClick={() => setActiveTab('friends')}
-          >
-            Friends ({friends.length})
-          </button>
-          <button
-            className={`btn ${activeTab === 'dining-halls' ? 'btn-primary' : 'btn-secondary'}`}
-            onClick={() => setActiveTab('dining-halls')}
-          >
-            Dining Halls ({followedDiningHalls.length})
-          </button>
+          {isOwnProfile && (
+            <>
+              <button
+                className={`btn ${activeTab === 'friends' ? 'btn-primary' : 'btn-secondary'}`}
+                onClick={() => setActiveTab('friends')}
+              >
+                Friends ({friends.length})
+              </button>
+              <button
+                className={`btn ${activeTab === 'dining-halls' ? 'btn-primary' : 'btn-secondary'}`}
+                onClick={() => setActiveTab('dining-halls')}
+              >
+                Dining Halls ({followedDiningHalls.length})
+              </button>
+            </>
+          )}
           </div>
           {activeTab === 'posts' && posts.length > 0 && (
             <button
@@ -455,7 +471,7 @@ const SocialProfile = () => {
         </div>
       )}
 
-      {activeTab === 'friends' && (
+      {activeTab === 'friends' && isOwnProfile && (
         <div className="profile-friends">
           {friendRequests.length > 0 && (
             <div className="friend-requests-section">
@@ -566,7 +582,7 @@ const SocialProfile = () => {
         </div>
       )}
 
-      {activeTab === 'dining-halls' && (
+      {activeTab === 'dining-halls' && isOwnProfile && (
         <div className="profile-dining-halls">
           {selectedLocation ? (
             <div className="full-width-detail-page">

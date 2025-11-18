@@ -45,6 +45,7 @@ const Social = () => {
         <Routes>
           <Route path="/feed" element={<SocialFeed />} />
           <Route path="/profile" element={<SocialProfile />} />
+          <Route path="/user/:userId" element={<SocialProfile />} />
           <Route path="/search" element={<SocialSearch />} />
           <Route path="*" element={<SocialFeed />} />
         </Routes>

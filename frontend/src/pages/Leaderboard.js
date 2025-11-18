@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { getLeaderboard, getFilterOptions } from '../services/leaderboardService';
+import { getPostsByUser } from '../services/socialService';
+import PostCard from '../components/PostCard';
 import CustomSelect from '../components/CustomSelect';
 import './Leaderboard.css';
 
@@ -19,6 +21,8 @@ const Leaderboard = () => {
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [userPosts, setUserPosts] = useState([]);
 
   // Fetch filter options on mount
   useEffect(() => {
@@ -73,6 +77,55 @@ const Leaderboard = () => {
   };
 
   const hasActiveFilters = filters.classYear || filters.residence || filters.dietaryPattern;
+
+  const handleUserClick = async (entry) => {
+    setSelectedUser(entry);
+    try {
+      const data = await getPostsByUser(entry.userId, 50, accessToken);
+      setUserPosts(data.posts || []);
+    } catch (err) {
+      console.error('Error fetching user posts:', err);
+      alert('Failed to load posts: ' + err.message);
+    }
+  };
+
+  if (selectedUser) {
+    return (
+      <div className="leaderboard-page">
+        <div className="full-width-detail-page">
+          <button
+            className="btn btn-secondary"
+            onClick={() => {
+              setSelectedUser(null);
+              setUserPosts([]);
+            }}
+            style={{ marginBottom: '1rem' }}
+          >
+            ← Back to Leaderboard
+          </button>
+          <h2>{selectedUser.userName}</h2>
+          <p style={{ color: '#666', marginBottom: '1.5rem' }}>
+            {selectedUser.postCount} {selectedUser.postCount === 1 ? 'post' : 'posts'}
+            {selectedUser.residence && ` • ${selectedUser.residence}`}
+            {selectedUser.dietaryPattern && ` • ${selectedUser.dietaryPattern.charAt(0).toUpperCase() + selectedUser.dietaryPattern.slice(1).replace(/-/g, ' ')}`}
+          </p>
+          {userPosts.length === 0 ? (
+            <div className="empty-state">
+              <div className="empty-state-icon">📭</div>
+              <div className="empty-state-title">No posts yet</div>
+              <div className="empty-state-message">
+                This user hasn't shared any meals yet.
+              </div>
+            </div>
+          ) : (
+            userPosts.map((post) => (
+              <PostCard key={post.id} post={post} />
+            ))
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="leaderboard-page">
@@ -159,7 +212,12 @@ const Leaderboard = () => {
             <div className="posts-col">Total Logs</div>
           </div>
           {leaderboard.map((entry) => (
-            <div key={entry.userId} className="leaderboard-row">
+            <div 
+              key={entry.userId} 
+              className="leaderboard-row"
+              onClick={() => handleUserClick(entry)}
+              style={{ cursor: 'pointer' }}
+            >
               <div className="rank-col">
                 <span className={`rank-badge rank-${entry.rank}`}>
                   {entry.rank === 1 ? '🥇' : entry.rank === 2 ? '🥈' : entry.rank === 3 ? '🥉' : entry.rank}
