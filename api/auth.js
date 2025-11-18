@@ -179,6 +179,7 @@ const handleRegister = async (req, res) => {
       // Additional profile fields
       birthday,
       age,
+      classYear,
       gender,
       height,
       weight,
@@ -230,6 +231,10 @@ const handleRegister = async (req, res) => {
     // Add optional fields if provided
     if (birthday) profileData.birthday = birthday;
     if (age) profileData.age = parseInt(age);
+    // Save classYear even if it's an empty string (to distinguish from undefined)
+    if (classYear !== undefined && classYear !== null && classYear !== '') {
+      profileData.classYear = String(classYear).trim();
+    }
     if (gender) profileData.gender = gender;
     if (height) profileData.height = height;
     if (weight) profileData.weight = parseFloat(weight);
