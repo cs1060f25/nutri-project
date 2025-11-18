@@ -1511,6 +1511,11 @@ module.exports = async (req, res) => {
         const email = (userData.email || '').toLowerCase();
         const residence = (userData.residence || '').toLowerCase();
 
+        // Exclude the current user from search results
+        if (userId === doc.id) {
+          return;
+        }
+
         if (fullName.includes(searchTerm) || email.includes(searchTerm) || residence.includes(searchTerm)) {
           matchingUsers.push({
             id: doc.id,
