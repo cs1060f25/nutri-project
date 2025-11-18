@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Filter } from 'lucide-react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { getFriends, getFriendRequests, acceptFriendRequest, rejectFriendRequest, removeFriend, sendFriendRequest, getFollowedDiningHalls, unfollowDiningHall, getPostsByLocationName } from '../services/socialService';
 import { getPostsByUser } from '../services/socialService';
@@ -10,7 +10,6 @@ import '../pages/Social.css';
 
 const SocialProfile = () => {
   const { userId: urlUserId } = useParams();
-  const navigate = useNavigate();
   const { user, accessToken } = useAuth();
   // Use userId from URL if provided, otherwise use current user
   const profileUserId = urlUserId || (user?.id || user?.uid);
