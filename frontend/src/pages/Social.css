@@ -593,6 +593,28 @@
   gap: 0.5rem;
 }
 
+/* Responsive: Move buttons under email on small screens */
+@media (max-width: 768px) {
+  .friend-request-card {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .friend-request-info {
+    width: 100%;
+    margin-bottom: 1rem;
+  }
+
+  .friend-request-actions {
+    width: 100%;
+    margin-top: 0.5rem;
+  }
+
+  .friend-request-actions .btn {
+    flex: 1;
+  }
+}
+
 .btn {
   padding: 0.5rem 1rem;
   border: none;
