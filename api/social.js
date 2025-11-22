@@ -1353,6 +1353,83 @@ const getDiningHallFeedPosts = async (userId, limit = 50) => {
   return allPosts.slice(0, limit);
 };
 
+const getPopularPosts = async (limit = 50, options = {}) => {
+  const db = getDb();
+  const { timeWindowHours, locationName, mealType } = options;
+
+  // Firestore doesn't support multiple where clauses on different fields without composite indexes
+  // So we'll fetch all public posts and filter in memory
+  const query = db
+    .collection(POSTS_COLLECTION)
+    .where('isPublic', '==', true);
+
+  const snapshot = await query.get();
+  const posts = [];
+  
+  // Calculate cutoff date for time window if specified
+  let cutoffDate = null;
+  if (timeWindowHours) {
+    const timeWindowMs = timeWindowHours * 60 * 60 * 1000;
+    cutoffDate = new Date(Date.now() - timeWindowMs);
+  }
+
+  snapshot.forEach(doc => {
+    const postData = doc.data();
+    
+    // Apply time window filter in memory
+    if (cutoffDate) {
+      const postCreatedAt = postData.createdAt?.toDate?.() || 
+                           (postData.createdAt ? new Date(postData.createdAt) : null) ||
+                           postData.timestamp?.toDate?.() ||
+                           (postData.timestamp ? new Date(postData.timestamp) : null);
+      if (!postCreatedAt || postCreatedAt < cutoffDate) {
+        return; // Skip this post (outside time window)
+      }
+    }
+    
+    // Apply client-side filters for location and meal type
+    if (locationName && postData.locationName !== locationName) {
+      return; // Skip this post
+    }
+    // Case-insensitive meal type comparison
+    if (mealType && postData.mealType && 
+        postData.mealType.toLowerCase() !== mealType.toLowerCase()) {
+      return; // Skip this post
+    }
+    
+    const upvotes = postData.upvotes || [];
+    const upvoteCount = Array.isArray(upvotes) ? upvotes.length : 0;
+    
+    posts.push({
+      id: doc.id,
+      ...postData,
+      upvoteCount, // Add upvote count for sorting
+      timestamp: postData.timestamp?.toDate(),
+      createdAt: postData.createdAt?.toDate(),
+      updatedAt: postData.updatedAt?.toDate(),
+      loggedDate: postData.loggedDate?.toDate?.() || (postData.loggedDate ? new Date(postData.loggedDate) : null),
+    });
+  });
+
+  // Sort by upvote count (descending), then by creation date (descending) as tiebreaker
+  posts.sort((a, b) => {
+    const aUpvotes = a.upvoteCount || 0;
+    const bUpvotes = b.upvoteCount || 0;
+    
+    if (aUpvotes !== bUpvotes) {
+      return bUpvotes - aUpvotes; // More upvotes first
+    }
+    
+    // Tiebreaker: most recent first
+    const aTime = a.createdAt || a.timestamp || new Date(0);
+    const bTime = b.createdAt || b.timestamp || new Date(0);
+    return bTime - aTime;
+  });
+
+  // Return limited results
+  return posts.slice(0, limit);
+};
+
 module.exports = async (req, res) => {
   // CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -1940,6 +2017,22 @@ module.exports = async (req, res) => {
     if (req.method === 'GET' && path === '/posts/feed/dining-halls') {
       const limit = parseInt(req.query.limit || 50, 10);
       const posts = await getDiningHallFeedPosts(userId, limit);
+      return res.status(200).json({ posts, count: posts.length });
+    }
+
+    if (req.method === 'GET' && path === '/posts/popular') {
+      const limit = parseInt(req.query.limit || 50, 10);
+      const options = {};
+      if (req.query.timeWindowHours) {
+        options.timeWindowHours = parseInt(req.query.timeWindowHours, 10);
+      }
+      if (req.query.locationName) {
+        options.locationName = req.query.locationName;
+      }
+      if (req.query.mealType) {
+        options.mealType = req.query.mealType;
+      }
+      const posts = await getPopularPosts(limit, options);
       return res.status(200).json({ posts, count: posts.length });
     }
 

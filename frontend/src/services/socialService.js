@@ -244,3 +244,25 @@ export const getDiningHallFeedPosts = async (limit = 50, accessToken) => {
   return handleApiError(response, 'Failed to get dining hall feed posts');
 };
 
+export const getPopularPosts = async (limit = 50, accessToken, options = {}) => {
+  const { timeWindowHours, locationName, mealType } = options;
+  const params = new URLSearchParams({ limit: limit.toString() });
+  
+  if (timeWindowHours) {
+    params.append('timeWindowHours', timeWindowHours.toString());
+  }
+  if (locationName) {
+    params.append('locationName', locationName);
+  }
+  if (mealType) {
+    params.append('mealType', mealType);
+  }
+
+  const response = await fetch(`${API_BASE}/api/social/posts/popular?${params.toString()}`, {
+    method: 'GET',
+    headers: getAuthHeaders(accessToken),
+  });
+
+  return handleApiError(response, 'Failed to get popular posts');
+};
+

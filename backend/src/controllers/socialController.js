@@ -367,6 +367,35 @@ const getDiningHallFeedPosts = async (req, res) => {
 };
 
 /**
+ * GET /api/social/posts/popular
+ * Get popular posts (all public posts sorted by upvotes)
+ */
+const getPopularPosts = async (req, res) => {
+  try {
+    const { limit = 50, timeWindowHours, locationName, mealType } = req.query;
+
+    const options = {};
+    if (timeWindowHours) {
+      options.timeWindowHours = parseInt(timeWindowHours, 10);
+    }
+    if (locationName) {
+      options.locationName = locationName;
+    }
+    if (mealType) {
+      options.mealType = mealType;
+    }
+
+    const posts = await postService.getPopularPosts(parseInt(limit, 10), options);
+    return res.status(200).json({ posts, count: posts.length });
+  } catch (error) {
+    console.error('Get popular posts error:', error);
+    return res.status(500).json(
+      createErrorResponse('INTERNAL', 'Failed to get popular posts')
+    );
+  }
+};
+
+/**
  * GET /api/social/posts/user/:userId
  * Get posts by a specific user
  */
@@ -877,6 +906,7 @@ module.exports = {
   createPostFromScan,
   getFeedPosts,
   getDiningHallFeedPosts,
+  getPopularPosts,
   getPostsByUser,
   getPostsByLocation,
   getPostsByLocationName,
