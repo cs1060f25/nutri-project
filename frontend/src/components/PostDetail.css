@@ -147,7 +147,43 @@
   color: #6b7280;
   display: flex;
   align-items: center;
-  gap: 0.25rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.post-meta-chip {
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  background: rgba(107, 114, 128, 0.1);
+  border-radius: 5px;
+  white-space: nowrap;
+}
+
+.post-meal-header-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0 2rem 0.75rem 0;
+}
+
+.post-meal-name-title {
+  font-size: 1.75rem;
+  font-weight: 600;
+  color: #1a4d2e;
+  margin: 0;
+}
+
+.post-title-info {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  /* margin-bottom: 1rem; */
+}
+
+.post-meal-type-chip {
+  text-transform: capitalize;
 }
 
 .post-meal-type-detail {
@@ -177,10 +213,11 @@
 }
 
 .post-detail-section h3 {
-  font-size: 1.1rem;
+  font-size: 1rem;
   font-weight: 600;
-  color: #1a4d2e;
-  margin-bottom: 0.75rem;
+  color: #333;
+  margin-bottom: 0.5rem;
+  margin-top: 0rem;
 }
 
 .post-rating {

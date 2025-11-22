@@ -1041,7 +1041,6 @@ const SocialProfile = () => {
                         </div>
                         <div className="friend-details">
                           <h3>{hall.locationName}</h3>
-                          <p>Location ID: {hall.locationId}</p>
                         </div>
                       </div>
                       <button

@@ -140,6 +140,29 @@
   box-shadow: 0 2px 8px rgba(21, 76, 57, 0.08);
 }
 
+.profile-detail-header-card > div {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* Responsive: Move button under email on small screens */
+@media (max-width: 768px) {
+  .profile-detail-header-card > div {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 1rem;
+  }
+  
+  .profile-detail-header-card > div > div:last-child {
+    width: 100%;
+  }
+  
+  .profile-detail-header-card > div > div:last-child button {
+    width: 100%;
+  }
+}
+
 .profile-header {
   margin-bottom: 2rem;
 }
@@ -291,11 +314,77 @@
 .post-meta {
   font-size: 0.875rem;
   color: #666;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.post-meta-chip {
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  background: rgba(107, 114, 128, 0.1);
+  border-radius: 5px;
+  white-space: nowrap;
+}
+
+.post-edit-button {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.5rem 1rem;
+}
+
+.post-edit-button-desktop {
+  display: flex;
+}
+
+.post-edit-button-mobile {
+  display: none;
+}
+
+/* Responsive: Show mobile edit button, hide desktop on small screens */
+@media (max-width: 768px) {
+  .post-edit-button-desktop {
+    display: none !important;
+  }
+  
+  .post-edit-button-mobile {
+    display: flex !important;
+    width: 100%;
+    justify-content: center;
+    margin-bottom: 1rem;
+  }
 }
 
 .post-location {
   color: #1a5f3f;
   font-weight: 500;
+}
+
+.post-meal-header-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1rem 1rem 0.5rem 0;
+}
+
+.post-meal-name-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #1a4d2e;
+  margin: 0;
+}
+
+.post-title-info {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.post-meal-type-chip {
+  text-transform: capitalize;
 }
 
 .post-content {
@@ -855,6 +944,24 @@
 .friend-details p {
   font-size: 0.875rem;
   color: #666;
+}
+
+/* Responsive: Move Remove button under house name on small screens */
+@media (max-width: 768px) {
+  .friend-card {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+  
+  .friend-info {
+    width: 100%;
+  }
+  
+  .friend-card .btn-danger {
+    width: 100%;
+    align-self: stretch;
+  }
 }
 
 /* Search styles */

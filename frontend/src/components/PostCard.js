@@ -30,8 +30,6 @@ const PostCard = ({ post, showDelete = false, onPostUpdated, onPostDeleted, show
       year: 'numeric',
       month: 'short',
       day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
     });
   };
 
@@ -245,27 +243,30 @@ const PostCard = ({ post, showDelete = false, onPostUpdated, onPostDeleted, show
         <div className="post-user-info">
           <div className="post-user-name">{post.userName}</div>
           <div className="post-meta">
-            {formatDate(post.timestamp)}
-            {displayOptions.location && post.locationName && (
-              <>
-                {' • '}
-                <span className="post-location">{post.locationName}</span>
-              </>
+            <span className="post-meta-chip">Posted on {formatDate(post.createdAt || post.timestamp)}</span>
+            {post.loggedDate && (
+              <span className="post-meta-chip">Logged on {formatDate(post.loggedDate)}</span>
             )}
-              {showVisibility && (
-                <>
-                  {' • '}
-                  <span className="post-visibility">
-                    {(post.isPublic === false || post.isPublic === 'false') ? 'Private' : 'Public'}
-                  </span>
-                </>
-              )}
+            {displayOptions.location && post.locationName && (
+              <span className="post-meta-chip">{post.locationName}</span>
+            )}
+            {displayOptions.mealType && post.mealType && (
+              <span className="post-meta-chip post-meal-type-chip">{post.mealType}</span>
+            )}
+            {showVisibility && (
+              <span className="post-meta-chip">
+                {(post.isPublic === false || post.isPublic === 'false') ? 'Private' : 'Public'}
+              </span>
+            )}
             </div>
           </div>
           {canEdit && (
           <button
-              className="btn"
-              onClick={() => setShowEditModal(true)}
+              className="btn post-edit-button post-edit-button-desktop"
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowEditModal(true);
+              }}
               style={{ 
                 display: 'flex', 
                 alignItems: 'center', 
@@ -280,11 +281,21 @@ const PostCard = ({ post, showDelete = false, onPostUpdated, onPostDeleted, show
           </button>
         )}
       </div>
+      {canEdit && (
+        <button
+          className="btn post-edit-button post-edit-button-mobile"
+          onClick={(e) => {
+            e.stopPropagation();
+            setShowEditModal(true);
+          }}
+          title="Edit post"
+        >
+          <Edit size={16} />
+          Edit
+        </button>
+      )}
 
       <div className="post-content">
-        {displayOptions.mealType && post.mealType && (
-          <div className="post-meal-type">{post.mealType}</div>
-        )}
 
         {/* Meal section - show if image is enabled and exists */}
         {post.image && displayOptions.image && (
@@ -302,6 +313,13 @@ const PostCard = ({ post, showDelete = false, onPostUpdated, onPostDeleted, show
                 />
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Meal section header (when no image) */}
+        {(!post.image || !displayOptions.image) && (
+          <div className="post-meal-section">
+            <h3 className="post-section-header">Meal</h3>
           </div>
         )}
 

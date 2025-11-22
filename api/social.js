@@ -453,6 +453,10 @@ const createPost = async (userId, mealId) => {
   const mealData = mealDoc.data();
   const userData = userDoc.data();
 
+  // Store logged date (when meal was logged) and posted date (when post was created)
+  const loggedDate = mealData.mealDate ? new Date(mealData.mealDate) : null;
+  const postedDate = admin.firestore.FieldValue.serverTimestamp();
+
   const post = {
     userId,
     userEmail: userData.email,
@@ -461,14 +465,14 @@ const createPost = async (userId, mealId) => {
     userLastName: userData.lastName,
     mealId,
     mealDate: mealData.mealDate,
+    loggedDate: loggedDate || null, // When the meal was actually logged
     mealType: mealData.mealType,
-    mealName: mealData.mealName || mealData.mealType,
     locationId: mealData.locationId,
     locationName: mealData.locationName,
     items: mealData.items,
     totals: mealData.totals,
-    timestamp: mealData.timestamp || admin.firestore.FieldValue.serverTimestamp(),
-    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    timestamp: postedDate, // Keep for backwards compatibility
+    createdAt: postedDate, // Posted date - when the post was created
     updatedAt: admin.firestore.FieldValue.serverTimestamp(),
   };
 
@@ -482,6 +486,7 @@ const createPost = async (userId, mealId) => {
     timestamp: postData.timestamp?.toDate(),
     createdAt: postData.createdAt?.toDate(),
     updatedAt: postData.updatedAt?.toDate(),
+    loggedDate: postData.loggedDate?.toDate?.() || (postData.loggedDate ? new Date(postData.loggedDate) : null),
   };
 };
 
@@ -604,8 +609,8 @@ const createPostFromScan = async (userId, scanData) => {
       userFirstName: String(userData.firstName || ''),
       userLastName: String(userData.lastName || ''),
       mealDate: scanData.mealDate ? String(scanData.mealDate) : null,
+      loggedDate: scanData.mealDate ? new Date(scanData.mealDate) : null, // When the meal was actually logged
       mealType: scanData.mealType ? String(scanData.mealType) : null,
-      mealName: scanData.mealType ? String(scanData.mealType) : null,
       rating: Number(scanData.rating),
       review: (typeof scanData.review === 'string' && scanData.review.trim().length > 0) ? String(scanData.review) : null,
       locationId: String(scanData.locationId),
@@ -616,7 +621,7 @@ const createPostFromScan = async (userId, scanData) => {
       matchedItems: cleanMatchedItems,
       unmatchedDishes: cleanUnmatchedDishes,
       timestamp: timestampValue,
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      createdAt: admin.firestore.FieldValue.serverTimestamp(), // Posted date - when the post was created
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     };
 
@@ -743,6 +748,7 @@ const createPostFromScan = async (userId, scanData) => {
       timestamp: savedPostData.timestamp?.toDate(),
       createdAt: savedPostData.createdAt?.toDate(),
       updatedAt: savedPostData.updatedAt?.toDate(),
+      loggedDate: savedPostData.loggedDate?.toDate?.() || (savedPostData.loggedDate ? new Date(savedPostData.loggedDate) : null),
     };
   } catch (error) {
     console.error('Error in createPostFromScan:', error);
@@ -769,20 +775,22 @@ const getFeedPosts = async (userId, limit = 50) => {
       .get();
 
     snapshot.forEach(doc => {
+      const postData = doc.data();
       allPosts.push({
         id: doc.id,
-        ...doc.data(),
-        timestamp: doc.data().timestamp?.toDate(),
-        createdAt: doc.data().createdAt?.toDate(),
-        updatedAt: doc.data().updatedAt?.toDate(),
+        ...postData,
+        timestamp: postData.timestamp?.toDate(),
+        createdAt: postData.createdAt?.toDate(),
+        updatedAt: postData.updatedAt?.toDate(),
+        loggedDate: postData.loggedDate?.toDate?.() || (postData.loggedDate ? new Date(postData.loggedDate) : null),
       });
     });
   }
 
-  // Sort by timestamp descending in-memory
+  // Sort by posted date (createdAt) - most recent first
   allPosts.sort((a, b) => {
-    const aTime = a.timestamp || a.createdAt || new Date(0);
-    const bTime = b.timestamp || b.createdAt || new Date(0);
+    const aTime = a.createdAt || a.timestamp || new Date(0);
+    const bTime = b.createdAt || b.timestamp || new Date(0);
     return bTime - aTime;
   });
 
@@ -799,19 +807,21 @@ const getPostsByUser = async (targetUserId, limit = 50) => {
 
   const posts = [];
   snapshot.forEach(doc => {
+    const postData = doc.data();
     posts.push({
       id: doc.id,
-      ...doc.data(),
-      timestamp: doc.data().timestamp?.toDate(),
-      createdAt: doc.data().createdAt?.toDate(),
-      updatedAt: doc.data().updatedAt?.toDate(),
+      ...postData,
+      timestamp: postData.timestamp?.toDate(),
+      createdAt: postData.createdAt?.toDate(),
+      updatedAt: postData.updatedAt?.toDate(),
+      loggedDate: postData.loggedDate?.toDate?.() || (postData.loggedDate ? new Date(postData.loggedDate) : null),
     });
   });
 
-  // Sort by timestamp descending in-memory
+  // Sort by posted date (createdAt) - most recent first
   posts.sort((a, b) => {
-    const aTime = a.timestamp || a.createdAt || new Date(0);
-    const bTime = b.timestamp || b.createdAt || new Date(0);
+    const aTime = a.createdAt || a.timestamp || new Date(0);
+    const bTime = b.createdAt || b.timestamp || new Date(0);
     return bTime - aTime;
   });
 
@@ -829,19 +839,21 @@ const getPostsByLocation = async (locationId, limit = 50) => {
 
   const posts = [];
   snapshot.forEach(doc => {
+    const postData = doc.data();
     posts.push({
       id: doc.id,
-      ...doc.data(),
-      timestamp: doc.data().timestamp?.toDate(),
-      createdAt: doc.data().createdAt?.toDate(),
-      updatedAt: doc.data().updatedAt?.toDate(),
+      ...postData,
+      timestamp: postData.timestamp?.toDate(),
+      createdAt: postData.createdAt?.toDate(),
+      updatedAt: postData.updatedAt?.toDate(),
+      loggedDate: postData.loggedDate?.toDate?.() || (postData.loggedDate ? new Date(postData.loggedDate) : null),
     });
   });
 
-  // Sort by timestamp descending in-memory
+  // Sort by posted date (createdAt) - most recent first
   posts.sort((a, b) => {
-    const aTime = a.timestamp || a.createdAt || new Date(0);
-    const bTime = b.timestamp || b.createdAt || new Date(0);
+    const aTime = a.createdAt || a.timestamp || new Date(0);
+    const bTime = b.createdAt || b.timestamp || new Date(0);
     return bTime - aTime;
   });
 
@@ -859,19 +871,21 @@ const getPostsByLocationName = async (locationName, limit = 50) => {
 
   const posts = [];
   snapshot.forEach(doc => {
+    const postData = doc.data();
     posts.push({
       id: doc.id,
-      ...doc.data(),
-      timestamp: doc.data().timestamp?.toDate(),
-      createdAt: doc.data().createdAt?.toDate(),
-      updatedAt: doc.data().updatedAt?.toDate(),
+      ...postData,
+      timestamp: postData.timestamp?.toDate(),
+      createdAt: postData.createdAt?.toDate(),
+      updatedAt: postData.updatedAt?.toDate(),
+      loggedDate: postData.loggedDate?.toDate?.() || (postData.loggedDate ? new Date(postData.loggedDate) : null),
     });
   });
 
-  // Sort by timestamp descending in-memory
+  // Sort by posted date (createdAt) - most recent first
   posts.sort((a, b) => {
-    const aTime = a.timestamp || a.createdAt || new Date(0);
-    const bTime = b.timestamp || b.createdAt || new Date(0);
+    const aTime = a.createdAt || a.timestamp || new Date(0);
+    const bTime = b.createdAt || b.timestamp || new Date(0);
     return bTime - aTime;
   });
 
@@ -1083,6 +1097,9 @@ const getPostById = async (userId, postId) => {
     id: postDoc.id,
     ...postData,
     timestamp: postData.timestamp?.toDate?.() || postData.timestamp,
+    createdAt: postData.createdAt?.toDate(),
+    updatedAt: postData.updatedAt?.toDate(),
+    loggedDate: postData.loggedDate?.toDate?.() || (postData.loggedDate ? new Date(postData.loggedDate) : null),
   };
 };
 
@@ -1313,20 +1330,22 @@ const getDiningHallFeedPosts = async (userId, limit = 50) => {
     
     const snapshot = await query.get();
     snapshot.forEach(doc => {
+      const postData = doc.data();
       allPosts.push({
         id: doc.id,
-        ...doc.data(),
-        timestamp: doc.data().timestamp?.toDate(),
-        createdAt: doc.data().createdAt?.toDate(),
-        updatedAt: doc.data().updatedAt?.toDate(),
+        ...postData,
+        timestamp: postData.timestamp?.toDate(),
+        createdAt: postData.createdAt?.toDate(),
+        updatedAt: postData.updatedAt?.toDate(),
+        loggedDate: postData.loggedDate?.toDate?.() || (postData.loggedDate ? new Date(postData.loggedDate) : null),
       });
     });
   }
 
-  // Sort all posts by timestamp descending
+  // Sort all posts by posted date (createdAt) - most recent first
   allPosts.sort((a, b) => {
-    const aTime = a.timestamp || a.createdAt || new Date(0);
-    const bTime = b.timestamp || b.createdAt || new Date(0);
+    const aTime = a.createdAt || a.timestamp || new Date(0);
+    const bTime = b.createdAt || b.timestamp || new Date(0);
     return bTime - aTime;
   });
 
