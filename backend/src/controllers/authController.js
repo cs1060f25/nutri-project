@@ -130,6 +130,50 @@ const register = async (req, res) => {
 };
 
 /**
+ * GET /auth/check-email
+ * Check if an email already exists
+ */
+const checkEmail = async (req, res) => {
+  try {
+    const { email } = req.query;
+
+    if (!email) {
+      return res.status(400).json(
+        createErrorResponse('INVALID_EMAIL', 'Email is required.')
+      );
+    }
+
+    const allowedDomain = '@college.harvard.edu';
+    if (!email.toLowerCase().endsWith(allowedDomain)) {
+      return res.status(400).json(
+        createErrorResponse(
+          'INVALID_EMAIL',
+          `Email must end with ${allowedDomain}`
+        )
+      );
+    }
+
+    try {
+      await admin.auth().getUserByEmail(email);
+      // If we get here, the user exists
+      return res.status(200).json({ exists: true });
+    } catch (error) {
+      if (error.code === 'auth/user-not-found') {
+        // User doesn't exist, which is what we want for registration
+        return res.status(200).json({ exists: false });
+      }
+      throw error;
+    }
+  } catch (error) {
+    console.error('Check email error:', error.code, error.message);
+    const mappedError = mapFirebaseError(error.code);
+    return res.status(mappedError.statusCode).json(
+      createErrorResponse(mappedError.errorCode, mappedError.message)
+    );
+  }
+};
+
+/**
  * POST /auth/login
  * Login with email and password
  */
@@ -442,6 +486,7 @@ const confirmResetPassword = async (req, res) => {
 };
 
 module.exports = {
+  checkEmail,
   register,
   login,
   refresh,

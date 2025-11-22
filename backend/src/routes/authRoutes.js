@@ -4,6 +4,7 @@ const authController = require('../controllers/authController');
 const { verifyToken } = require('../middleware/authMiddleware');
 
 // Public routes (no authentication required)
+router.get('/check-email', authController.checkEmail);
 router.post('/register', authController.register);
 router.post('/login', authController.login);
 router.post('/refresh', authController.refresh);
