@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import CustomSelect from '../components/CustomSelect';
 import './Auth.css';
 
 const Auth = () => {
@@ -23,7 +24,7 @@ const Auth = () => {
 
   // Multi-step registration form state
   const [registrationStep, setRegistrationStep] = useState(1);
-  const totalSteps = 7;
+  const totalSteps = 3; // Step 1 is landing page, steps 2-4 are the actual 3 steps
 
   // Additional registration fields
   const [birthday, setBirthday] = useState('');
@@ -124,7 +125,9 @@ const Auth = () => {
   };
 
   const nextStep = () => {
-    if (registrationStep < totalSteps) {
+    // Step 1 is landing page, steps 2-4 are the actual 3 steps
+    const maxStep = totalSteps + 1; // 4 (1 landing + 3 steps: 2=account, 3=biometric, 4=dietary+agreement)
+    if (registrationStep < maxStep) {
       setRegistrationStep(registrationStep + 1);
       setError('');
     }
@@ -137,13 +140,13 @@ const Auth = () => {
     }
   };
 
-  const validateCurrentStep = () => {
+  const validateCurrentStep = async () => {
     switch (registrationStep) {
       case 1:
         // Intro page - always allow to proceed
         return true;
       case 2:
-        if (!firstName || !lastName || !residence || !email || !password || !confirmPassword) {
+        if (!firstName || !lastName || !email || !password || !confirmPassword || !classYear || !residence) {
           setError('Please fill in all fields');
           return false;
         }
@@ -155,9 +158,21 @@ const Auth = () => {
           setError('Password must be at least 6 characters');
           return false;
         }
+        // Check if email already exists
+        try {
+          const response = await fetch(`/auth/check-email?email=${encodeURIComponent(email)}`);
+          const data = await response.json();
+          if (data.exists) {
+            setError('An account with this email already exists. Please sign in instead.');
+            return false;
+          }
+        } catch (error) {
+          console.error('Error checking email:', error);
+          // Don't block registration if check fails, but log it
+        }
         return true;
       case 3:
-        if (!birthday || !classYear || !gender || !heightFeet || !heightInches || !weight || !activityLevel) {
+        if (!birthday || !gender || !heightFeet || !heightInches || !weight) {
           setError('Please fill in all fields');
           return false;
         }
@@ -184,17 +199,6 @@ const Auth = () => {
           setError('Please select a dietary pattern');
           return false;
         }
-        return true;
-      case 5:
-        // Step 5 (Allergies & Health) is optional, so always valid
-        return true;
-      case 6:
-        if (!primaryGoal) {
-          setError('Please select your primary goal');
-          return false;
-        }
-        return true;
-      case 7:
         if (!dataAgreementAccepted) {
           setError('You must accept the data agreement to create an account');
           return false;
@@ -205,10 +209,13 @@ const Auth = () => {
     }
   };
 
-  const handleStepSubmit = (e) => {
+  const handleStepSubmit = async (e) => {
     e.preventDefault();
-    if (validateCurrentStep()) {
-      if (registrationStep < totalSteps) {
+    const isValid = await validateCurrentStep();
+    if (isValid) {
+      // Step 1 is landing page, steps 2-4 are the actual 3 steps
+      const maxStep = totalSteps + 1; // 4 (1 landing + 3 steps: 2=account, 3=biometric, 4=dietary+agreement)
+      if (registrationStep < maxStep) {
         nextStep();
       } else {
         handleFinalSubmit(e);
@@ -253,13 +260,11 @@ const Auth = () => {
           inches: parseInt(heightInches)
         },
         weight: parseFloat(weight),
-        activityLevel,
         dietaryPattern,
         isKosher,
         isHalal,
         allergies,
-        healthConditions,
-        primaryGoal
+        healthConditions
       };
 
       // Call register with all the data
@@ -433,7 +438,7 @@ const Auth = () => {
         <div className="auth-header">
           <h1 className="auth-logo">HUDS Nutrition Analyzer</h1>
           <h2 className="auth-title">
-            {isForgotPassword ? 'Reset Password' : isLogin ? 'Welcome Back' : 'Create Account'}
+            {isForgotPassword ? 'Reset Password' : isLogin ? 'Welcome Back' : registrationStep === 1 ? 'Welome to our app!' : 'Create Account'}
           </h2>
           <p className="auth-subtitle">
             {isForgotPassword 
@@ -441,38 +446,36 @@ const Auth = () => {
               : isLogin 
               ? 'Sign in to continue to your dashboard' 
               : registrationStep === 1 
-              ? 'Welcome to our app!'
+              ? 'Create Account'
               : registrationStep === 2
-              ? 'Step 2 of 7: Create your account'
+              ? 'Step 1 of 3: Create your account'
               : registrationStep === 3
-              ? 'Step 3 of 7: Tell us about yourself'
-              : registrationStep === 4
-              ? 'Step 4 of 7: Dietary preferences'
-              : registrationStep === 5
-              ? 'Step 5 of 7: Health & allergies'
-              : registrationStep === 6
-              ? 'Step 6 of 7: Your goals'
-              : 'Step 7 of 7: Data Agreement'}
+              ? 'Step 2 of 3: Biometric Data'
+              : 'Step 3 of 3: Dietary preferences & health'}
           </p>
         </div>
 
         {/* Progress indicator for multi-step registration */}
-        {!isLogin && !isForgotPassword && (
+        {!isLogin && !isForgotPassword && registrationStep > 1 && (
           <div className="registration-progress">
             <div className="progress-steps">
-              {Array.from({ length: totalSteps }, (_, i) => i + 1).map(step => (
-                <div
-                  key={step}
-                  className={`progress-step ${step === registrationStep ? 'active' : ''} ${step < registrationStep ? 'completed' : ''}`}
-                >
-                  <div className="step-number">{step < registrationStep ? '✓' : step}</div>
-                </div>
-              ))}
+              {Array.from({ length: totalSteps }, (_, i) => i + 1).map(step => {
+                // Map step 1-5 to registrationStep 2-6 (step 1 is landing page)
+                const actualStep = step + 1;
+                return (
+                  <div
+                    key={step}
+                    className={`progress-step ${actualStep === registrationStep ? 'active' : ''} ${actualStep < registrationStep ? 'completed' : ''}`}
+                  >
+                    <div className="step-number">{actualStep < registrationStep ? '✓' : step}</div>
+                  </div>
+                );
+              })}
             </div>
             <div className="progress-bar">
               <div 
                 className="progress-fill" 
-                style={{ width: `${(registrationStep / totalSteps) * 100}%` }}
+                style={{ width: `${((registrationStep - 1) / totalSteps) * 100}%` }}
               ></div>
             </div>
           </div>
@@ -601,21 +604,17 @@ const Auth = () => {
               {/* Step 1: Welcome/Intro */}
               {registrationStep === 1 && (
                 <div className="registration-intro">
-                  <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
-                    <p style={{ fontSize: '1rem', color: '#666', lineHeight: '1.6', marginBottom: '1.5rem', maxWidth: '600px', margin: '0 auto 1.5rem' }}>
+                  <div style={{ textAlign: 'center', marginBottom: '1rem' }}> 
+                    <p style={{ fontSize: '1rem', color: '#475569', lineHeight: '1.6', marginBottom: '2rem', maxWidth: '600px', margin: '0 auto 2rem' }}>
                       Track your dining hall meals, monitor your nutrition goals, and get personalized recommendations based on Harvard University Dining Services menus.
                     </p>
-                    <div style={{ background: '#f0f9f4', padding: '1.5rem', borderRadius: '8px', marginTop: '1.5rem', maxWidth: '600px', margin: '1.5rem auto 0' }}>
-                      <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
-                        <div>
-                          <h4 style={{ fontSize: '1rem', fontWeight: 600, color: '#1a5f3f', marginBottom: '0.5rem' }}>
-                            Your Data is Private & Secure
-                          </h4>
-                          <p style={{ fontSize: '0.875rem', color: '#666', lineHeight: '1.5', margin: 0 }}>
-                            All information you provide is kept private and secure. Your data is only used to make calculations, estimates, and recommendations within the app.
-                          </p>
-                        </div>
-                      </div>
+                    <div style={{ background: '#f0f9f4', padding: '1.5rem', borderRadius: '12px', maxWidth: '600px', margin: '0 auto', marginBottom: '0' }}>
+                      <h4 style={{ fontSize: '1rem', fontWeight: 600, color: '#1a5f3f', marginBottom: '0.75rem', marginTop: 0 }}>
+                        Your Data is Private & Secure
+                      </h4>
+                      <p style={{ fontSize: '0.875rem', color: '#475569', lineHeight: '1.6', margin: 0 }}>
+                        All information you provide is kept private and secure. Your data is only used to make calculations, estimates, and recommendations within the app.
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -655,31 +654,6 @@ const Auth = () => {
                 </div>
               </div>
 
-              <div className="form-group">
-                <label htmlFor="residence">Dorm or House</label>
-                <select
-                  id="residence"
-                  name="residence"
-                  value={residence}
-                  onChange={(e) => setResidence(e.target.value)}
-                  disabled={loading}
-                  required
-                  className="residence-select"
-                >
-                  <option value="">Select your residence...</option>
-                  <optgroup label="Freshman Dorms">
-                    {harvardResidences.slice(0, 17).map(res => (
-                      <option key={res} value={res}>{res}</option>
-                    ))}
-                  </optgroup>
-                  <optgroup label="Upperclass Houses">
-                    {harvardResidences.slice(17).map(res => (
-                      <option key={res} value={res}>{res}</option>
-                    ))}
-                  </optgroup>
-                </select>
-              </div>
-
           <div className="form-group">
             <label htmlFor="email">Email Address</label>
             <input
@@ -693,6 +667,46 @@ const Auth = () => {
               disabled={loading}
               required
             />
+          </div>
+
+          <div className="form-row">
+            <div className="form-group">
+              <label htmlFor="classYear">Class Year</label>
+              <CustomSelect
+                value={classYear}
+                onChange={setClassYear}
+                options={[
+                  { value: '', label: 'Select...' },
+                  { value: '2025', label: '2025' },
+                  { value: '2026', label: '2026' },
+                  { value: '2027', label: '2027' },
+                  { value: '2028', label: '2028' },
+                  { value: '2029', label: '2029' },
+                  { value: '2030', label: '2030' },
+                  { value: '2031', label: '2031' },
+                  { value: '2032', label: '2032' },
+                ]}
+                placeholder="Select..."
+                disabled={loading}
+              />
+            </div>
+            <div className="form-group">
+              <label htmlFor="residence">Dorm or House</label>
+              <CustomSelect
+                value={residence}
+                onChange={setResidence}
+                options={[
+                  { value: '', label: 'Select...' },
+                  ...harvardResidences.map(res => ({
+                    value: res,
+                    label: res
+                  }))
+                ]}
+                placeholder="Select..."
+                disabled={loading}
+                className="residence-select"
+              />
+            </div>
           </div>
 
             <div className="form-group">
@@ -770,6 +784,17 @@ const Auth = () => {
               {/* Step 3: Biometric Info */}
               {registrationStep === 3 && (
                 <>
+                  <div style={{ 
+                    background: '#f0f9f4', 
+                    padding: '1rem', 
+                    borderRadius: '8px', 
+                    marginBottom: '1.5rem',
+                    fontSize: '0.875rem',
+                    color: '#475569',
+                    lineHeight: '1.5'
+                  }}>
+                    This information is used to recommend personalized meal plans based on your biometric data.
+                  </div>
                   <div className="form-row">
                     <div className="form-group">
                       <label htmlFor="birthday">Date of Birth</label>
@@ -785,47 +810,20 @@ const Auth = () => {
                       />
                     </div>
                     <div className="form-group">
-                      <label htmlFor="classYear">Class Year</label>
-                      <select
-                        id="classYear"
-                        name="classYear"
-                        value={classYear}
-                        onChange={(e) => setClassYear(e.target.value)}
-                        disabled={loading}
-                        required
-                        className="residence-select"
-                      >
-                        <option value="">Select...</option>
-                        <option value="2025">2025</option>
-                        <option value="2026">2026</option>
-                        <option value="2027">2027</option>
-                        <option value="2028">2028</option>
-                        <option value="2029">2029</option>
-                        <option value="2030">2030</option>
-                        <option value="2031">2031</option>
-                        <option value="2032">2032</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="form-row">
-                    <div className="form-group">
                       <label htmlFor="gender">Gender</label>
-                      <select
-                        id="gender"
-                        name="gender"
+                      <CustomSelect
                         value={gender}
-                        onChange={(e) => setGender(e.target.value)}
+                        onChange={setGender}
+                        options={[
+                          { value: '', label: 'Select...' },
+                          { value: 'male', label: 'Male' },
+                          { value: 'female', label: 'Female' },
+                          { value: 'non-binary', label: 'Non-binary' },
+                          { value: 'prefer-not-to-say', label: 'Prefer not to say' },
+                        ]}
+                        placeholder="Select..."
                         disabled={loading}
-                        required
-                        className="residence-select"
-                      >
-                        <option value="">Select...</option>
-                        <option value="male">Male</option>
-                        <option value="female">Female</option>
-                        <option value="non-binary">Non-binary</option>
-                        <option value="prefer-not-to-say">Prefer not to say</option>
-                      </select>
+                      />
                     </div>
                   </div>
 
@@ -879,259 +877,127 @@ const Auth = () => {
                     />
                   </div>
 
-                  <div className="form-group">
-                    <label htmlFor="activityLevel">Activity Level</label>
-                    <select
-                      id="activityLevel"
-                      name="activityLevel"
-                      value={activityLevel}
-                      onChange={(e) => setActivityLevel(e.target.value)}
-                      disabled={loading}
-                      required
-                      className="residence-select"
-                    >
-                      <option value="">Select...</option>
-                      <option value="sedentary">Sedentary (little or no exercise)</option>
-                      <option value="lightly-active">Lightly Active (light exercise 1-3 days/week)</option>
-                      <option value="moderately-active">Moderately Active (moderate exercise 3-5 days/week)</option>
-                      <option value="very-active">Very Active (hard exercise 6-7 days/week)</option>
-                      <option value="extremely-active">Extremely Active (very hard exercise, physical job)</option>
-                    </select>
-                  </div>
                 </>
               )}
 
-              {/* Step 4: Dietary Preferences */}
+              {/* Step 4: Dietary Preferences & Health */}
               {registrationStep === 4 && (
                 <>
+                  <div style={{ 
+                    background: '#f0f9f4', 
+                    padding: '1rem', 
+                    borderRadius: '8px', 
+                    marginBottom: '.5rem',
+                    fontSize: '0.875rem',
+                    color: '#475569',
+                    lineHeight: '1.5'
+                  }}>
+                    This information is used to recommend personalized meal plans based on your biometric data.
+                  </div>
                   <div className="form-group">
                     <label htmlFor="dietaryPattern">Dietary Pattern</label>
-                    <select
-                      id="dietaryPattern"
-                      name="dietaryPattern"
+                    <CustomSelect
                       value={dietaryPattern}
-                      onChange={(e) => setDietaryPattern(e.target.value)}
+                      onChange={setDietaryPattern}
+                      options={[
+                        { value: '', label: 'Select...' },
+                        { value: 'omnivore', label: 'Omnivore' },
+                        { value: 'vegetarian', label: 'Vegetarian' },
+                        { value: 'vegan', label: 'Vegan' },
+                        { value: 'pescatarian', label: 'Pescatarian' },
+                      ]}
+                      placeholder="Select..."
                       disabled={loading}
-                      required
                       className="residence-select"
-                    >
-                      <option value="">Select...</option>
-                      <option value="omnivore">Omnivore (no restrictions)</option>
-                      <option value="vegetarian">Vegetarian (no meat/poultry/fish)</option>
-                      <option value="vegan">Vegan (no animal products)</option>
-                      <option value="pescatarian">Pescatarian (vegetarian + fish)</option>
-                      <option value="flexitarian">Flexitarian (mostly plant-based)</option>
-                    </select>
+                    />
                   </div>
 
                   <div className="form-group">
                     <label>Dietary Requirements (select all that apply)</label>
-                    <div className="checkbox-group">
-                      <label className="checkbox-label">
-                        <input
-                          type="checkbox"
-                          checked={isKosher}
-                          onChange={(e) => setIsKosher(e.target.checked)}
-                          disabled={loading}
-                        />
+                    <div className="chip-group">
+                      <button
+                        type="button"
+                        className={`chip ${isKosher ? 'chip-selected' : ''}`}
+                        onClick={() => setIsKosher(!isKosher)}
+                        disabled={loading}
+                      >
+                        <span className="chip-icon">{isKosher ? '×' : '+'}</span>
                         <span>I require Kosher meals</span>
-                      </label>
-                      <label className="checkbox-label">
-                        <input
-                          type="checkbox"
-                          checked={isHalal}
-                          onChange={(e) => setIsHalal(e.target.checked)}
-                          disabled={loading}
-                        />
+                      </button>
+                      <button
+                        type="button"
+                        className={`chip ${isHalal ? 'chip-selected' : ''}`}
+                        onClick={() => setIsHalal(!isHalal)}
+                        disabled={loading}
+                      >
+                        <span className="chip-icon">{isHalal ? '×' : '+'}</span>
                         <span>I require Halal meals</span>
-                      </label>
+                      </button>
                     </div>
                   </div>
-                </>
-              )}
 
-              {/* Step 5: Allergies & Health Conditions */}
-              {registrationStep === 5 && (
-                <>
                   <div className="form-group">
                     <label>Food Allergies (select all that apply)</label>
-                    <div className="checkbox-group">
-                      {allergyOptions.map(allergy => (
-                        <label key={allergy} className="checkbox-label">
-                          <input
-                            type="checkbox"
-                            checked={allergies.includes(allergy)}
-                            onChange={() => handleAllergyToggle(allergy)}
+                    <div className="chip-group">
+                      {allergyOptions.map(allergy => {
+                        const isSelected = allergies.includes(allergy);
+                        return (
+                          <button
+                            key={allergy}
+                            type="button"
+                            className={`chip ${isSelected ? 'chip-selected' : ''}`}
+                            onClick={() => handleAllergyToggle(allergy)}
                             disabled={loading}
-                          />
-                          <span>{allergy}</span>
-                        </label>
-                      ))}
+                          >
+                            <span className="chip-icon">{isSelected ? '×' : '+'}</span>
+                            <span>{allergy}</span>
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
 
                   <div className="form-group">
                     <label>Health Conditions (select all that apply)</label>
-                    <div className="checkbox-group">
-                      {healthConditionOptions.map(condition => (
-                        <label key={condition} className="checkbox-label">
-                <input
-                  type="checkbox"
-                            checked={healthConditions.includes(condition)}
-                            onChange={() => handleHealthConditionToggle(condition)}
-                  disabled={loading}
-                />
-                          <span>{condition}</span>
-                        </label>
-                      ))}
+                    <div className="chip-group">
+                      {healthConditionOptions.map(condition => {
+                        const isSelected = healthConditions.includes(condition);
+                        return (
+                          <button
+                            key={condition}
+                            type="button"
+                            className={`chip ${isSelected ? 'chip-selected' : ''}`}
+                            onClick={() => handleHealthConditionToggle(condition)}
+                            disabled={loading}
+                          >
+                            <span className="chip-icon">{isSelected ? '×' : '+'}</span>
+                            <span>{condition}</span>
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
-                </>
-              )}
 
-              {/* Step 6: Goals */}
-              {registrationStep === 6 && (
-                <>
-                  <div className="form-group">
-                    <label htmlFor="primaryGoal">Primary Goal</label>
-                    <select
-                      id="primaryGoal"
-                      name="primaryGoal"
-                      value={primaryGoal}
-                      onChange={(e) => setPrimaryGoal(e.target.value)}
-                      disabled={loading}
-                      required
-                      className="residence-select"
-                    >
-                      <option value="">Select...</option>
-                      <option value="weight-loss">Weight Loss</option>
-                      <option value="weight-gain">Weight Gain</option>
-                      <option value="weight-maintenance">Weight Maintenance</option>
-                      <option value="muscle-gain">Muscle Gain / Athletic Performance</option>
-                      <option value="general-wellness">General Health & Wellness</option>
-                      <option value="energy-levels">Improve Energy Levels</option>
-                      <option value="better-digestion">Better Digestion / Gut Health</option>
-                    </select>
-                  </div>
-                </>
-              )}
-
-              {/* Step 7: Data Agreement */}
-              {registrationStep === 7 && (
-                <>
-                  <div className="form-group" style={{ marginBottom: '0' }}>
-                    <h3 style={{
-                      margin: '0 0 16px 0',
-                      fontSize: '18px',
-                      fontWeight: '600',
-                      color: '#1a5f3f'
-                    }}>
-                      Data Agreement & Privacy
-                    </h3>
-                    <div style={{
-                      background: '#f8fcfa',
-                      border: '1px solid #d1e7dd',
-                      borderRadius: '8px',
-                      padding: '20px',
-                      marginBottom: '16px',
-                      fontSize: '14px',
-                      lineHeight: '1.7',
-                      color: '#1a5f3f'
-                    }}>
-                      <p style={{ margin: '0 0 16px 0', fontWeight: '600' }}>
-                        By creating an account, you acknowledge and consent to the following:
-                      </p>
-                      <p style={{ margin: '0 0 12px 0' }}>
-                        <strong>1. Data We Collect</strong>
-                      </p>
-                      <p style={{ margin: '0 0 12px 12px' }}>
-                        To provide personalized nutrition insights, our application may collect and store the following information:
-                      </p>
-                      <ul style={{ margin: '0 0 12px 12px', paddingLeft: '20px' }}>
-                        <li>Contact information (such as your email address)</li>
-                        <li>Profile details (first/last name, residence, age, gender)</li>
-                        <li>Biometric information (height, weight)</li>
-                        <li>Dietary preferences and restrictions</li>
-                        <li>Health conditions relevant to nutrition</li>
-                        <li>Meal logs and nutrition tracking data</li>
-                        <li>Usage data that helps us improve the app experience</li>
-                      </ul>
-                      <p style={{ margin: '0 0 16px 12px' }}>
-                        We only collect information you choose to provide.
-                      </p>
-                      <p style={{ margin: '0 0 12px 0' }}>
-                        <strong>2. How We Use Your Data</strong>
-                      </p>
-                      <p style={{ margin: '0 0 12px 12px' }}>
-                        Your information is used solely to:
-                      </p>
-                      <ul style={{ margin: '0 0 12px 12px', paddingLeft: '20px' }}>
-                        <li>Generate personalized nutrition targets</li>
-                        <li>Provide tailored meal analysis and recommendations</li>
-                        <li>Track changes in your progress over time</li>
-                        <li>Improve app accuracy, features, and user experience</li>
-                      </ul>
-                      <p style={{ margin: '0 0 16px 12px' }}>
-                        We do not sell, rent, or share your personal data with third parties for advertising.
-                      </p>
-                      <p style={{ margin: '0 0 12px 0' }}>
-                        <strong>3. Data Storage & Security</strong>
-                      </p>
-                      <p style={{ margin: '0 0 12px 12px' }}>
-                        We take your privacy seriously. Your data is:
-                      </p>
-                      <ul style={{ margin: '0 0 12px 12px', paddingLeft: '20px' }}>
-                        <li>Stored securely using industry-standard encryption</li>
-                        <li>Protected behind authenticated access controls</li>
-                        <li>Transmitted only through secure, encrypted connections</li>
-                        <li>Accessible only to you and the authorized services required for app functionality</li>
-                      </ul>
-                      <p style={{ margin: '0 0 16px 12px' }}>
-                        We continuously monitor for vulnerabilities and apply modern security practices.
-                      </p>
-                      <p style={{ margin: '0 0 12px 0' }}>
-                        <strong>4. Your Rights & Control</strong>
-                      </p>
-                      <p style={{ margin: '0 0 12px 12px' }}>
-                        You maintain full ownership and control of your data. You may:
-                      </p>
-                      <ul style={{ margin: '0 0 12px 12px', paddingLeft: '20px' }}>
-                        <li>Access any data stored in your account</li>
-                        <li>Update your profile and health information</li>
-                        <li>Delete your account and permanently erase your data</li>
-                        <li>Withdraw consent for data processing by discontinuing use of the app</li>
-                      </ul>
-                      <p style={{ margin: '0 0 16px 12px' }}>
-                        If you delete your account, all personal data is removed from our systems.
-                      </p>
-                      <p style={{ margin: '0 0 12px 0' }}>
-                        <strong>5. Consent for Sensitive Information</strong>
-                      </p>
-                      <p style={{ margin: '0 0 16px 12px' }}>
-                        Some of the information you provide-such as dietary restrictions or health conditions-may be considered "sensitive data." We collect this only to improve personalization and only with your explicit consent during registration.
-                      </p>
-                      <p style={{ margin: '0 0 0 0' }}>
-                        <strong>6. Medical Disclaimer</strong>
-                      </p>
-                      <p style={{ margin: '0 0 0 12px' }}>
-                        This application provides general nutrition and wellness insights for educational purposes only. It does not provide professional medical advice, diagnosis, or treatment. Always consult a licensed healthcare provider or registered dietitian before making significant changes to your diet or lifestyle.
-                      </p>
-                    </div>
-                    <div style={{
-                      background: '#f8fcfa',
-                      border: '2px solid #d1e7dd',
-                      borderRadius: '8px',
-                      padding: '20px',
-                      marginBottom: '0'
+                  <div className="form-group" style={{ marginTop: 'calc(24px - 2rem)', marginBottom: '0.5rem' }}>
+                    <div style={{ 
+                      background: '#f0f9f4', 
+                      padding: '0', 
+                      borderRadius: '8px', 
+                      marginBottom: '0',
+                      fontSize: '0.875rem',
+                      color: '#475569',
+                      lineHeight: '1.5'
                     }}>
                       <label style={{
                         display: 'flex',
                         alignItems: 'flex-start',
                         gap: '12px',
                         cursor: 'pointer',
-                        fontSize: '15px',
-                        lineHeight: '1.6',
-                        color: '#1a5f3f'
+                        fontSize: '14px',
+                        lineHeight: '1.5',
+                        color: '#475569',
+                        margin: 0,
+                        padding: '1rem'
                       }}>
                         <input
                           type="checkbox"
@@ -1140,8 +1006,8 @@ const Auth = () => {
                           disabled={loading}
                           required
                           style={{
-                            width: '20px',
-                            height: '20px',
+                            width: '18px',
+                            height: '18px',
                             marginTop: '2px',
                             cursor: 'pointer',
                             accentColor: '#1a5f3f',
@@ -1149,13 +1015,14 @@ const Auth = () => {
                           }}
                         />
                         <span>
-                          I have read and understood the Data Agreement above. I accept the terms and conditions for data collection, usage, and storage. I understand that this app is for educational purposes and does not replace professional medical advice.
+                          I agree to the collection and use of my data for personalized nutrition recommendations. This app is for educational purposes and does not replace professional medical advice.
                         </span>
-              </label>
+                      </label>
                     </div>
                   </div>
                 </>
               )}
+
 
               {/* Navigation Buttons */}
               <div className="form-navigation">
@@ -1176,7 +1043,7 @@ const Auth = () => {
           >
             {loading ? (
               <span className="loading-spinner"></span>
-                  ) : registrationStep === totalSteps ? (
+                  ) : registrationStep === totalSteps + 1 ? (
                     'Create Account'
             ) : (
                     'Next'
