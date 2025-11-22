@@ -12,7 +12,7 @@ const getDb = () => admin.firestore();
 /**
  * Create a post from a meal
  */
-const createPost = async (userId, mealId, mealData) => {
+const createPost = async (userId, mealId, mealData, isPublic = true, displayOptions = null) => {
   const db = getDb();
 
   // Get user info
@@ -24,6 +24,26 @@ const createPost = async (userId, mealId, mealData) => {
   }
 
   const userData = userDoc.data();
+
+  // Convert totals to numbers (meal logs store them as strings with units)
+  const parseNutrient = (value) => {
+    if (!value) return 0;
+    const num = parseFloat(String(value).replace(/[^0-9.]/g, ''));
+    return isNaN(num) ? 0 : num;
+  };
+
+  const totals = mealData.totals ? {
+    calories: parseNutrient(mealData.totals.calories),
+    protein: parseNutrient(mealData.totals.protein),
+    totalCarb: parseNutrient(mealData.totals.totalCarb),
+    totalFat: parseNutrient(mealData.totals.totalFat),
+    saturatedFat: parseNutrient(mealData.totals.saturatedFat),
+    transFat: parseNutrient(mealData.totals.transFat),
+    cholesterol: parseNutrient(mealData.totals.cholesterol),
+    sodium: parseNutrient(mealData.totals.sodium),
+    dietaryFiber: parseNutrient(mealData.totals.dietaryFiber),
+    sugars: parseNutrient(mealData.totals.sugars),
+  } : null;
 
   const post = {
     userId,
@@ -38,7 +58,23 @@ const createPost = async (userId, mealId, mealData) => {
     locationId: mealData.locationId,
     locationName: mealData.locationName,
     items: mealData.items,
-    totals: mealData.totals,
+    totals,
+    rating: mealData.rating || null,
+    review: mealData.review || null,
+    image: mealData.imageUrl || null, // PostCard expects 'image' field
+    isPublic: isPublic !== undefined ? Boolean(isPublic) : true, // Default to public
+    displayOptions: displayOptions || {
+      image: true,
+      items: true,
+      location: true,
+      mealType: true,
+      rating: true,
+      review: true,
+      calories: true,
+      protein: true,
+      carbs: true,
+      fat: true,
+    }, // User's display preferences for what to show in the post
     timestamp: mealData.timestamp || admin.firestore.FieldValue.serverTimestamp(),
     createdAt: admin.firestore.FieldValue.serverTimestamp(),
     updatedAt: admin.firestore.FieldValue.serverTimestamp(),
@@ -363,7 +399,7 @@ const createPostFromScan = async (userId, scanData) => {
 };
 
 /**
- * Get feed posts (posts from friends)
+ * Get feed posts (posts from friends and own posts)
  */
 const getFeedPosts = async (userId, limit = 50) => {
   const db = getDb();
@@ -373,20 +409,21 @@ const getFeedPosts = async (userId, limit = 50) => {
   const friends = await getFriends(userId);
   const friendIds = friends.map(f => f.id);
 
-  if (friendIds.length === 0) {
+  // Include the user's own posts in the feed
+  const userIdsToQuery = [userId, ...friendIds];
+
+  if (userIdsToQuery.length === 0) {
     return [];
   }
 
-  // Get posts from friends
+  // Get posts from friends and self
   const postsRef = db.collection(POSTS_COLLECTION);
-  let query = postsRef.where('userId', 'in', friendIds.slice(0, 10)); // Firestore 'in' limit is 10
 
-  // If more than 10 friends, we need to batch queries
-  // Remove orderBy to avoid requiring composite index - sort in-memory instead
+  // Firestore 'in' limit is 10, so we need to batch queries
   const allPosts = [];
   
-  for (let i = 0; i < friendIds.length; i += 10) {
-    const batch = friendIds.slice(i, i + 10);
+  for (let i = 0; i < userIdsToQuery.length; i += 10) {
+    const batch = userIdsToQuery.slice(i, i + 10);
     const batchQuery = postsRef
       .where('userId', 'in', batch);
     
@@ -653,11 +690,8 @@ const getPostById = async (userId, postId) => {
 
   const postData = postDoc.data();
 
-  // Verify ownership (optional - can be removed if you want to allow viewing any post)
-  if (postData.userId !== userId) {
-    throw new Error('Unauthorized: You can only view your own posts');
-  }
-
+  // Allow anyone to view any post (no ownership verification needed for viewing)
+  
   return {
     id: postDoc.id,
     ...postData,
@@ -696,6 +730,7 @@ const updatePost = async (userId, postId, updateData) => {
     'locationId',
     'locationName',
     'isPublic',
+    'displayOptions',
   ];
 
   const updateObject = {
@@ -721,6 +756,8 @@ const updatePost = async (userId, postId, updateData) => {
         updateObject[field] = String(updateData[field] || '');
       } else if (field === 'isPublic') {
         updateObject[field] = Boolean(updateData[field]);
+      } else if (field === 'displayOptions') {
+        updateObject[field] = updateData[field];
       }
     }
   });
@@ -772,184 +809,174 @@ const deletePost = async (userId, postId) => {
     throw new Error('Unauthorized: You can only delete your own posts');
   }
 
-  // Delete associated meal log if the post has mealDate
-  // (posts created from scans/meal planning have meal logs, but other posts might not)
-  // Note: mealType is helpful but not required - we'll try to match by date if mealType is missing
-  if (postData.mealDate) {
-    try {
-      const mealLogService = require('./mealLogService');
-      const mealDate = typeof postData.mealDate === 'string' 
-        ? postData.mealDate 
-        : postData.mealDate.toDate ? postData.mealDate.toDate().toISOString().split('T')[0]
-        : new Date(postData.mealDate).toISOString().split('T')[0];
-      
-      console.log(`[deletePost] Looking for meal logs to delete for post ${postId}:`, {
-        userId,
-        mealDate,
-        mealType: postData.mealType || '(not set)',
-        postDataKeys: Object.keys(postData),
-        postMealDate: postData.mealDate,
-        postMealType: postData.mealType,
-      });
-      
-      // Get meal logs for this date
-      // Use a direct Firestore query to ensure we get all meal logs for this date
-      const db = getDb();
-      const mealsRef = db
-        .collection('users')
-        .doc(userId)
-        .collection('meals');
-      
-      // Query directly by mealDate to ensure we find the meal log
-      const mealLogsSnapshot = await mealsRef
-        .where('mealDate', '==', mealDate)
-        .get();
-      
-      const mealsArray = [];
-      mealLogsSnapshot.forEach(doc => {
-        mealsArray.push({
-          id: doc.id,
-          ...doc.data(),
-        });
-      });
-      
-      console.log(`[deletePost] Found ${mealsArray.length} meal logs for date ${mealDate}`);
-      if (mealsArray.length > 0) {
-        console.log(`[deletePost] Meal log details:`, mealsArray.map(m => ({
-          id: m.id,
-          mealDate: m.mealDate,
-          mealType: m.mealType,
-          mealName: m.mealName,
-        })));
-      }
-      
-      // Find and delete meal logs matching the post's mealType and date
-      // Normalize mealType for comparison (handle case differences and variations)
-      const normalizeMealType = (type) => {
-        if (!type) return '';
-        return String(type).toLowerCase().trim();
-      };
-      
-      const postMealTypeNormalized = normalizeMealType(postData.mealType);
-      const hasPostMealType = postData.mealType && postMealTypeNormalized.length > 0;
-      
-      const matchingMealLogs = mealsArray.filter(meal => {
-        // Normalize meal types for comparison
-        const mealTypeNormalized = normalizeMealType(meal.mealType);
-        const mealNameNormalized = normalizeMealType(meal.mealName);
-        
-        // Match if mealType or mealName matches (case-insensitive)
-        // If post has no mealType, skip mealType matching and match by date only
-        const mealTypeMatch = !hasPostMealType || 
-                             mealTypeNormalized === postMealTypeNormalized ||
-                             mealNameNormalized === postMealTypeNormalized;
-        
-        // Normalize dates for comparison
-        let mealDateStr = '';
-        if (meal.mealDate) {
-          if (typeof meal.mealDate === 'string') {
-            mealDateStr = meal.mealDate.split('T')[0];
-          } else if (meal.mealDate.toDate) {
-            mealDateStr = meal.mealDate.toDate().toISOString().split('T')[0];
-          } else {
-            mealDateStr = new Date(meal.mealDate).toISOString().split('T')[0];
-          }
-        }
-        
-        const dateMatch = mealDateStr === mealDate;
-        
-        console.log(`[deletePost] Comparing meal log ${meal.id}:`, {
-          mealType: meal.mealType,
-          mealName: meal.mealName,
-          mealTypeNormalized,
-          mealNameNormalized,
-          postMealTypeNormalized,
-          mealTypeMatch,
-          mealDate: meal.mealDate,
-          mealDateStr,
-          postMealDate: mealDate,
-          dateMatch,
-          matches: mealTypeMatch && dateMatch,
-        });
-        
-        return mealTypeMatch && dateMatch;
-      }) || [];
-      
-      console.log(`[deletePost] Found ${matchingMealLogs.length} matching meal logs to delete`);
-      
-      // If no exact matches found, try a more lenient approach:
-      // If mealType is missing from meal log but post has it, or vice versa, still try to match by date
-      if (matchingMealLogs.length === 0 && mealsArray.length > 0) {
-        console.log(`[deletePost] No exact matches found, trying lenient matching by date only`);
-        // Try to match by date only if mealType is missing or doesn't match
-        const lenientMatches = mealsArray.filter(meal => {
-          // Normalize dates for comparison
-          let mealDateStr = '';
-          if (meal.mealDate) {
-            if (typeof meal.mealDate === 'string') {
-              mealDateStr = meal.mealDate.split('T')[0];
-            } else if (meal.mealDate.toDate) {
-              mealDateStr = meal.mealDate.toDate().toISOString().split('T')[0];
-            } else {
-              mealDateStr = new Date(meal.mealDate).toISOString().split('T')[0];
-            }
-          }
-          const dateMatch = mealDateStr === mealDate;
-          
-          // If date matches and either:
-          // 1. Meal log has no mealType (null/undefined/empty)
-          // 2. Post has no mealType (shouldn't happen, but handle it)
-          // 3. There's only one meal log for this date (likely the one we want)
-          const mealHasNoType = !meal.mealType && !meal.mealName;
-          const shouldMatch = dateMatch && (mealHasNoType || mealsArray.length === 1);
-          
-          console.log(`[deletePost] Lenient match check for meal log ${meal.id}:`, {
-            dateMatch,
-            mealHasNoType,
-            mealLogsCount: mealsArray.length,
-            shouldMatch,
-          });
-          
-          return shouldMatch;
-        });
-        
-        if (lenientMatches.length > 0) {
-          console.log(`[deletePost] Found ${lenientMatches.length} meal log(s) via lenient matching`);
-          matchingMealLogs.push(...lenientMatches);
-        }
-      }
-      
-      // Delete matching meal logs
-      let deletedCount = 0;
-      for (const mealLog of matchingMealLogs) {
-        try {
-          await mealLogService.deleteMealLog(userId, mealLog.id);
-          deletedCount++;
-          console.log(`[deletePost] Deleted meal log ${mealLog.id}`);
-        } catch (mealLogError) {
-          console.error(`[deletePost] Error deleting meal log ${mealLog.id}:`, mealLogError);
-          // Continue deleting other meal logs even if one fails
-        }
-      }
-      
-      console.log(`[deletePost] Successfully deleted ${deletedCount} meal log(s) for post ${postId}`);
-    } catch (mealLogError) {
-      console.error('[deletePost] Error finding/deleting meal logs for post:', mealLogError);
-      // Continue with post deletion even if meal log deletion fails
-    }
-  } else {
-    console.log(`[deletePost] Post ${postId} does not have mealDate, skipping meal log deletion:`, {
-      hasMealDate: !!postData.mealDate,
-      hasMealType: !!postData.mealType,
-      postDataKeys: Object.keys(postData),
-    });
-  }
-
-  // Images are stored in Firestore as base64, so no separate deletion needed
+  // Note: We do NOT delete the associated meal log when deleting a post
+  // The meal log should remain in the user's history even if they delete the social post
+  // This allows users to remove posts from social feed without losing their meal data
 
   await postRef.delete();
 
   return { success: true, message: 'Post deleted successfully' };
+};
+
+/**
+ * Toggle upvote on a post
+ * @param {string} postId - The ID of the post to upvote
+ * @param {string} userId - The ID of the user upvoting
+ * @returns {Promise<Object>} Result object
+ */
+const toggleUpvote = async (postId, userId) => {
+  try {
+    const db = getDb();
+    const postRef = db.collection(POSTS_COLLECTION).doc(postId);
+    const postDoc = await postRef.get();
+
+    if (!postDoc.exists) {
+      throw new Error('Post not found');
+    }
+
+    const postData = postDoc.data();
+    const upvotes = postData.upvotes || [];
+    const downvotes = postData.downvotes || [];
+
+    if (upvotes.includes(userId)) {
+      // User already upvoted, remove upvote
+      await postRef.update({
+        upvotes: admin.firestore.FieldValue.arrayRemove(userId)
+      });
+    } else {
+      // Add upvote and remove downvote if exists
+      const updates = {
+        upvotes: admin.firestore.FieldValue.arrayUnion(userId)
+      };
+      
+      if (downvotes.includes(userId)) {
+        updates.downvotes = admin.firestore.FieldValue.arrayRemove(userId);
+      }
+      
+      await postRef.update(updates);
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error toggling upvote:', error);
+    throw error;
+  }
+};
+
+/**
+ * Toggle downvote on a post
+ * @param {string} postId - The ID of the post to downvote
+ * @param {string} userId - The ID of the user downvoting
+ * @returns {Promise<Object>} Result object
+ */
+const toggleDownvote = async (postId, userId) => {
+  try {
+    const db = getDb();
+    const postRef = db.collection(POSTS_COLLECTION).doc(postId);
+    const postDoc = await postRef.get();
+
+    if (!postDoc.exists) {
+      throw new Error('Post not found');
+    }
+
+    const postData = postDoc.data();
+    const upvotes = postData.upvotes || [];
+    const downvotes = postData.downvotes || [];
+
+    if (downvotes.includes(userId)) {
+      // User already downvoted, remove downvote
+      await postRef.update({
+        downvotes: admin.firestore.FieldValue.arrayRemove(userId)
+      });
+    } else {
+      // Add downvote and remove upvote if exists
+      const updates = {
+        downvotes: admin.firestore.FieldValue.arrayUnion(userId)
+      };
+      
+      if (upvotes.includes(userId)) {
+        updates.upvotes = admin.firestore.FieldValue.arrayRemove(userId);
+      }
+      
+      await postRef.update(updates);
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error toggling downvote:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get comments for a post
+ * @param {string} postId - The ID of the post
+ * @returns {Promise<Array>} Array of comments
+ */
+const getComments = async (postId) => {
+  try {
+    const db = getDb();
+    const commentsSnapshot = await db
+      .collection(POSTS_COLLECTION)
+      .doc(postId)
+      .collection('comments')
+      .orderBy('timestamp', 'asc')
+      .get();
+
+    const comments = [];
+    for (const doc of commentsSnapshot.docs) {
+      const commentData = doc.data();
+      comments.push({
+        id: doc.id,
+        ...commentData,
+        timestamp: commentData.timestamp?.toDate?.() || commentData.timestamp,
+      });
+    }
+
+    return comments;
+  } catch (error) {
+    console.error('Error getting comments:', error);
+    throw error;
+  }
+};
+
+/**
+ * Add a comment to a post
+ * @param {string} postId - The ID of the post
+ * @param {string} userId - The ID of the user commenting
+ * @param {string} commentText - The comment text
+ * @returns {Promise<Object>} The created comment
+ */
+const addComment = async (postId, userId, commentText) => {
+  try {
+    const db = getDb();
+    
+    // Get user info
+    const userDoc = await db.collection('users').doc(userId).get();
+    const userData = userDoc.data();
+
+    const comment = {
+      userId,
+      userName: userData?.name || 'Anonymous',
+      comment: commentText,
+      timestamp: admin.firestore.FieldValue.serverTimestamp(),
+    };
+
+    const commentRef = await db
+      .collection(POSTS_COLLECTION)
+      .doc(postId)
+      .collection('comments')
+      .add(comment);
+
+    return {
+      id: commentRef.id,
+      ...comment,
+      timestamp: new Date(),
+    };
+  } catch (error) {
+    console.error('Error adding comment:', error);
+    throw error;
+  }
 };
 
 module.exports = {
@@ -963,5 +990,9 @@ module.exports = {
   getPostById,
   updatePost,
   deletePost,
+  toggleUpvote,
+  toggleDownvote,
+  getComments,
+  addComment,
 };
 

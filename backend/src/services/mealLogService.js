@@ -81,6 +81,8 @@ const createMealLog = async (userId, userEmail, mealData) => {
     locationName: mealData.locationName,
     items: mealData.items,
     totals,
+    rating: mealData.rating || null,
+    review: mealData.review || null,
     timestamp: mealData.timestamp || admin.firestore.FieldValue.serverTimestamp(), // Allow user-specified timestamp
     createdAt: admin.firestore.FieldValue.serverTimestamp(),
     updatedAt: admin.firestore.FieldValue.serverTimestamp(),

@@ -11,7 +11,7 @@
   left: 260px; /* Sidebar width */
   right: 0;
   bottom: 0;
-  background: white;
+  background: #f8fbf9;
   z-index: 100;
   overflow-y: auto;
   padding: 2rem;
@@ -43,11 +43,19 @@
 
 .social-tabs {
   display: flex;
-  gap: 0.5rem;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
   border-bottom: 2px solid #e0e0e0;
-  margin-bottom: 2rem;
+  margin-bottom: 0;
   flex-wrap: nowrap;
   overflow-x: auto;
+}
+
+.social-tabs-left {
+  display: flex;
+  gap: 0.5rem;
+  flex: 1;
 }
 
 .social-tab {
@@ -57,7 +65,7 @@
   font-weight: 500;
   border-bottom: 3px solid transparent;
   transition: all 0.2s;
-  margin-bottom: -2px;
+  margin-bottom: 0;
   white-space: nowrap;
 }
 
@@ -71,8 +79,65 @@
   border-bottom-color: #1a5f3f;
 }
 
+.post-creation-button {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.8rem;
+  background: linear-gradient(135deg, #2d6a4f, #1a5f3f);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.post-creation-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(45, 106, 79, 0.3);
+}
+
+.post-creation-button:active {
+  transform: translateY(0);
+}
+
 .social-content {
   min-height: 400px;
+}
+
+
+.profile-back-button-container {
+  margin-bottom: 1.5rem;
+}
+
+.profile-back-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: white;
+  border: 1px solid #e0efe6;
+  border-radius: 8px;
+  color: #2d6a4f;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.profile-back-button:hover {
+  background: #f0f8f3;
+  border-color: #2d6a4f;
+}
+
+.profile-detail-header-card {
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 2px 8px rgba(21, 76, 57, 0.08);
 }
 
 .profile-header {
@@ -545,6 +610,99 @@
   color: #1a5f3f;
 }
 
+/* Post Actions Bar */
+.post-actions-bar {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e0e0e0;
+}
+
+.post-vote-button,
+.post-comment-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: #f0f9f4;
+  border: 1px solid #e0efe6;
+  border-radius: 8px;
+  color: #1a4d2e;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.post-vote-button:hover,
+.post-comment-button:hover {
+  background: #e0efe6;
+  border-color: #2d6a4f;
+}
+
+.post-vote-button:active,
+.post-comment-button:active {
+  transform: scale(0.98);
+}
+
+.post-vote-button:disabled,
+.post-comment-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.post-vote-button.disabled,
+.post-vote-button.disabled:hover {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: #f3f4f6;
+  border-color: #d1d5db;
+  color: #9ca3af;
+}
+
+.post-vote-button.active {
+  background: #2d6a4f;
+  border-color: #2d6a4f;
+  color: white;
+}
+
+.post-vote-button.active:hover {
+  background: #1a4d2e;
+  border-color: #1a4d2e;
+}
+
+.post-vote-button.upvote-button.active {
+  background: #10b981;
+  border-color: #10b981;
+}
+
+.post-vote-button.upvote-button.active:hover {
+  background: #059669;
+  border-color: #059669;
+}
+
+.post-vote-button.downvote-button.active {
+  background: #ef4444;
+  border-color: #ef4444;
+}
+
+.post-vote-button.downvote-button.active:hover {
+  background: #dc2626;
+  border-color: #dc2626;
+}
+
+.post-vote-button svg,
+.post-comment-button svg {
+  flex-shrink: 0;
+}
+
+.post-vote-button span,
+.post-comment-button span {
+  font-weight: 600;
+}
+
 /* Friend request styles */
 .friend-request-card {
   background: white;
@@ -799,5 +957,42 @@
 
 .empty-state-message {
   color: #666;
+}
+
+/* Responsive styles */
+@media (max-width: 768px) {
+  .social-tabs {
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  .social-tabs-left {
+    order: 1;
+    width: 100%;
+  }
+
+  .post-creation-button {
+    order: 2;
+    width: 100%;
+    justify-content: center;
+    margin-top: 0.5rem;
+  }
+
+  .full-width-detail-page {
+    padding: 1rem;
+    left: 70px; /* Adjust for mobile sidebar */
+  }
+
+  .profile-back-button {
+    font-size: 0.9rem;
+    padding: 0.4rem 0.8rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .post-creation-button {
+    font-size: 0.8rem;
+    padding: 0.35rem 0.65rem;
+  }
 }
 

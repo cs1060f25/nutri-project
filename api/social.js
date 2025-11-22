@@ -1067,6 +1067,146 @@ const deletePost = async (userId, postId) => {
   return { success: true, message: 'Post deleted successfully' };
 };
 
+// Get single post by ID
+const getPostById = async (userId, postId) => {
+  const db = getDb();
+  const postRef = db.collection(POSTS_COLLECTION).doc(postId);
+  const postDoc = await postRef.get();
+
+  if (!postDoc.exists) {
+    return null;
+  }
+
+  const postData = postDoc.data();
+  
+  return {
+    id: postDoc.id,
+    ...postData,
+    timestamp: postData.timestamp?.toDate?.() || postData.timestamp,
+  };
+};
+
+// Toggle upvote on a post
+const toggleUpvote = async (postId, userId) => {
+  const db = getDb();
+  const postRef = db.collection(POSTS_COLLECTION).doc(postId);
+  const postDoc = await postRef.get();
+
+  if (!postDoc.exists) {
+    throw new Error('Post not found');
+  }
+
+  const postData = postDoc.data();
+  const upvotes = postData.upvotes || [];
+  const downvotes = postData.downvotes || [];
+
+  if (upvotes.includes(userId)) {
+    // User already upvoted, remove upvote
+    await postRef.update({
+      upvotes: admin.firestore.FieldValue.arrayRemove(userId)
+    });
+  } else {
+    // Add upvote and remove downvote if exists
+    const updates = {
+      upvotes: admin.firestore.FieldValue.arrayUnion(userId)
+    };
+    
+    if (downvotes.includes(userId)) {
+      updates.downvotes = admin.firestore.FieldValue.arrayRemove(userId);
+    }
+    
+    await postRef.update(updates);
+  }
+
+  return { success: true };
+};
+
+// Toggle downvote on a post
+const toggleDownvote = async (postId, userId) => {
+  const db = getDb();
+  const postRef = db.collection(POSTS_COLLECTION).doc(postId);
+  const postDoc = await postRef.get();
+
+  if (!postDoc.exists) {
+    throw new Error('Post not found');
+  }
+
+  const postData = postDoc.data();
+  const upvotes = postData.upvotes || [];
+  const downvotes = postData.downvotes || [];
+
+  if (downvotes.includes(userId)) {
+    // User already downvoted, remove downvote
+    await postRef.update({
+      downvotes: admin.firestore.FieldValue.arrayRemove(userId)
+    });
+  } else {
+    // Add downvote and remove upvote if exists
+    const updates = {
+      downvotes: admin.firestore.FieldValue.arrayUnion(userId)
+    };
+    
+    if (upvotes.includes(userId)) {
+      updates.upvotes = admin.firestore.FieldValue.arrayRemove(userId);
+    }
+    
+    await postRef.update(updates);
+  }
+
+  return { success: true };
+};
+
+// Get comments for a post
+const getComments = async (postId) => {
+  const db = getDb();
+  const commentsSnapshot = await db
+    .collection(POSTS_COLLECTION)
+    .doc(postId)
+    .collection('comments')
+    .orderBy('timestamp', 'asc')
+    .get();
+
+  const comments = [];
+  for (const doc of commentsSnapshot.docs) {
+    const commentData = doc.data();
+    comments.push({
+      id: doc.id,
+      ...commentData,
+      timestamp: commentData.timestamp?.toDate?.() || commentData.timestamp,
+    });
+  }
+
+  return comments;
+};
+
+// Add a comment to a post
+const addComment = async (postId, userId, commentText) => {
+  const db = getDb();
+  
+  // Get user info
+  const userDoc = await db.collection(USERS_COLLECTION).doc(userId).get();
+  const userData = userDoc.data();
+
+  const comment = {
+    userId,
+    userName: userData?.name || 'Anonymous',
+    comment: commentText,
+    timestamp: admin.firestore.FieldValue.serverTimestamp(),
+  };
+
+  const commentRef = await db
+    .collection(POSTS_COLLECTION)
+    .doc(postId)
+    .collection('comments')
+    .add(comment);
+
+  return {
+    id: commentRef.id,
+    ...comment,
+    timestamp: new Date(),
+  };
+};
+
 // Dining hall follow functions
 const followDiningHall = async (userId, locationId, locationName) => {
   if (!userId || !locationId || !locationName) {
@@ -1197,7 +1337,7 @@ const getDiningHallFeedPosts = async (userId, limit = 50) => {
 module.exports = async (req, res) => {
   // CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   
   if (req.method === 'OPTIONS') {
@@ -1444,6 +1584,45 @@ module.exports = async (req, res) => {
       const limit = parseInt(req.query.limit || 50, 10);
       const posts = await getPostsByLocationName(locationName, limit);
       return res.status(200).json({ posts, count: posts.length });
+    }
+
+    // Post interaction routes (must come before generic /posts/:postId routes)
+    if (req.method === 'POST' && path.match(/^\/posts\/[^\/]+\/upvote$/)) {
+      const postId = path.split('/posts/')[1].split('/upvote')[0];
+      await toggleUpvote(postId, userId);
+      return res.status(200).json({ message: 'Upvote toggled successfully' });
+    }
+
+    if (req.method === 'POST' && path.match(/^\/posts\/[^\/]+\/downvote$/)) {
+      const postId = path.split('/posts/')[1].split('/downvote')[0];
+      await toggleDownvote(postId, userId);
+      return res.status(200).json({ message: 'Downvote toggled successfully' });
+    }
+
+    if (req.method === 'GET' && path.match(/^\/posts\/[^\/]+\/comments$/)) {
+      const postId = path.split('/posts/')[1].split('/comments')[0];
+      const comments = await getComments(postId);
+      return res.status(200).json({ comments, count: comments.length });
+    }
+
+    if (req.method === 'POST' && path.match(/^\/posts\/[^\/]+\/comments$/)) {
+      const postId = path.split('/posts/')[1].split('/comments')[0];
+      const { comment } = req.body;
+      if (!comment || !comment.trim()) {
+        return res.status(400).json(createErrorResponse('INVALID_REQUEST', 'Comment text is required'));
+      }
+      const newComment = await addComment(postId, userId, comment.trim());
+      return res.status(201).json({ comment: newComment, message: 'Comment added successfully' });
+    }
+
+    // Get single post by ID
+    if (req.method === 'GET' && path.match(/^\/posts\/[^\/]+$/) && !path.includes('/user/') && !path.includes('/location')) {
+      const postId = path.split('/posts/')[1];
+      const post = await getPostById(userId, postId);
+      if (!post) {
+        return res.status(404).json(createErrorResponse('NOT_FOUND', 'Post not found'));
+      }
+      return res.status(200).json({ post });
     }
 
     if (req.method === 'DELETE' && path.startsWith('/posts/')) {

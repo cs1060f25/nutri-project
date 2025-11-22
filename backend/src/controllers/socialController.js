@@ -141,7 +141,7 @@ const removeFriend = async (req, res) => {
 const createPost = async (req, res) => {
   try {
     const userId = req.user.uid;
-    const { mealId } = req.body;
+    const { mealId, isPublic, displayOptions } = req.body;
 
     if (!mealId) {
       return res.status(400).json(
@@ -152,8 +152,8 @@ const createPost = async (req, res) => {
     // Get the meal
     const meal = await mealLogService.getMealLogById(userId, mealId);
 
-    // Create post from meal
-    const post = await postService.createPost(userId, mealId, meal);
+    // Create post from meal with optional visibility and display options
+    const post = await postService.createPost(userId, mealId, meal, isPublic, displayOptions);
     return res.status(201).json({ post, message: 'Post created successfully' });
   } catch (error) {
     console.error('Create post error:', error);
@@ -330,7 +330,7 @@ const createPostFromScan = async (req, res) => {
 
 /**
  * GET /api/social/posts/feed
- * Get feed posts (from friends)
+ * Get feed posts (from friends and own posts)
  */
 const getFeedPosts = async (req, res) => {
   try {
@@ -760,6 +760,112 @@ const searchLocations = async (req, res) => {
   }
 };
 
+/**
+ * GET /api/social/posts/:postId
+ * Get a single post by ID
+ */
+const getPostById = async (req, res) => {
+  try {
+    const { postId } = req.params;
+    const userId = req.user.uid;
+
+    const post = await postService.getPostById(userId, postId);
+    if (!post) {
+      return res.status(404).json(
+        createErrorResponse('NOT_FOUND', 'Post not found')
+      );
+    }
+    return res.status(200).json({ post });
+  } catch (error) {
+    console.error('Get post by ID error:', error);
+    return res.status(500).json(
+      createErrorResponse('INTERNAL', 'Failed to get post')
+    );
+  }
+};
+
+/**
+ * POST /api/social/posts/:postId/upvote
+ * Toggle upvote on a post
+ */
+const upvotePost = async (req, res) => {
+  try {
+    const { postId } = req.params;
+    const userId = req.user.uid;
+
+    await postService.toggleUpvote(postId, userId);
+    return res.status(200).json({ message: 'Upvote toggled successfully' });
+  } catch (error) {
+    console.error('Upvote post error:', error);
+    return res.status(500).json(
+      createErrorResponse('INTERNAL', 'Failed to upvote post')
+    );
+  }
+};
+
+/**
+ * POST /api/social/posts/:postId/downvote
+ * Toggle downvote on a post
+ */
+const downvotePost = async (req, res) => {
+  try {
+    const { postId } = req.params;
+    const userId = req.user.uid;
+
+    await postService.toggleDownvote(postId, userId);
+    return res.status(200).json({ message: 'Downvote toggled successfully' });
+  } catch (error) {
+    console.error('Downvote post error:', error);
+    return res.status(500).json(
+      createErrorResponse('INTERNAL', 'Failed to downvote post')
+    );
+  }
+};
+
+/**
+ * GET /api/social/posts/:postId/comments
+ * Get comments for a post
+ */
+const getComments = async (req, res) => {
+  try {
+    const { postId } = req.params;
+
+    const comments = await postService.getComments(postId);
+    return res.status(200).json({ comments, count: comments.length });
+  } catch (error) {
+    console.error('Get comments error:', error);
+    return res.status(500).json(
+      createErrorResponse('INTERNAL', 'Failed to get comments')
+    );
+  }
+};
+
+/**
+ * POST /api/social/posts/:postId/comments
+ * Add a comment to a post
+ */
+const addComment = async (req, res) => {
+  try {
+    const { postId } = req.params;
+    const userId = req.user.uid;
+    const { comment } = req.body;
+
+    if (!comment || !comment.trim()) {
+      return res.status(400).json(
+        createErrorResponse('INVALID_INPUT', 'Comment text is required')
+      );
+    }
+
+    const newComment = await postService.addComment(postId, userId, comment.trim());
+    return res.status(201).json({ comment: newComment, message: 'Comment added successfully' });
+  } catch (error) {
+    console.error('Add comment error:', error);
+    return res.status(500).json(
+      createErrorResponse('INTERNAL', 'Failed to add comment')
+    );
+  }
+};
+
 module.exports = {
   sendFriendRequest,
   acceptFriendRequest,
@@ -776,6 +882,11 @@ module.exports = {
   getPostsByLocationName,
   updatePost,
   deletePost,
+  getPostById,
+  upvotePost,
+  downvotePost,
+  getComments,
+  addComment,
   followDiningHall,
   unfollowDiningHall,
   getFollowedDiningHalls,

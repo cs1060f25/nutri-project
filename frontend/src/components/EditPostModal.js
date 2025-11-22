@@ -5,6 +5,7 @@ import { getLocations } from '../services/hudsService';
 import { updatePost, deletePost } from '../services/socialService';
 import CustomSelect from './CustomSelect';
 import './CreatePostModal.css';
+import './PostHudsCreation.css';
 
 // All 12 houses (including Quincy which has its own menu)
 const ALL_HOUSES = [
@@ -49,6 +50,18 @@ const EditPostModal = ({ isOpen, onClose, post, onPostUpdated, onPostDeleted }) 
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState(null);
   const [showDeleteConfirmationModal, setShowDeleteConfirmationModal] = useState(false);
+  
+  // Post display options
+  const [showImage, setShowImage] = useState(true);
+  const [showItems, setShowItems] = useState(true);
+  const [showLocation, setShowLocation] = useState(true);
+  const [showMealType, setShowMealType] = useState(true);
+  const [showRating, setShowRating] = useState(true);
+  const [showReview, setShowReview] = useState(true);
+  const [showCalories, setShowCalories] = useState(true);
+  const [showProtein, setShowProtein] = useState(true);
+  const [showCarbs, setShowCarbs] = useState(true);
+  const [showFat, setShowFat] = useState(true);
 
   // Initialize form with post data
   useEffect(() => {
@@ -73,6 +86,35 @@ const EditPostModal = ({ isOpen, onClose, post, onPostUpdated, onPostDeleted }) 
           locationName: post.locationName
         });
       }
+      
+      // Initialize display options from post or default to all true
+      // Handle both old format (showImage, nutrition.showCalories) and new format (image, calories)
+      const options = post.displayOptions || {};
+      
+      // Check for old format vs new format
+      const imageValue = options.image !== undefined ? options.image : (options.showImage !== undefined ? options.showImage : true);
+      const itemsValue = options.items !== undefined ? options.items : (options.showItems !== undefined ? options.showItems : true);
+      const locationValue = options.location !== undefined ? options.location : (options.showLocation !== undefined ? options.showLocation : true);
+      const mealTypeValue = options.mealType !== undefined ? options.mealType : true;
+      const ratingValue = options.rating !== undefined ? options.rating : true;
+      const reviewValue = options.review !== undefined ? options.review : true;
+      
+      // Handle nutrition - could be nested or flat
+      const caloriesValue = options.calories !== undefined ? options.calories : (options.nutrition?.showCalories !== undefined ? options.nutrition.showCalories : true);
+      const proteinValue = options.protein !== undefined ? options.protein : (options.nutrition?.showProtein !== undefined ? options.nutrition.showProtein : true);
+      const carbsValue = options.carbs !== undefined ? options.carbs : (options.nutrition?.showCarbs !== undefined ? options.nutrition.showCarbs : true);
+      const fatValue = options.fat !== undefined ? options.fat : (options.nutrition?.showFat !== undefined ? options.nutrition.showFat : true);
+      
+      setShowImage(imageValue);
+      setShowItems(itemsValue);
+      setShowLocation(locationValue);
+      setShowMealType(mealTypeValue);
+      setShowRating(ratingValue);
+      setShowReview(reviewValue);
+      setShowCalories(caloriesValue);
+      setShowProtein(proteinValue);
+      setShowCarbs(carbsValue);
+      setShowFat(fatValue);
     }
   }, [isOpen, post]);
 
@@ -155,6 +197,18 @@ const EditPostModal = ({ isOpen, onClose, post, onPostUpdated, onPostDeleted }) 
         rating,
         review: review.trim() || null,
         isPublic,
+        displayOptions: {
+          image: showImage,
+          items: showItems,
+          location: showLocation,
+          mealType: showMealType,
+          rating: showRating,
+          review: showReview,
+          calories: showCalories,
+          protein: showProtein,
+          carbs: showCarbs,
+          fat: showFat,
+        },
       };
 
       // Try to update the post, refresh token if expired and retry
@@ -181,7 +235,6 @@ const EditPostModal = ({ isOpen, onClose, post, onPostUpdated, onPostDeleted }) 
       if (onPostUpdated) {
         onPostUpdated();
       }
-      alert('Post updated successfully!');
     } catch (err) {
       console.error('Failed to update post:', err);
       setError(err.message || 'Failed to update post');
@@ -368,6 +421,133 @@ const EditPostModal = ({ isOpen, onClose, post, onPostUpdated, onPostDeleted }) 
               ]}
               placeholder="Select visibility"
             />
+          </div>
+
+          {/* Display Options - Chip-based UI */}
+          <div className="display-options-section">
+            <label>What to Show in Post</label>
+            
+            <div className="display-options-chips">
+              {/* Selected chips */}
+              <div className="selected-chips">
+                {showImage && (
+                  <button type="button" className="chip chip-selected" onClick={() => setShowImage(false)}>
+                    <span className="chip-text">Image</span>
+                    <X size={14} className="chip-icon" />
+                  </button>
+                )}
+                {showItems && (
+                  <button type="button" className="chip chip-selected" onClick={() => setShowItems(false)}>
+                    <span className="chip-text">Food Items</span>
+                    <X size={14} className="chip-icon" />
+                  </button>
+                )}
+                {showLocation && (
+                  <button type="button" className="chip chip-selected" onClick={() => setShowLocation(false)}>
+                    <span className="chip-text">Location</span>
+                    <X size={14} className="chip-icon" />
+                  </button>
+                )}
+                {showMealType && (
+                  <button type="button" className="chip chip-selected" onClick={() => setShowMealType(false)}>
+                    <span className="chip-text">Meal Type</span>
+                    <X size={14} className="chip-icon" />
+                  </button>
+                )}
+                {showRating && (
+                  <button type="button" className="chip chip-selected" onClick={() => setShowRating(false)}>
+                    <span className="chip-text">Rating</span>
+                    <X size={14} className="chip-icon" />
+                  </button>
+                )}
+                {showReview && (
+                  <button type="button" className="chip chip-selected" onClick={() => setShowReview(false)}>
+                    <span className="chip-text">Review</span>
+                    <X size={14} className="chip-icon" />
+                  </button>
+                )}
+                {showCalories && (
+                  <button type="button" className="chip chip-selected" onClick={() => setShowCalories(false)}>
+                    <span className="chip-text">Calories</span>
+                    <X size={14} className="chip-icon" />
+                  </button>
+                )}
+                {showProtein && (
+                  <button type="button" className="chip chip-selected" onClick={() => setShowProtein(false)}>
+                    <span className="chip-text">Protein</span>
+                    <X size={14} className="chip-icon" />
+                  </button>
+                )}
+                {showCarbs && (
+                  <button type="button" className="chip chip-selected" onClick={() => setShowCarbs(false)}>
+                    <span className="chip-text">Carbs</span>
+                    <X size={14} className="chip-icon" />
+                  </button>
+                )}
+                {showFat && (
+                  <button type="button" className="chip chip-selected" onClick={() => setShowFat(false)}>
+                    <span className="chip-text">Fat</span>
+                    <X size={14} className="chip-icon" />
+                  </button>
+                )}
+              </div>
+
+              {/* Available chips */}
+              {(!showImage || !showItems || !showLocation || !showMealType || !showRating || !showReview || !showCalories || !showProtein || !showCarbs || !showFat) && (
+                <div className="available-chips">
+                  {!showImage && (
+                    <button type="button" className="chip chip-available" onClick={() => setShowImage(true)}>
+                      <span className="chip-text">+ Image</span>
+                    </button>
+                  )}
+                  {!showItems && (
+                    <button type="button" className="chip chip-available" onClick={() => setShowItems(true)}>
+                      <span className="chip-text">+ Food Items</span>
+                    </button>
+                  )}
+                  {!showLocation && (
+                    <button type="button" className="chip chip-available" onClick={() => setShowLocation(true)}>
+                      <span className="chip-text">+ Location</span>
+                    </button>
+                  )}
+                  {!showMealType && (
+                    <button type="button" className="chip chip-available" onClick={() => setShowMealType(true)}>
+                      <span className="chip-text">+ Meal Type</span>
+                    </button>
+                  )}
+                  {!showRating && (
+                    <button type="button" className="chip chip-available" onClick={() => setShowRating(true)}>
+                      <span className="chip-text">+ Rating</span>
+                    </button>
+                  )}
+                  {!showReview && (
+                    <button type="button" className="chip chip-available" onClick={() => setShowReview(true)}>
+                      <span className="chip-text">+ Review</span>
+                    </button>
+                  )}
+                  {!showCalories && (
+                    <button type="button" className="chip chip-available" onClick={() => setShowCalories(true)}>
+                      <span className="chip-text">+ Calories</span>
+                    </button>
+                  )}
+                  {!showProtein && (
+                    <button type="button" className="chip chip-available" onClick={() => setShowProtein(true)}>
+                      <span className="chip-text">+ Protein</span>
+                    </button>
+                  )}
+                  {!showCarbs && (
+                    <button type="button" className="chip chip-available" onClick={() => setShowCarbs(true)}>
+                      <span className="chip-text">+ Carbs</span>
+                    </button>
+                  )}
+                  {!showFat && (
+                    <button type="button" className="chip chip-available" onClick={() => setShowFat(true)}>
+                      <span className="chip-text">+ Fat</span>
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
 
           {error && (

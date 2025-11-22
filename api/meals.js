@@ -280,7 +280,7 @@ module.exports = async (req, res) => {
 
     // Route: POST /api/meals (create new meal)
     if (req.method === 'POST') {
-      const { mealDate, mealType, mealName, timestamp, locationId, locationName, items, imageUrl } = req.body;
+      const { mealDate, mealType, mealName, timestamp, locationId, locationName, items, imageUrl, rating, review } = req.body;
 
       if (!mealDate || !mealType || !locationId || !items || items.length === 0) {
         return res.status(400).json(
@@ -300,6 +300,8 @@ module.exports = async (req, res) => {
         locationName,
         items,
         totals,
+        rating: rating || null,
+        review: review || null,
         timestamp: timestamp ? admin.firestore.Timestamp.fromDate(new Date(timestamp)) : admin.firestore.FieldValue.serverTimestamp(),
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
         updatedAt: admin.firestore.FieldValue.serverTimestamp(),

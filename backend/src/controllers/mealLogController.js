@@ -10,7 +10,7 @@ const mealLogService = require('../services/mealLogService');
  */
 const createMealLog = async (req, res) => {
   try {
-    const { mealDate, mealType, mealName, timestamp, locationId, locationName, items, imageUrl } = req.body;
+    const { mealDate, mealType, mealName, timestamp, locationId, locationName, items, imageUrl, rating, review } = req.body;
     const userId = req.user.uid;
     const userEmail = req.user.email;
 
@@ -29,6 +29,8 @@ const createMealLog = async (req, res) => {
       locationId,
       locationName,
       items,
+      rating,
+      review,
     };
 
     // Add imageUrl if provided
