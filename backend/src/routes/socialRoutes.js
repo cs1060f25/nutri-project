@@ -22,8 +22,15 @@ router.get('/posts/feed/dining-halls', socialController.getDiningHallFeedPosts);
 router.get('/posts/user/:userId', socialController.getPostsByUser);
 router.get('/posts/location/:locationId', socialController.getPostsByLocation);
 router.get('/posts/location-name/:locationName', socialController.getPostsByLocationName);
+router.get('/posts/:postId', socialController.getPostById);
 router.put('/posts/:postId', socialController.updatePost);
 router.delete('/posts/:postId', socialController.deletePost);
+
+// Post interaction routes (must come after specific routes above)
+router.post('/posts/:postId/upvote', socialController.upvotePost);
+router.post('/posts/:postId/downvote', socialController.downvotePost);
+router.get('/posts/:postId/comments', socialController.getComments);
+router.post('/posts/:postId/comments', socialController.addComment);
 
 // Dining hall follow routes
 router.post('/dining-halls/follow', socialController.followDiningHall);

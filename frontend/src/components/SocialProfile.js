@@ -1,16 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import { Filter } from 'lucide-react';
-import { useParams } from 'react-router-dom';
+import { Filter, ArrowLeft } from 'lucide-react';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { getFriends, getFriendRequests, acceptFriendRequest, rejectFriendRequest, removeFriend, sendFriendRequest, getFollowedDiningHalls, unfollowDiningHall, getPostsByLocationName } from '../services/socialService';
 import { getPostsByUser } from '../services/socialService';
 import PostCard from './PostCard';
 import CustomSelect from './CustomSelect';
+import ConfirmModal from './ConfirmModal';
+import PostDetail from './PostDetail';
 import '../pages/Social.css';
 
 const SocialProfile = () => {
   const { userId: urlUserId } = useParams();
   const { user, accessToken } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
   // Use userId from URL if provided, otherwise use current user
   const profileUserId = urlUserId || (user?.id || user?.uid);
   const isOwnProfile = !urlUserId || profileUserId === (user?.id || user?.uid);
@@ -35,6 +39,59 @@ const SocialProfile = () => {
   const [friendPosts, setFriendPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [showUnfriendModal, setShowUnfriendModal] = useState(false);
+  const [friendToRemove, setFriendToRemove] = useState(null);
+  const [showUnfollowModal, setShowUnfollowModal] = useState(false);
+  const [locationToUnfollow, setLocationToUnfollow] = useState(null);
+  const [showPostModal, setShowPostModal] = useState(false);
+  const [modalPostId, setModalPostId] = useState(null);
+  const [incomingRequests, setIncomingRequests] = useState({});
+  
+  // Check if we came from a modal
+  const fromModal = location.state?.fromModal;
+  const modalPostIdFromState = location.state?.postId;
+  const returnPath = location.state?.returnPath || '/home/social/feed';
+  
+  // Set up modal postId if we came from PostDetail
+  useEffect(() => {
+    if (fromModal && modalPostIdFromState) {
+      setModalPostId(modalPostIdFromState);
+      // Don't open modal immediately - wait for back button click
+    }
+  }, [fromModal, modalPostIdFromState]);
+
+  // Check if we should open a post modal (from "Back to Post" navigation)
+  useEffect(() => {
+    if (location.state?.openPostModal && location.state?.postId) {
+      setModalPostId(location.state.postId);
+      setShowPostModal(true);
+      // Clear the state to prevent reopening on re-render
+      window.history.replaceState({ ...location.state, openPostModal: false }, '');
+    }
+  }, [location.state]);
+
+  // Fetch incoming requests when viewing another user's profile from modal
+  useEffect(() => {
+    const fetchIncomingRequests = async () => {
+      if (!isOwnProfile && fromModal && accessToken && profileUserId) {
+        try {
+          const receivedRequestsData = await getFriendRequests('received', accessToken);
+          const incomingMap = {};
+          if (receivedRequestsData.requests) {
+            receivedRequestsData.requests.forEach(request => {
+              if (request.fromUserId) {
+                incomingMap[request.fromUserId] = request.id;
+              }
+            });
+          }
+          setIncomingRequests(incomingMap);
+        } catch (err) {
+          console.error('Error fetching incoming requests:', err);
+        }
+      }
+    };
+    fetchIncomingRequests();
+  }, [isOwnProfile, fromModal, accessToken, profileUserId]);
   
   // Filter states
   const [showFilters, setShowFilters] = useState(false);
@@ -85,11 +142,16 @@ const SocialProfile = () => {
 
     let filtered = [...posts];
 
-    // Filter by dining hall
+    // Filter by dining hall - only show posts that have location visible
     if (filterDiningHall) {
-      filtered = filtered.filter(post => 
-        post.locationName === filterDiningHall || post.locationId === filterDiningHall
-      );
+      filtered = filtered.filter(post => {
+        // Check if the post has location enabled in display options
+        const options = post.displayOptions || {};
+        const locationVisible = options.location !== undefined ? options.location : (options.showLocation !== undefined ? options.showLocation : true);
+        
+        // Only include post if location is visible AND matches the filter
+        return locationVisible && (post.locationName === filterDiningHall || post.locationId === filterDiningHall);
+      });
     }
 
     // Filter by visibility
@@ -99,17 +161,29 @@ const SocialProfile = () => {
       filtered = filtered.filter(post => post.isPublic === false);
     }
 
-    // Filter by rating
+    // Filter by rating - only show posts that have rating visible
     if (filterRating) {
       const ratingNum = parseInt(filterRating, 10);
-      filtered = filtered.filter(post => post.rating === ratingNum);
+      filtered = filtered.filter(post => {
+        // Check if the post has rating enabled in display options
+        const options = post.displayOptions || {};
+        const ratingVisible = options.rating !== undefined ? options.rating : true;
+        
+        // Only include post if rating is visible AND matches the filter
+        return ratingVisible && post.rating === ratingNum;
+      });
     }
 
-    // Filter by meal type
+    // Filter by meal type - only show posts that have meal type visible
     if (filterMealType) {
-      filtered = filtered.filter(post => 
-        post.mealType === filterMealType || post.mealName === filterMealType
-      );
+      filtered = filtered.filter(post => {
+        // Check if the post has meal type enabled in display options
+        const options = post.displayOptions || {};
+        const mealTypeVisible = options.mealType !== undefined ? options.mealType : true;
+        
+        // Only include post if meal type is visible AND matches the filter
+        return mealTypeVisible && (post.mealType === filterMealType || post.mealName === filterMealType);
+      });
     }
 
     setFilteredPosts(filtered);
@@ -195,23 +269,34 @@ const SocialProfile = () => {
     }
   };
 
-  const handleRemoveFriend = async (friendId) => {
-    if (!window.confirm('Are you sure you want to remove this friend?')) {
-      return;
-    }
+  const handleRemoveFriend = (friendId, friendName = null) => {
+    setFriendToRemove({ id: friendId, name: friendName });
+    setShowUnfriendModal(true);
+  };
+
+  const handleConfirmUnfriend = async () => {
+    if (!friendToRemove) return;
 
     try {
-      await removeFriend(friendId, accessToken);
+      await removeFriend(friendToRemove.id, accessToken);
       // Refresh friends
       const friendsData = await getFriends(accessToken);
       setFriends(friendsData.friends || []);
       // Update friend status if viewing that user's profile
-      if (profileUserId === friendId) {
+      if (profileUserId === friendToRemove.id) {
         setIsFriendStatus(false);
+      }
+      // If viewing the friend's detail page, go back to friends list
+      if (selectedFriend && selectedFriend.id === friendToRemove.id) {
+        setSelectedFriend(null);
+        setFriendPosts([]);
       }
     } catch (err) {
       console.error('Error removing friend:', err);
       alert('Failed to remove friend: ' + err.message);
+    } finally {
+      setShowUnfriendModal(false);
+      setFriendToRemove(null);
     }
   };
 
@@ -229,19 +314,32 @@ const SocialProfile = () => {
     }
   };
 
-  const handleUnfollowDiningHall = async (locationId, locationName) => {
-    if (!window.confirm(`Are you sure you want to unfollow ${locationName}?`)) {
-      return;
-    }
+  const handleUnfollowDiningHall = (locationId, locationName) => {
+    setLocationToUnfollow({ locationId, locationName });
+    setShowUnfollowModal(true);
+  };
+
+  const handleConfirmUnfollow = async () => {
+    if (!locationToUnfollow) return;
 
     try {
-      await unfollowDiningHall(locationId, locationName, accessToken);
+      await unfollowDiningHall(locationToUnfollow.locationId, locationToUnfollow.locationName, accessToken);
       // Refresh followed dining halls
       const diningHallsData = await getFollowedDiningHalls(accessToken);
       setFollowedDiningHalls(diningHallsData.diningHalls || []);
+      // If viewing the location's detail page, go back to dining halls list
+      if (selectedLocation && 
+          (selectedLocation.locationId === locationToUnfollow.locationId || 
+           selectedLocation.locationName === locationToUnfollow.locationName)) {
+        setSelectedLocation(null);
+        setLocationPosts([]);
+      }
     } catch (err) {
       console.error('Error unfollowing dining hall:', err);
       alert('Failed to unfollow dining hall: ' + err.message);
+    } finally {
+      setShowUnfollowModal(false);
+      setLocationToUnfollow(null);
     }
   };
 
@@ -316,8 +414,158 @@ const SocialProfile = () => {
     );
   }
 
+  // If viewing another user's profile from a modal, show full-width detail page
+  if (!isOwnProfile && fromModal && modalPostId) {
+    const userPost = posts[0];
+    const userName = userPost?.userName || 'User';
+    const userEmail = userPost?.userEmail || '';
+    const userResidence = userPost?.userResidence || '';
+    const isFriend = friends.some((f) => f.id === profileUserId);
+    const hasSentRequest = friendRequestStatus[profileUserId] === 'sent';
+    const hasIncomingRequest = incomingRequests[profileUserId] !== undefined;
+    const incomingRequestId = incomingRequests[profileUserId];
+
+    return (
+      <div className="full-width-detail-page">
+        <button
+          className="profile-back-button"
+          onClick={() => {
+            navigate(returnPath, {
+              state: { openPostModal: true, postId: modalPostId }
+            });
+          }}
+          style={{ marginBottom: '1.5rem' }}
+        >
+          <ArrowLeft size={20} />
+          Back to Post
+        </button>
+        <div className="profile-detail-header-card">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <h2>{userName}</h2>
+              <p style={{ color: '#666', marginTop: '0.5rem' }}>
+                {userEmail} {userResidence && `• ${userResidence}`}
+              </p>
+            </div>
+            <div onClick={(e) => e.stopPropagation()}>
+              {isFriend ? (
+                <button
+                  className="btn btn-secondary"
+                  onClick={() => {
+                    setFriendToRemove({ id: profileUserId, name: userName });
+                    setShowUnfriendModal(true);
+                  }}
+                >
+                  Unfriend
+                </button>
+              ) : hasIncomingRequest ? (
+                <button
+                  className="btn btn-primary"
+                  onClick={async () => {
+                    try {
+                      await handleAcceptRequest(incomingRequestId);
+                      // Refresh incoming requests
+                      const receivedRequestsData = await getFriendRequests('received', accessToken);
+                      const incomingMap = {};
+                      if (receivedRequestsData.requests) {
+                        receivedRequestsData.requests.forEach(request => {
+                          if (request.fromUserId) {
+                            incomingMap[request.fromUserId] = request.id;
+                          }
+                        });
+                      }
+                      setIncomingRequests(incomingMap);
+                      // Refresh friends
+                      const friendsData = await getFriends(accessToken);
+                      setFriends(friendsData.friends || []);
+                    } catch (err) {
+                      console.error('Error accepting friend request:', err);
+                    }
+                  }}
+                >
+                  Accept Request
+                </button>
+              ) : hasSentRequest ? (
+                <span style={{ color: '#666', padding: '0.5rem 1rem' }}>Friend Request Sent</span>
+              ) : (
+                <button
+                  className="btn btn-primary"
+                  onClick={async () => {
+                    try {
+                      await handleSendFriendRequest(profileUserId);
+                    } catch (err) {
+                      console.error('Error sending friend request:', err);
+                    }
+                  }}
+                >
+                  Add Friend
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+        <p style={{ color: '#666', marginBottom: '1.5rem' }}>
+          {posts.length} {posts.length === 1 ? 'creation' : 'creations'}
+        </p>
+        {posts.length === 0 ? (
+          <div className="empty-state">
+            <div className="empty-state-icon">📭</div>
+            <div className="empty-state-title">No creations yet</div>
+            <div className="empty-state-message">
+              This user hasn't shared any meals yet.
+            </div>
+          </div>
+        ) : (
+          posts.map((post) => (
+            <PostCard key={post.id} post={post} />
+          ))
+        )}
+
+        <ConfirmModal
+          isOpen={showUnfriendModal}
+          onClose={() => {
+            setShowUnfriendModal(false);
+            setFriendToRemove(null);
+          }}
+          onConfirm={handleConfirmUnfriend}
+          title="Remove Friend"
+          message={`Are you sure you want to remove ${friendToRemove?.name || 'this user'} as a friend?`}
+          confirmText="Remove Friend"
+          cancelText="Cancel"
+          isDangerous={true}
+        />
+
+        {showPostModal && modalPostId && (
+          <PostDetail
+            postId={modalPostId}
+            onClose={() => {
+              setShowPostModal(false);
+            }}
+          />
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="social-profile">
+      {!isOwnProfile && (
+        <div className="profile-back-button-container">
+          <button 
+            className="profile-back-button" 
+            onClick={() => {
+              if (fromModal && modalPostId) {
+                setShowPostModal(true);
+              } else {
+                navigate(-1);
+              }
+            }}
+          >
+            <ArrowLeft size={20} />
+            {fromModal && modalPostId ? 'Back to Post' : 'Back'}
+          </button>
+        </div>
+      )}
       <div className="profile-header">
         {!isOwnProfile && (
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
@@ -326,7 +574,10 @@ const SocialProfile = () => {
               {isFriendStatus ? (
                 <button
                   className="btn btn-secondary"
-                  onClick={() => handleRemoveFriend(profileUserId)}
+                  onClick={() => {
+                    const userName = posts[0]?.userName || null;
+                    handleRemoveFriend(profileUserId, userName);
+                  }}
                 >
                   Unfriend
                 </button>
@@ -410,7 +661,41 @@ const SocialProfile = () => {
       {activeTab === 'posts' && (
         <div className="profile-posts">
           {/* Filter Section */}
-          {posts.length > 0 && showFilters && (
+          {posts.length > 0 && showFilters && (() => {
+            // Get visible dining halls (only from posts with location visible)
+            const visibleDiningHalls = [...new Set(
+              posts
+                .filter(post => {
+                  const options = post.displayOptions || {};
+                  const locationVisible = options.location !== undefined ? options.location : (options.showLocation !== undefined ? options.showLocation : true);
+                  return locationVisible && post.locationName;
+                })
+                .map(p => p.locationName)
+            )];
+
+            // Get visible ratings (only from posts with rating visible)
+            const visibleRatings = [...new Set(
+              posts
+                .filter(post => {
+                  const options = post.displayOptions || {};
+                  const ratingVisible = options.rating !== undefined ? options.rating : true;
+                  return ratingVisible && post.rating;
+                })
+                .map(p => p.rating)
+            )].sort((a, b) => b - a);
+
+            // Get visible meal types (only from posts with meal type visible)
+            const visibleMealTypes = [...new Set(
+              posts
+                .filter(post => {
+                  const options = post.displayOptions || {};
+                  const mealTypeVisible = options.mealType !== undefined ? options.mealType : true;
+                  return mealTypeVisible && (post.mealType || post.mealName);
+                })
+                .map(p => p.mealType || p.mealName)
+            )];
+
+            return (
             <div className="profile-filters">
               <h3 style={{ marginBottom: '1rem', fontSize: '1.1rem', fontWeight: 600 }}>Filter Posts</h3>
               <div className="filters-grid">
@@ -421,7 +706,7 @@ const SocialProfile = () => {
                     onChange={setFilterDiningHall}
                     options={[
                       { value: '', label: 'All Dining Halls' },
-                      ...[...new Set(posts.map(p => p.locationName).filter(Boolean))].map(location => ({
+                      ...visibleDiningHalls.map(location => ({
                         value: location,
                         label: location
                       }))
@@ -451,11 +736,10 @@ const SocialProfile = () => {
                     onChange={setFilterRating}
                     options={[
                       { value: '', label: 'All Ratings' },
-                      { value: '5', label: '5 Stars' },
-                      { value: '4', label: '4 Stars' },
-                      { value: '3', label: '3 Stars' },
-                      { value: '2', label: '2 Stars' },
-                      { value: '1', label: '1 Star' }
+                      ...visibleRatings.map(rating => ({
+                        value: String(rating),
+                        label: `${rating} Star${rating !== 1 ? 's' : ''}`
+                      }))
                     ]}
                     placeholder="All Ratings"
                   />
@@ -468,9 +752,10 @@ const SocialProfile = () => {
                     onChange={setFilterMealType}
                     options={[
                       { value: '', label: 'All Meal Types' },
-                      { value: 'Breakfast', label: 'Breakfast' },
-                      { value: 'Lunch', label: 'Lunch' },
-                      { value: 'Dinner', label: 'Dinner' }
+                      ...visibleMealTypes.map(mealType => ({
+                        value: mealType,
+                        label: mealType
+                      }))
                     ]}
                     placeholder="All Meal Types"
                   />
@@ -492,12 +777,13 @@ const SocialProfile = () => {
                 </button>
               )}
             </div>
-          )}
+            );
+          })()}
 
           {posts.length === 0 ? (
             <div className="empty-state">
               <div className="empty-state-icon">📝</div>
-              <div className="empty-state-title">No posts yet</div>
+              <div className="empty-state-title">No creations yet</div>
               <div className="empty-state-message">
                 Share your meals to create posts!
               </div>
@@ -505,7 +791,7 @@ const SocialProfile = () => {
           ) : filteredPosts.length === 0 ? (
             <div className="empty-state">
               <div className="empty-state-icon">🔍</div>
-              <div className="empty-state-title">No posts match your filters</div>
+              <div className="empty-state-title">No creations match your filters</div>
               <div className="empty-state-message">
                 Try adjusting your filter criteria.
               </div>
@@ -513,7 +799,7 @@ const SocialProfile = () => {
           ) : (
             <>
               <p style={{ marginBottom: '1rem', color: '#666' }}>
-                Showing {filteredPosts.length} of {posts.length} posts
+                Showing {filteredPosts.length} of {posts.length} {posts.length === 1 ? 'creation' : 'creations'}
               </p>
               {filteredPosts.map((post) => (
                 <PostCard 
@@ -569,25 +855,46 @@ const SocialProfile = () => {
             {selectedFriend ? (
               <div className="full-width-detail-page">
                 <button
-                  className="btn btn-secondary"
+                  className="profile-back-button"
                   onClick={() => {
                     setSelectedFriend(null);
                     setFriendPosts([]);
                   }}
-                  style={{ marginBottom: '1rem' }}
+                  style={{ marginBottom: '1.5rem' }}
                 >
-                  ← Back to Friends
+                  <ArrowLeft size={20} />
+                  Back to Friends
                 </button>
-                <h2>{selectedFriend.name}'s Posts</h2>
+                <div className="profile-detail-header-card">
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <h2>{selectedFriend.name}</h2>
+                      <p style={{ color: '#666', marginTop: '0.5rem' }}>
+                        {selectedFriend.email} {selectedFriend.residence && `• ${selectedFriend.residence}`}
+                      </p>
+                    </div>
+                    <div onClick={(e) => e.stopPropagation()}>
+                      <button
+                        className="btn btn-secondary"
+                        onClick={() => {
+                          setFriendToRemove(selectedFriend);
+                          setShowUnfriendModal(true);
+                        }}
+                      >
+                        Unfriend
+                      </button>
+                    </div>
+                  </div>
+                </div>
                 <p style={{ color: '#666', marginBottom: '1.5rem' }}>
-                  {selectedFriend.residence || selectedFriend.email}
+                  {friendPosts.length} {friendPosts.length === 1 ? 'creation' : 'creations'}
                 </p>
                 {friendPosts.length === 0 ? (
                   <div className="empty-state">
-                    <div className="empty-state-icon">📝</div>
-                    <div className="empty-state-title">No posts yet</div>
+                    <div className="empty-state-icon">📭</div>
+                    <div className="empty-state-title">No creations yet</div>
                     <div className="empty-state-message">
-                      {selectedFriend.name} hasn't shared any meals yet.
+                      This user hasn't shared any meals yet.
                     </div>
                   </div>
                 ) : (
@@ -595,6 +902,20 @@ const SocialProfile = () => {
                     <PostCard key={post.id} post={post} />
                   ))
                 )}
+
+                <ConfirmModal
+                  isOpen={showUnfriendModal}
+                  onClose={() => {
+                    setShowUnfriendModal(false);
+                    setFriendToRemove(null);
+                  }}
+                  onConfirm={handleConfirmUnfriend}
+                  title="Remove Friend"
+                  message={`Are you sure you want to remove ${friendToRemove?.name || 'this user'} as a friend?`}
+                  confirmText="Remove Friend"
+                  cancelText="Cancel"
+                  isDangerous={true}
+                />
               </div>
             ) : (
               <>
@@ -627,7 +948,7 @@ const SocialProfile = () => {
                         className="btn btn-danger"
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleRemoveFriend(friend.id);
+                          handleRemoveFriend(friend.id, friend.name);
                         }}
                       >
                         Remove
@@ -646,23 +967,44 @@ const SocialProfile = () => {
           {selectedLocation ? (
             <div className="full-width-detail-page">
               <button
-                className="btn btn-secondary"
+                className="profile-back-button"
                 onClick={() => {
                   setSelectedLocation(null);
                   setLocationPosts([]);
                 }}
-                style={{ marginBottom: '1rem' }}
+                style={{ marginBottom: '1.5rem' }}
               >
-                ← Back to Dining Halls
+                <ArrowLeft size={20} />
+                Back to Dining Halls
               </button>
-              <h2>{selectedLocation.locationName}</h2>
+              <div className="profile-detail-header-card">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <h2>{selectedLocation.locationName}</h2>
+                  </div>
+                  <div onClick={(e) => e.stopPropagation()}>
+                    <button
+                      className="btn btn-secondary"
+                      onClick={() => {
+                        setLocationToUnfollow({
+                          locationId: selectedLocation.locationId,
+                          locationName: selectedLocation.locationName
+                        });
+                        setShowUnfollowModal(true);
+                      }}
+                    >
+                      Unfollow
+                    </button>
+                  </div>
+                </div>
+              </div>
               <p style={{ color: '#666', marginBottom: '1.5rem' }}>
-                {locationPosts.length} {locationPosts.length === 1 ? 'post' : 'posts'}
+                {locationPosts.length} {locationPosts.length === 1 ? 'creation' : 'creations'}
               </p>
               {locationPosts.length === 0 ? (
                 <div className="empty-state">
                   <div className="empty-state-icon">📭</div>
-                  <div className="empty-state-title">No posts yet</div>
+                  <div className="empty-state-title">No creations yet</div>
                   <div className="empty-state-message">
                     Be the first to share a meal from this location!
                   </div>
@@ -718,6 +1060,43 @@ const SocialProfile = () => {
             </>
           )}
         </div>
+      )}
+
+      <ConfirmModal
+        isOpen={showUnfriendModal}
+        onClose={() => {
+          setShowUnfriendModal(false);
+          setFriendToRemove(null);
+        }}
+        onConfirm={handleConfirmUnfriend}
+        title="Remove Friend"
+        message={`Are you sure you want to remove ${friendToRemove?.name || 'this user'} as a friend?`}
+        confirmText="Remove Friend"
+        cancelText="Cancel"
+        isDangerous={true}
+      />
+
+      <ConfirmModal
+        isOpen={showUnfollowModal}
+        onClose={() => {
+          setShowUnfollowModal(false);
+          setLocationToUnfollow(null);
+        }}
+        onConfirm={handleConfirmUnfollow}
+        title="Unfollow Dining Hall"
+        message={`Are you sure you want to unfollow ${locationToUnfollow?.locationName || 'this dining hall'}?`}
+        confirmText="Unfollow"
+        cancelText="Cancel"
+        isDangerous={false}
+      />
+
+      {showPostModal && modalPostId && (
+        <PostDetail
+          postId={modalPostId}
+          onClose={() => {
+            setShowPostModal(false);
+          }}
+        />
       )}
     </div>
   );

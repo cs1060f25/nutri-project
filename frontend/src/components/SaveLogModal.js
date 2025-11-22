@@ -269,6 +269,8 @@ const SaveLogModal = ({ isOpen, onClose, onSuccess, scanData, imageUrl, imageFil
         timestamp: new Date().toISOString(),
         locationId: locationNumber || selectedLocation.locationId,
         locationName: locationName || selectedLocation.locationName,
+        rating,
+        review,
         items: scanData?.matchedItems?.map(item => ({
           recipeId: item.recipeId || `scanned-${Date.now()}`,
           recipeName: item.matchedName || item.predictedName,

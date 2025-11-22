@@ -1,9 +1,11 @@
 import React, { useEffect, useState, useCallback } from 'react';
+import { Star, Edit2 } from 'lucide-react';
 import './MealLogs.css';
 import { useAuth } from '../context/AuthContext';
 import { getMealLogs, deleteMealLog } from '../services/mealLogService';
 import CustomSelect from '../components/CustomSelect';
 import ConfirmModal from '../components/ConfirmModal';
+import EditMealLogModal from '../components/EditMealLogModal';
 
 const MealLogs = () => {
   const { accessToken } = useAuth();
@@ -17,6 +19,8 @@ const MealLogs = () => {
   });
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [mealToDelete, setMealToDelete] = useState(null);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [mealToEdit, setMealToEdit] = useState(null);
 
   const fetchLogs = useCallback(async () => {
     if (!accessToken) return;
@@ -41,6 +45,17 @@ const MealLogs = () => {
   useEffect(() => {
     fetchLogs();
   }, [fetchLogs]);
+
+  const handleEditClick = (log) => {
+    setMealToEdit(log);
+    setShowEditModal(true);
+  };
+
+  const handleEditSuccess = (updatedLog) => {
+    setLogs(logs.map(log => log.id === updatedLog.id ? updatedLog : log));
+    setShowEditModal(false);
+    setMealToEdit(null);
+  };
 
   const handleDeleteClick = (mealId) => {
     setMealToDelete(mealId);
@@ -179,17 +194,38 @@ const MealLogs = () => {
                         <span className="meal-log-location">📍 {log.locationName}</span>
                       )}
                     </div>
+                    {log.rating && (
+                      <div className="meal-log-rating">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <Star
+                            key={star}
+                            size={18}
+                            fill={star <= log.rating ? '#fbbf24' : 'none'}
+                            stroke={star <= log.rating ? '#fbbf24' : '#d1d5db'}
+                          />
+                        ))}
+                      </div>
+                    )}
                   </div>
-                  <button
-                    onClick={() => handleDeleteClick(log.id)}
-                    className="meal-log-delete-btn"
-                    title="Delete meal log"
-                  >
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <polyline points="3 6 5 6 21 6"></polyline>
-                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                    </svg>
-                  </button>
+                  <div className="meal-log-actions">
+                    <button
+                      onClick={() => handleEditClick(log)}
+                      className="meal-log-edit-btn"
+                      title="Edit meal log"
+                    >
+                      <Edit2 size={18} />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteClick(log.id)}
+                      className="meal-log-delete-btn"
+                      title="Delete meal log"
+                    >
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <polyline points="3 6 5 6 21 6"></polyline>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                      </svg>
+                    </button>
+                  </div>
                 </div>
 
                 {log.imageUrl && (
@@ -199,6 +235,12 @@ const MealLogs = () => {
                       alt={log.mealName || 'Meal'} 
                       className="meal-log-image"
                     />
+                  </div>
+                )}
+
+                {log.review && (
+                  <div className="meal-log-review">
+                    <p className="meal-log-review-text">"{log.review}"</p>
                   </div>
                 )}
 
@@ -265,6 +307,16 @@ const MealLogs = () => {
         confirmText="Delete"
         cancelText="Cancel"
         isDangerous={true}
+      />
+
+      <EditMealLogModal
+        isOpen={showEditModal}
+        onClose={() => {
+          setShowEditModal(false);
+          setMealToEdit(null);
+        }}
+        onSuccess={handleEditSuccess}
+        mealLog={mealToEdit}
       />
     </div>
   );

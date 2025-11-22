@@ -101,11 +101,16 @@ export const removeFriend = async (friendId, accessToken) => {
 /**
  * Post functions
  */
-export const createPost = async (mealId, accessToken) => {
+export const createPost = async (mealId, accessToken, isPublic = true, displayOptions = null) => {
+  const body = { mealId, isPublic };
+  if (displayOptions) {
+    body.displayOptions = displayOptions;
+  }
+  
   const response = await fetch(`${API_BASE}/api/social/posts`, {
     method: 'POST',
     headers: getAuthHeaders(accessToken),
-    body: JSON.stringify({ mealId }),
+    body: JSON.stringify(body),
   });
 
   return handleApiError(response, 'Failed to create post');

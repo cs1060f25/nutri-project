@@ -1,8 +1,10 @@
 import React from 'react';
 import { Routes, Route, Link, useLocation, useNavigate } from 'react-router-dom';
+import { Plus } from 'lucide-react';
 import SocialFeed from '../components/SocialFeed';
 import SocialProfile from '../components/SocialProfile';
 import SocialSearch from '../components/SocialSearch';
+import PostHudsCreation from '../components/PostHudsCreation';
 import './Social.css';
 
 const Social = () => {
@@ -26,24 +28,34 @@ const Social = () => {
     <div className="social-page">
       <div className="social-header">
         <h1>Social</h1>
-        <p>Connect with friends and share your dining experiences</p>
+        <p>Share your best HUDS creations and get inspired by your friends</p>
       </div>
 
       <div className="social-tabs">
-        {tabs.map((tab) => (
-          <Link
-            key={tab.id}
-            to={tab.path}
-            className={`social-tab ${location.pathname === tab.path ? 'active' : ''}`}
-          >
-            {tab.label}
-          </Link>
-        ))}
+        <div className="social-tabs-left">
+          {tabs.map((tab) => (
+            <Link
+              key={tab.id}
+              to={tab.path}
+              className={`social-tab ${location.pathname === tab.path ? 'active' : ''}`}
+            >
+              {tab.label}
+            </Link>
+          ))}
+        </div>
+        <button
+          className="post-creation-button"
+          onClick={() => navigate('/home/social/post')}
+        >
+          <Plus size={18} />
+          Post a HUDS Creation
+        </button>
       </div>
 
       <div className="social-content">
         <Routes>
           <Route path="/feed" element={<SocialFeed />} />
+          <Route path="/post" element={<PostHudsCreation />} />
           <Route path="/profile" element={<SocialProfile />} />
           <Route path="/user/:userId" element={<SocialProfile />} />
           <Route path="/search" element={<SocialSearch />} />

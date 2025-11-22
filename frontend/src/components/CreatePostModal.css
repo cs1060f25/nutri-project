@@ -138,21 +138,27 @@
 }
 
 .create-post-modal-date,
-.create-post-modal-select {
+.create-post-modal-select,
+.create-post-modal-input {
   width: 100%;
   padding: 0.75rem;
   border: 1px solid #d1d5db;
   border-radius: 8px;
   font-size: 0.875rem;
   background: white;
-  cursor: pointer;
   transition: border-color 0.2s;
   height: 48px;
   box-sizing: border-box;
 }
 
+.create-post-modal-date,
+.create-post-modal-select {
+  cursor: pointer;
+}
+
 .create-post-modal-date:focus,
-.create-post-modal-select:focus {
+.create-post-modal-select:focus,
+.create-post-modal-input:focus {
   outline: none;
   border-color: #2d6a4f;
   box-shadow: 0 0 0 3px rgba(45, 106, 79, 0.1);
@@ -303,6 +309,16 @@
 .create-post-modal-delete:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.spinner-icon {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* Success Modal */
