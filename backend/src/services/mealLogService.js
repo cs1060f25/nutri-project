@@ -86,6 +86,11 @@ const createMealLog = async (userId, userEmail, mealData) => {
     updatedAt: admin.firestore.FieldValue.serverTimestamp(),
   };
 
+  // Add imageUrl if provided
+  if (mealData.imageUrl) {
+    mealLog.imageUrl = mealData.imageUrl;
+  }
+
   const mealsRef = getDb()
     .collection(USERS_COLLECTION)
     .doc(userId)

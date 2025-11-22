@@ -1,0 +1,274 @@
+import React, { useEffect, useState, useCallback } from 'react';
+import './MealLogs.css';
+import { useAuth } from '../context/AuthContext';
+import { getMealLogs, deleteMealLog } from '../services/mealLogService';
+import CustomSelect from '../components/CustomSelect';
+import ConfirmModal from '../components/ConfirmModal';
+
+const MealLogs = () => {
+  const { accessToken } = useAuth();
+  const [logs, setLogs] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [filter, setFilter] = useState({
+    mealType: '',
+    startDate: '',
+    endDate: '',
+  });
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [mealToDelete, setMealToDelete] = useState(null);
+
+  const fetchLogs = useCallback(async () => {
+    if (!accessToken) return;
+
+    setLoading(true);
+    setError('');
+    try {
+      const filters = {};
+      if (filter.mealType) filters.mealType = filter.mealType;
+      if (filter.startDate) filters.startDate = filter.startDate;
+      if (filter.endDate) filters.endDate = filter.endDate;
+
+      const response = await getMealLogs(filters, accessToken);
+      setLogs(response.meals || []);
+    } catch (err) {
+      setError(err.message || 'Failed to load meal logs');
+    } finally {
+      setLoading(false);
+    }
+  }, [accessToken, filter.mealType, filter.startDate, filter.endDate]);
+
+  useEffect(() => {
+    fetchLogs();
+  }, [fetchLogs]);
+
+  const handleDeleteClick = (mealId) => {
+    setMealToDelete(mealId);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!mealToDelete) return;
+
+    try {
+      await deleteMealLog(mealToDelete, accessToken);
+      setLogs(logs.filter(log => log.id !== mealToDelete));
+      setMealToDelete(null);
+    } catch (err) {
+      setError(err.message || 'Failed to delete meal log');
+    }
+  };
+
+  const formatDate = (timestamp) => {
+    const date = new Date(timestamp);
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+    });
+  };
+
+  const getTotalNutrition = (items) => {
+    return items.reduce(
+      (totals, item) => ({
+        calories: totals.calories + (item.calories || 0),
+        protein: totals.protein + (item.protein || 0),
+        carbs: totals.carbs + (item.carbs || 0),
+        fat: totals.fat + (item.fat || 0),
+      }),
+      { calories: 0, protein: 0, carbs: 0, fat: 0 }
+    );
+  };
+
+  return (
+    <div className="meal-logs-page">
+      <div className="meal-logs-header">
+        <div>
+          <h1 className="meal-logs-title">Meal Logs</h1>
+          <p className="meal-logs-subtitle">View your complete meal history</p>
+        </div>
+      </div>
+
+      <div className="meal-logs-filters">
+        <div className="filter-group">
+          <label htmlFor="meal-type-filter">Meal Type</label>
+          <CustomSelect
+            value={filter.mealType}
+            onChange={(value) => setFilter({ ...filter, mealType: value })}
+            options={[
+              { value: '', label: 'All' },
+              { value: 'breakfast', label: 'Breakfast' },
+              { value: 'lunch', label: 'Lunch' },
+              { value: 'dinner', label: 'Dinner' }
+            ]}
+            placeholder="All"
+          />
+        </div>
+
+        <div className="filter-group">
+          <label htmlFor="start-date-filter">Start Date</label>
+          <input
+            id="start-date-filter"
+            type="date"
+            value={filter.startDate}
+            onChange={(e) => setFilter({ ...filter, startDate: e.target.value })}
+            className="filter-input"
+          />
+        </div>
+
+        <div className="filter-group">
+          <label htmlFor="end-date-filter">End Date</label>
+          <input
+            id="end-date-filter"
+            type="date"
+            value={filter.endDate}
+            onChange={(e) => setFilter({ ...filter, endDate: e.target.value })}
+            className="filter-input"
+          />
+        </div>
+
+        {(filter.mealType || filter.startDate || filter.endDate) && (
+          <button
+            onClick={() => setFilter({ mealType: '', startDate: '', endDate: '' })}
+            className="filter-clear-btn"
+          >
+            Clear Filters
+          </button>
+        )}
+      </div>
+
+      {loading && (
+        <div className="meal-logs-loading">
+          <div className="spinner"></div>
+          <p>Loading meal logs...</p>
+        </div>
+      )}
+
+      {error && <div className="meal-logs-error">{error}</div>}
+
+      {!loading && !error && logs.length === 0 && (
+        <div className="meal-logs-empty">
+          <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+          </svg>
+          <h3>No meal logs found</h3>
+          <p>Start logging your meals to see them here</p>
+        </div>
+      )}
+
+      {!loading && !error && logs.length > 0 && (
+        <div className="meal-logs-list">
+          {logs.map((log) => {
+            const totals = getTotalNutrition(log.items);
+            return (
+              <div key={log.id} className="meal-log-card">
+                <div className="meal-log-header">
+                  <div className="meal-log-info">
+                    <h3 className="meal-log-name">
+                      {log.mealName || log.mealType || 'Meal'}
+                    </h3>
+                    <div className="meal-log-meta">
+                      <span className="meal-log-type-badge">
+                        {log.mealType || 'other'}
+                      </span>
+                      <span className="meal-log-date">{formatDate(log.timestamp)}</span>
+                      {log.locationName && (
+                        <span className="meal-log-location">📍 {log.locationName}</span>
+                      )}
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => handleDeleteClick(log.id)}
+                    className="meal-log-delete-btn"
+                    title="Delete meal log"
+                  >
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <polyline points="3 6 5 6 21 6"></polyline>
+                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                    </svg>
+                  </button>
+                </div>
+
+                {log.imageUrl && (
+                  <div className="meal-log-image-container">
+                    <img 
+                      src={log.imageUrl} 
+                      alt={log.mealName || 'Meal'} 
+                      className="meal-log-image"
+                    />
+                  </div>
+                )}
+
+                <div className="meal-log-nutrition">
+                  <div className="nutrition-stat">
+                    <span className="nutrition-label">Calories</span>
+                    <span className="nutrition-value">{Math.round(totals.calories)}</span>
+                  </div>
+                  <div className="nutrition-stat">
+                    <span className="nutrition-label">Protein</span>
+                    <span className="nutrition-value">{Math.round(totals.protein)}g</span>
+                  </div>
+                  <div className="nutrition-stat">
+                    <span className="nutrition-label">Carbs</span>
+                    <span className="nutrition-value">{Math.round(totals.carbs)}g</span>
+                  </div>
+                  <div className="nutrition-stat">
+                    <span className="nutrition-label">Fat</span>
+                    <span className="nutrition-value">{Math.round(totals.fat)}g</span>
+                  </div>
+                </div>
+
+                {log.items && log.items.length > 0 && (
+                  <div className="meal-log-items">
+                    <h4 className="meal-items-heading">Items ({log.items.length})</h4>
+                    <div className="meal-items-list">
+                      {log.items.map((item, index) => (
+                        <div key={index} className="meal-item">
+                          <div className="meal-item-info">
+                            <span className="meal-item-name">{item.recipeName}</span>
+                            {item.portionDescription && (
+                              <span className="meal-item-portion">{item.portionDescription}</span>
+                            )}
+                            {!item.portionDescription && item.servings && (
+                              <span className="meal-item-portion">{item.servings} serving(s)</span>
+                            )}
+                          </div>
+                          <div className="meal-item-macros">
+                            <span>{Math.round(item.calories || 0)} cal</span>
+                            <span>Protein: {Math.round(item.protein || 0)}g</span>
+                            <span>Carbs: {Math.round(item.carbs || 0)}g</span>
+                            <span>Fat: {Math.round(item.fat || 0)}g</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      <ConfirmModal
+        isOpen={showDeleteModal}
+        onClose={() => {
+          setShowDeleteModal(false);
+          setMealToDelete(null);
+        }}
+        onConfirm={confirmDelete}
+        title="Delete Meal Log"
+        message="This action is permanent. This meal will be removed from your history and will not be included in any nutrition data or insights."
+        confirmText="Delete"
+        cancelText="Cancel"
+        isDangerous={true}
+      />
+    </div>
+  );
+};
+
+export default MealLogs;
+

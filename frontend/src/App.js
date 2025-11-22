@@ -13,6 +13,7 @@ import Scanner from './pages/Scanner';
 import Social from './pages/Social';
 import MealPlanning from './pages/MealPlanning';
 import Leaderboard from './pages/Leaderboard';
+import MealLogs from './pages/MealLogs';
 import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
@@ -51,11 +52,12 @@ function MainLayout() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/nutrition-plan" element={<NutritionPlan />} />
-          <Route path="/insights" element={<Insights />} />
-          <Route path="/social/*" element={<Social />} />
-          <Route path="/meal-planning" element={<MealPlanning />} />
-          <Route path="/leaderboard" element={<Leaderboard />} />
           <Route path="/scanner" element={<Scanner />} />
+          <Route path="/meal-logs" element={<MealLogs />} />
+          <Route path="/insights" element={<Insights />} />
+          <Route path="/meal-planning" element={<MealPlanning />} />
+          <Route path="/social/*" element={<Social />} />
+          <Route path="/leaderboard" element={<Leaderboard />} />
         </Routes>
       </div>
     </div>

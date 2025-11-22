@@ -10,7 +10,7 @@ const mealLogService = require('../services/mealLogService');
  */
 const createMealLog = async (req, res) => {
   try {
-    const { mealDate, mealType, mealName, timestamp, locationId, locationName, items } = req.body;
+    const { mealDate, mealType, mealName, timestamp, locationId, locationName, items, imageUrl } = req.body;
     const userId = req.user.uid;
     const userEmail = req.user.email;
 
@@ -21,7 +21,7 @@ const createMealLog = async (req, res) => {
       });
     }
 
-    const mealLog = await mealLogService.createMealLog(userId, userEmail, {
+    const mealLogData = {
       mealDate,
       mealType,
       mealName: mealName || mealType,
@@ -29,7 +29,14 @@ const createMealLog = async (req, res) => {
       locationId,
       locationName,
       items,
-    });
+    };
+
+    // Add imageUrl if provided
+    if (imageUrl) {
+      mealLogData.imageUrl = imageUrl;
+    }
+
+    const mealLog = await mealLogService.createMealLog(userId, userEmail, mealLogData);
 
     res.status(201).json({
       message: 'Meal logged successfully',
