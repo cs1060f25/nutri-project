@@ -497,7 +497,23 @@ const SocialSearch = () => {
                 </div>
                 <div onClick={(e) => e.stopPropagation()}>
                   {isFriend(user.id) ? (
-                    <span style={{ color: '#1a5f3f', fontWeight: 500 }}>Friend</span>
+                    <button
+                      className="btn btn-secondary"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleUserClick(user);
+                      }}
+                      style={{ 
+                        background: 'transparent', 
+                        border: 'none', 
+                        color: '#1a5f3f', 
+                        fontWeight: 500,
+                        padding: '0.5rem 1rem',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Already Friended
+                    </button>
                   ) : incomingRequests[user.id] !== undefined ? (
                     <button
                       className="btn btn-primary"

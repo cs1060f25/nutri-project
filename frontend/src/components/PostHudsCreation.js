@@ -24,7 +24,6 @@ const PostHudsCreation = () => {
   const [selectedPostId, setSelectedPostId] = useState(null);
 
   // Editable fields
-  const [mealName, setMealName] = useState('');
   const [rating, setRating] = useState(0);
   const [hoveredRating, setHoveredRating] = useState(0);
   const [review, setReview] = useState('');
@@ -84,7 +83,6 @@ const PostHudsCreation = () => {
 
   const handleSelectLog = (log) => {
     setSelectedLog(log);
-    setMealName(log.mealName || '');
     setRating(log.rating || 0);
     setReview(log.review || '');
     setIsPublic(true);
@@ -110,7 +108,6 @@ const PostHudsCreation = () => {
     try {
       // First, update the meal log with any changes
       const updates = {
-        mealName,
         rating,
         review,
       };
@@ -145,7 +142,6 @@ const PostHudsCreation = () => {
   const handleCancel = () => {
     setShowEditForm(false);
     setSelectedLog(null);
-    setMealName('');
     setRating(0);
     setReview('');
     setError('');
@@ -193,7 +189,13 @@ const PostHudsCreation = () => {
           </div>
         ) : (
           <div className="meal-logs-grid">
-            {logs.map((log) => {
+            {[...logs].sort((a, b) => {
+              const aIsPosted = postedMealIds.has(a.id);
+              const bIsPosted = postedMealIds.has(b.id);
+              // Unposted meals (false) come before posted meals (true)
+              if (aIsPosted === bIsPosted) return 0;
+              return aIsPosted ? 1 : -1;
+            }).map((log) => {
               const isPosted = postedMealIds.has(log.id);
               const postId = mealIdToPostId.get(log.id);
               const handleClick = () => {
@@ -289,17 +291,6 @@ const PostHudsCreation = () => {
             <img src={selectedLog.imageUrl} alt="Meal" />
           </div>
         )}
-
-        <div className="post-huds-field">
-          <label>Meal Name</label>
-          <input
-            type="text"
-            value={mealName}
-            onChange={(e) => setMealName(e.target.value)}
-            placeholder="Enter meal name"
-            required
-          />
-        </div>
 
         <div className="post-huds-row">
           <div className="post-huds-field">

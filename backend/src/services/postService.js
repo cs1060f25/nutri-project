@@ -45,6 +45,10 @@ const createPost = async (userId, mealId, mealData, isPublic = true, displayOpti
     sugars: parseNutrient(mealData.totals.sugars),
   } : null;
 
+  // Store logged date (when meal was logged) and posted date (when post was created)
+  const loggedDate = mealData.mealDate ? new Date(mealData.mealDate) : null;
+  const postedDate = admin.firestore.FieldValue.serverTimestamp();
+
   const post = {
     userId,
     userEmail: userData.email,
@@ -53,8 +57,8 @@ const createPost = async (userId, mealId, mealData, isPublic = true, displayOpti
     userLastName: userData.lastName,
     mealId, // Reference to the original meal
     mealDate: mealData.mealDate,
+    loggedDate: loggedDate || null, // When the meal was actually logged
     mealType: mealData.mealType,
-    mealName: mealData.mealName || mealData.mealType,
     locationId: mealData.locationId,
     locationName: mealData.locationName,
     items: mealData.items,
@@ -75,8 +79,8 @@ const createPost = async (userId, mealId, mealData, isPublic = true, displayOpti
       carbs: true,
       fat: true,
     }, // User's display preferences for what to show in the post
-    timestamp: mealData.timestamp || admin.firestore.FieldValue.serverTimestamp(),
-    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    timestamp: postedDate, // Keep for backwards compatibility
+    createdAt: postedDate, // Posted date - when the post was created
     updatedAt: admin.firestore.FieldValue.serverTimestamp(),
   };
 
@@ -90,6 +94,7 @@ const createPost = async (userId, mealId, mealData, isPublic = true, displayOpti
     timestamp: postData.timestamp?.toDate(),
     createdAt: postData.createdAt?.toDate(),
     updatedAt: postData.updatedAt?.toDate(),
+    loggedDate: postData.loggedDate?.toDate?.() || (postData.loggedDate ? new Date(postData.loggedDate) : null),
   };
 };
 
@@ -248,8 +253,8 @@ const createPostFromScan = async (userId, scanData) => {
       userLastName: String(userData.lastName || ''),
       // Scan-specific fields
       mealDate: scanData.mealDate ? String(scanData.mealDate) : null,
+      loggedDate: scanData.mealDate ? new Date(scanData.mealDate) : null, // When the meal was actually logged
       mealType: scanData.mealType ? String(scanData.mealType) : null,
-      mealName: scanData.mealType ? String(scanData.mealType) : null, // Also set mealName for consistency with other posts
       rating: Number(scanData.rating),
       review: (typeof scanData.review === 'string' && scanData.review.trim().length > 0) ? String(scanData.review) : null,
       locationId: String(scanData.locationId), // Ensure it's a string
@@ -260,7 +265,7 @@ const createPostFromScan = async (userId, scanData) => {
       matchedItems: cleanMatchedItems,
       unmatchedDishes: cleanUnmatchedDishes,
       timestamp: timestampValue,
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      createdAt: admin.firestore.FieldValue.serverTimestamp(), // Posted date - when the post was created
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     };
 
@@ -374,6 +379,7 @@ const createPostFromScan = async (userId, scanData) => {
         timestamp: savedPostData.timestamp?.toDate(),
         createdAt: savedPostData.createdAt?.toDate(),
         updatedAt: savedPostData.updatedAt?.toDate(),
+        loggedDate: savedPostData.loggedDate?.toDate?.() || (savedPostData.loggedDate ? new Date(savedPostData.loggedDate) : null),
       };
     } catch (firestoreError) {
       console.error('Firestore operation failed:', firestoreError);
@@ -429,20 +435,23 @@ const getFeedPosts = async (userId, limit = 50) => {
     
     const snapshot = await batchQuery.get();
     snapshot.forEach(doc => {
+      const postData = doc.data();
       allPosts.push({
         id: doc.id,
-        ...doc.data(),
-        timestamp: doc.data().timestamp?.toDate(),
-        createdAt: doc.data().createdAt?.toDate(),
-        updatedAt: doc.data().updatedAt?.toDate(),
+        ...postData,
+        timestamp: postData.timestamp?.toDate(),
+        createdAt: postData.createdAt?.toDate(),
+        updatedAt: postData.updatedAt?.toDate(),
+        loggedDate: postData.loggedDate?.toDate?.() || (postData.loggedDate ? new Date(postData.loggedDate) : null),
       });
     });
   }
 
   // Sort all posts by timestamp descending (with fallback to createdAt)
+  // Sort by posted date (createdAt) - most recent first
   allPosts.sort((a, b) => {
-    const aTime = a.timestamp || a.createdAt || new Date(0);
-    const bTime = b.timestamp || b.createdAt || new Date(0);
+    const aTime = a.createdAt || a.timestamp || new Date(0);
+    const bTime = b.createdAt || b.timestamp || new Date(0);
     return bTime - aTime;
   });
 
@@ -513,12 +522,14 @@ const getDiningHallFeedPosts = async (userId, limit = 50) => {
         // Avoid duplicates by checking if post ID already exists
         if (!seenPostIds.has(doc.id)) {
           seenPostIds.add(doc.id);
+      const postData = doc.data();
       allPosts.push({
         id: doc.id,
-        ...doc.data(),
-        timestamp: doc.data().timestamp?.toDate(),
-        createdAt: doc.data().createdAt?.toDate(),
-        updatedAt: doc.data().updatedAt?.toDate(),
+        ...postData,
+        timestamp: postData.timestamp?.toDate(),
+        createdAt: postData.createdAt?.toDate(),
+        updatedAt: postData.updatedAt?.toDate(),
+        loggedDate: postData.loggedDate?.toDate?.() || (postData.loggedDate ? new Date(postData.loggedDate) : null),
       });
         }
     });
@@ -526,9 +537,10 @@ const getDiningHallFeedPosts = async (userId, limit = 50) => {
   }
 
   // Sort all posts by timestamp descending (with fallback to createdAt)
+  // Sort by posted date (createdAt) - most recent first
   allPosts.sort((a, b) => {
-    const aTime = a.timestamp || a.createdAt || new Date(0);
-    const bTime = b.timestamp || b.createdAt || new Date(0);
+    const aTime = a.createdAt || a.timestamp || new Date(0);
+    const bTime = b.createdAt || b.timestamp || new Date(0);
     return bTime - aTime;
   });
 
@@ -551,19 +563,22 @@ const getPostsByUser = async (userId, targetUserId, limit = 50) => {
   const posts = [];
 
   snapshot.forEach(doc => {
+    const postData = doc.data();
     posts.push({
       id: doc.id,
-      ...doc.data(),
-      timestamp: doc.data().timestamp?.toDate(),
-      createdAt: doc.data().createdAt?.toDate(),
-      updatedAt: doc.data().updatedAt?.toDate(),
+      ...postData,
+      timestamp: postData.timestamp?.toDate(),
+      createdAt: postData.createdAt?.toDate(),
+      updatedAt: postData.updatedAt?.toDate(),
+      loggedDate: postData.loggedDate?.toDate?.() || (postData.loggedDate ? new Date(postData.loggedDate) : null),
     });
   });
 
   // Sort by timestamp descending in-memory
+  // Sort by posted date (createdAt) - most recent first
   posts.sort((a, b) => {
-    const aTime = a.timestamp || a.createdAt || new Date(0);
-    const bTime = b.timestamp || b.createdAt || new Date(0);
+    const aTime = a.createdAt || a.timestamp || new Date(0);
+    const bTime = b.createdAt || b.timestamp || new Date(0);
     return bTime - aTime;
   });
 
@@ -586,19 +601,22 @@ const getPostsByLocation = async (locationId, limit = 50) => {
   const posts = [];
 
   snapshot.forEach(doc => {
+    const postData = doc.data();
     posts.push({
       id: doc.id,
-      ...doc.data(),
-      timestamp: doc.data().timestamp?.toDate(),
-      createdAt: doc.data().createdAt?.toDate(),
-      updatedAt: doc.data().updatedAt?.toDate(),
+      ...postData,
+      timestamp: postData.timestamp?.toDate(),
+      createdAt: postData.createdAt?.toDate(),
+      updatedAt: postData.updatedAt?.toDate(),
+      loggedDate: postData.loggedDate?.toDate?.() || (postData.loggedDate ? new Date(postData.loggedDate) : null),
     });
   });
 
   // Sort by timestamp descending in-memory
+  // Sort by posted date (createdAt) - most recent first
   posts.sort((a, b) => {
-    const aTime = a.timestamp || a.createdAt || new Date(0);
-    const bTime = b.timestamp || b.createdAt || new Date(0);
+    const aTime = a.createdAt || a.timestamp || new Date(0);
+    const bTime = b.createdAt || b.timestamp || new Date(0);
     return bTime - aTime;
   });
 
@@ -654,21 +672,24 @@ const getPostsByLocationName = async (locationName, limit = 50) => {
   snapshot.forEach(doc => {
       // Avoid duplicates by checking if post ID already exists
       if (!allPosts.find(p => p.id === doc.id)) {
+        const postData = doc.data();
         allPosts.push({
-      id: doc.id,
-      ...doc.data(),
-      timestamp: doc.data().timestamp?.toDate(),
-      createdAt: doc.data().createdAt?.toDate(),
-      updatedAt: doc.data().updatedAt?.toDate(),
-    });
+          id: doc.id,
+          ...postData,
+          timestamp: postData.timestamp?.toDate(),
+          createdAt: postData.createdAt?.toDate(),
+          updatedAt: postData.updatedAt?.toDate(),
+          loggedDate: postData.loggedDate?.toDate?.() || (postData.loggedDate ? new Date(postData.loggedDate) : null),
+        });
       }
   });
   }
 
   // Sort by timestamp descending in-memory
+  // Sort by posted date (createdAt) - most recent first
   allPosts.sort((a, b) => {
-    const aTime = a.timestamp || a.createdAt || new Date(0);
-    const bTime = b.timestamp || b.createdAt || new Date(0);
+    const aTime = a.createdAt || a.timestamp || new Date(0);
+    const bTime = b.createdAt || b.timestamp || new Date(0);
     return bTime - aTime;
   });
 
@@ -698,6 +719,7 @@ const getPostById = async (userId, postId) => {
     timestamp: postData.timestamp?.toDate(),
     createdAt: postData.createdAt?.toDate(),
     updatedAt: postData.updatedAt?.toDate(),
+    loggedDate: postData.loggedDate?.toDate?.() || (postData.loggedDate ? new Date(postData.loggedDate) : null),
   };
 };
 
@@ -724,7 +746,6 @@ const updatePost = async (userId, postId, updateData) => {
   const allowedFields = [
     'mealDate',
     'mealType',
-    'mealName',
     'rating',
     'review',
     'locationId',
@@ -750,7 +771,7 @@ const updatePost = async (userId, postId, updateData) => {
         updateObject[field] = review;
       } else if (field === 'mealDate') {
         updateObject[field] = updateData[field] ? String(updateData[field]) : null;
-      } else if (field === 'mealType' || field === 'mealName') {
+      } else if (field === 'mealType') {
         updateObject[field] = updateData[field] ? String(updateData[field]) : null;
       } else if (field === 'locationId' || field === 'locationName') {
         updateObject[field] = String(updateData[field] || '');

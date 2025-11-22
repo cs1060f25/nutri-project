@@ -127,8 +127,6 @@ const PostDetail = ({ postId, onClose }) => {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
     });
   };
 
@@ -200,12 +198,15 @@ const PostDetail = ({ postId, onClose }) => {
                     {post.userName}
                   </button>
                   <div className="post-meta">
-                    {formatDate(post.timestamp)}
+                    <span className="post-meta-chip">Posted on {formatDate(post.createdAt || post.timestamp)}</span>
+                    {post.loggedDate && (
+                      <span className="post-meta-chip">Logged on {formatDate(post.loggedDate)}</span>
+                    )}
                     {displayOptions.location && post.locationName && (
-                      <>
-                        {' • '}
-                        {post.locationName}
-                      </>
+                      <span className="post-meta-chip">{post.locationName}</span>
+                    )}
+                    {displayOptions.mealType && post.mealType && (
+                      <span className="post-meta-chip post-meal-type-chip">{post.mealType}</span>
                     )}
                   </div>
                 </div>
@@ -220,19 +221,18 @@ const PostDetail = ({ postId, onClose }) => {
                 {/* Post Content */}
                 <div className="post-detail-card">
 
-          {displayOptions.mealType && post.mealType && (
-            <div className="post-meal-type-detail">{post.mealType}</div>
-          )}
-
-          {/* Image */}
-          {post.image && displayOptions.image && (
-            <div className="post-detail-image">
-              <img 
-                src={post.image.startsWith('http') ? post.image : (post.image.startsWith('data:') ? post.image : `data:image/jpeg;base64,${post.image}`)} 
-                alt="Meal" 
-              />
-            </div>
-          )}
+          {/* Meal Section */}
+          <div className="post-detail-section">
+            <h3>Meal</h3>
+            {post.image && displayOptions.image && (
+              <div className="post-detail-image">
+                <img 
+                  src={post.image.startsWith('http') ? post.image : (post.image.startsWith('data:') ? post.image : `data:image/jpeg;base64,${post.image}`)} 
+                  alt="Meal" 
+                />
+              </div>
+            )}
+          </div>
 
           {/* Rating */}
           {displayOptions.rating && post.rating && (
