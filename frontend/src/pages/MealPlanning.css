@@ -128,9 +128,17 @@
   overflow: hidden;
 }
 
+.planner-title {
+  margin: 0 0 1.5rem 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1a5f3f;
+  text-align: center;
+}
+
 .calendar-grid {
   display: grid;
-  grid-template-columns: 80px repeat(7, minmax(0, 1fr));
+  grid-template-columns: 80px 1fr;
   border: 1px solid #e0e0e0;
   table-layout: fixed;
   width: 100%;
@@ -183,9 +191,7 @@
 }
 
 .calendar-cell {
-  height: 140px;
   min-height: 140px;
-  max-height: 140px;
   padding: 0.5rem;
   border-right: 1px solid #e0e0e0;
   border-bottom: 1px solid #e0e0e0;
@@ -526,6 +532,7 @@
   padding: 0.75rem;
   cursor: pointer;
   transition: all 0.2s;
+  position: relative;
 }
 
 .menu-item-card:hover {
@@ -538,11 +545,34 @@
   background: #e8f5e9;
 }
 
+.menu-item-name-container {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
 .menu-item-name {
   font-weight: 500;
   color: #333;
-  margin-bottom: 0.5rem;
   font-size: 0.9rem;
+  flex: 1;
+}
+
+.vegan-badge {
+  position: absolute;
+  bottom: 0.5rem;
+  right: 0.5rem;
+  background: #1a5f3f;
+  color: white;
+  font-size: 0.65rem;
+  font-weight: 600;
+  padding: 0.25rem 0.5rem;
+  border-radius: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  line-height: 1.2;
+  z-index: 1;
 }
 
 .menu-item-details {
@@ -567,7 +597,7 @@
   }
 
   .calendar-grid {
-    grid-template-columns: 50px repeat(3, 1fr);
+    grid-template-columns: 50px 1fr;
     font-size: 0.875rem;
   }
 
@@ -589,8 +619,12 @@
   }
 
   .calendar-cell {
-    min-height: 80px;
-    padding: 0.25rem;
+    min-height: 100px;
+    padding: 0.5rem;
+  }
+
+  .calendar-row {
+    display: contents;
   }
 
   .meal-planning-add-btn {

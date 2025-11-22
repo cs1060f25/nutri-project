@@ -11,7 +11,7 @@ import CreatePostModal from '../components/CreatePostModal';
 import './MealPlanning.css';
 
 const MEAL_TYPES = ['breakfast', 'lunch', 'dinner'];
-const DAYS_OF_WEEK = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const DAYS_OF_WEEK = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
 
 // Color mapping for dining halls
 const DINING_HALL_COLORS = {
@@ -106,14 +106,11 @@ const getDiningHallColor = (locationName) => {
 
 const MealPlanning = () => {
   const { accessToken, refreshAccessToken } = useAuth();
-  const [currentWeekStart, setCurrentWeekStart] = useState(() => {
-    // Start of current week (Sunday)
+  // Only plan for today
+  const [today] = useState(() => {
     const today = new Date();
-    const day = today.getDay();
-    const diff = today.getDate() - day;
-    const startOfWeek = new Date(today.setDate(diff));
-    startOfWeek.setHours(0, 0, 0, 0);
-    return startOfWeek;
+    today.setHours(0, 0, 0, 0);
+    return today;
   });
   const [mealPlans, setMealPlans] = useState([]);
   const [locations, setLocations] = useState([]);
@@ -153,31 +150,8 @@ const MealPlanning = () => {
   const [deleteType, setDeleteType] = useState('mealPlan'); // 'mealPlan' or 'savedMealPlan'
   const [deleteTargetId, setDeleteTargetId] = useState(null);
   
-  // Detect screen size for 3-day view on small screens
-  const [isSmallScreen, setIsSmallScreen] = useState(window.innerWidth <= 768);
-  
-  useEffect(() => {
-    const handleResize = () => {
-      setIsSmallScreen(window.innerWidth <= 768);
-    };
-    
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
-  // Calculate week dates (3 days on small screens, 7 on large screens)
-  const getWeekDates = () => {
-    const dates = [];
-    const daysToShow = isSmallScreen ? 3 : 7;
-    for (let i = 0; i < daysToShow; i++) {
-      const date = new Date(currentWeekStart);
-      date.setDate(currentWeekStart.getDate() + i);
-      dates.push(date);
-    }
-    return dates;
-  };
-
-  const weekDates = getWeekDates();
+  // Only show today
+  const todayDates = [today];
 
   // Format date as YYYY-MM-DD
   // Handles both Date objects and date strings (YYYY-MM-DD format)
@@ -216,31 +190,6 @@ const MealPlanning = () => {
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
 
-  // Navigate weeks (3 days on small screens, 7 on large screens)
-  const navigateWeek = (direction) => {
-    const newDate = new Date(currentWeekStart);
-    const daysToMove = isSmallScreen ? 3 : 7;
-    newDate.setDate(currentWeekStart.getDate() + (direction * daysToMove));
-    setCurrentWeekStart(newDate);
-  };
-
-  // Go to today's week (or 3-day segment containing today)
-  const goToToday = () => {
-    const today = new Date();
-    if (isSmallScreen) {
-      // For 3-day view, start from today (or go back to include today in the 3-day window)
-      const startDate = new Date(today);
-      startDate.setHours(0, 0, 0, 0);
-      setCurrentWeekStart(startDate);
-    } else {
-      // For week view, start from Sunday of current week
-      const day = today.getDay();
-      const diff = today.getDate() - day;
-      const startOfWeek = new Date(today.setDate(diff));
-      startOfWeek.setHours(0, 0, 0, 0);
-      setCurrentWeekStart(startOfWeek);
-    }
-  };
 
   // Houses that share menus (11 houses, excluding Quincy)
   const SHARED_MENU_HOUSES = [
@@ -361,9 +310,8 @@ const MealPlanning = () => {
       if (!accessToken) return;
       try {
         setLoading(true);
-        const startDate = formatDate(weekDates[0]);
-        const endDate = formatDate(weekDates[weekDates.length - 1]);
-        const data = await getMealPlans(startDate, endDate, accessToken);
+        const todayDate = formatDate(today);
+        const data = await getMealPlans(todayDate, todayDate, accessToken);
         setMealPlans(data.mealPlans || []);
       } catch (error) {
         console.error('Error fetching meal plans:', error);
@@ -373,7 +321,7 @@ const MealPlanning = () => {
     };
     fetchMealPlans();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [accessToken, currentWeekStart, isSmallScreen]);
+  }, [accessToken, today]);
 
   // Fetch saved meal plans
   useEffect(() => {
@@ -491,8 +439,9 @@ const MealPlanning = () => {
 
   // Open add modal
   const handleAddClick = (date = null, mealType = '') => {
-    const targetDate = date ? formatDate(date) : formatDate(new Date());
-    setSelectedDate(targetDate);
+    // Always use today's date
+    const todayDate = formatDate(today);
+    setSelectedDate(todayDate);
     setSelectedMealType(mealType);
     setSelectedLocationId('');
     setSelectedLocationName('');
@@ -748,6 +697,14 @@ const MealPlanning = () => {
     }
   };
 
+  // Auto-set today's date when modal opens
+  useEffect(() => {
+    if (isAddModalOpen && !selectedDate) {
+      const todayDate = formatDate(today);
+      setSelectedDate(todayDate);
+    }
+  }, [isAddModalOpen, selectedDate, today]);
+
   // Update menu items when date, location, or meal type changes
   useEffect(() => {
     if (selectedDate && selectedLocationId && selectedMealType) {
@@ -812,28 +769,45 @@ const MealPlanning = () => {
 
       if (mealPlanToUpdate) {
         // Update existing meal plan
+        // Clean item names (remove "Vgn") before saving, but keep vegan flag
+        const cleanedItems = selectedItems.map(item => {
+          const { cleanedName, isVegan } = cleanItemName(item.name);
+          return {
+            ...item,
+            name: cleanedName,
+            isVegan: isVegan // Store vegan flag
+          };
+        });
         await attemptApiCall((token) => updateMealPlan(mealPlanToUpdate, {
           date: selectedDate,
           mealType: selectedMealType,
           locationId: selectedLocationId,
           locationName: selectedLocationName,
-          selectedItems: selectedItems,
+          selectedItems: cleanedItems,
         }, token));
       } else {
         // Create new meal plan
+        // Clean item names (remove "Vgn") before saving, but keep original for vegan detection
+        const cleanedItems = selectedItems.map(item => {
+          const { cleanedName, isVegan } = cleanItemName(item.name);
+          return {
+            ...item,
+            name: cleanedName,
+            isVegan: isVegan // Store vegan flag
+          };
+        });
         await attemptApiCall((token) => createMealPlan({
           date: selectedDate,
           mealType: selectedMealType,
           locationId: selectedLocationId,
           locationName: selectedLocationName,
-          selectedItems: selectedItems,
+          selectedItems: cleanedItems,
         }, token));
       }
 
       // Refresh meal plans
-      const startDate = formatDate(weekDates[0]);
-      const endDate = formatDate(weekDates[weekDates.length - 1]);
-      const data = await attemptApiCall((token) => getMealPlans(startDate, endDate, token));
+      const todayDate = formatDate(today);
+      const data = await attemptApiCall((token) => getMealPlans(todayDate, todayDate, token));
       setMealPlans(data.mealPlans || []);
 
       // Close modal and reset form
@@ -862,6 +836,8 @@ const MealPlanning = () => {
   const handleMealPlanClick = async (plan) => {
     setSelectedMealPlan(plan);
     setIsSidePanelOpen(true);
+    // Reset completion status when opening a meal plan
+    setIsMealPlanCompleted(false);
     
     // Check if this meal plan has been completed (has a matching meal log)
     if (accessToken) {
@@ -890,6 +866,18 @@ const MealPlanning = () => {
           // Compare meal types case-insensitively
           const typeMatch = meal.mealType?.toLowerCase() === plan.mealType?.toLowerCase();
           
+          // Also check if the meal log items match the meal plan items
+          // This ensures we only mark as completed if the actual meal was logged, not just any meal
+          const planItemNames = (plan.selectedItems || []).map(item => item.name?.toLowerCase() || '');
+          const mealItemNames = (meal.items || []).map(item => item.recipeName?.toLowerCase() || item.name?.toLowerCase() || '');
+          
+          // Check if at least some items from the meal plan are in the meal log
+          const hasMatchingItems = planItemNames.length > 0 && planItemNames.some(planItem => 
+            mealItemNames.some(mealItem => 
+              mealItem.includes(planItem) || planItem.includes(mealItem)
+            )
+          );
+          
           console.log('Comparing:', {
             mealDate: meal.mealDate,
             mealDateStr,
@@ -899,9 +887,14 @@ const MealPlanning = () => {
             mealType: meal.mealType,
             planMealType: plan.mealType,
             typeMatch,
-            overallMatch: dateMatch && typeMatch
+            planItems: planItemNames,
+            mealItems: mealItemNames,
+            hasMatchingItems,
+            overallMatch: dateMatch && typeMatch && hasMatchingItems
           });
-          return dateMatch && typeMatch;
+          
+          // Only mark as completed if date, meal type, AND items match
+          return dateMatch && typeMatch && hasMatchingItems;
         });
         
         console.log('Meal plan completed:', isCompleted);
@@ -965,9 +958,8 @@ const MealPlanning = () => {
         await deleteMealPlan(deleteTargetId, accessToken);
       
       // Refresh meal plans
-      const startDate = formatDate(weekDates[0]);
-      const endDate = formatDate(weekDates[weekDates.length - 1]);
-      const data = await getMealPlans(startDate, endDate, accessToken);
+      const todayDate = formatDate(today);
+      const data = await getMealPlans(todayDate, todayDate, accessToken);
       setMealPlans(data.mealPlans || []);
       
       // Close side panel
@@ -1081,6 +1073,15 @@ const MealPlanning = () => {
       .join(' ');
   };
 
+  // Helper function to clean name and check if vegan
+  const cleanItemName = (name) => {
+    if (!name) return { cleanedName: '', isVegan: false };
+    const isVegan = /vgn/i.test(name);
+    // Remove "Vgn" (case-insensitive) from the name
+    const cleanedName = name.replace(/\s*vgn\s*/gi, ' ').trim().replace(/\s+/g, ' ');
+    return { cleanedName, isVegan };
+  };
+
   // Check if saved meal plan items are available today
   const checkSavedPlanAvailability = (savedPlan) => {
     if (!todaysMenu || todaysMenu.length === 0) {
@@ -1142,9 +1143,9 @@ const MealPlanning = () => {
       const data = await getSavedMealPlans(accessToken);
       setSavedMealPlans(data.savedPlans || []);
       
-      // Set up the form with saved plan data
-      const today = formatDate(new Date());
-      setSelectedDate(today);
+      // Set up the form with saved plan data (always use today)
+      const todayDate = formatDate(today);
+      setSelectedDate(todayDate);
       setSelectedMealType(savedPlan.mealType);
       setSelectedLocationId(savedPlan.locationId);
       setSelectedLocationName(savedPlan.locationName);
@@ -1304,46 +1305,20 @@ const MealPlanning = () => {
       <header className="meal-planning-header">
         <div>
           <h1>Meal Planning</h1>
-          <p>Plan your meals for the week ahead</p>
+          <p>Plan your meals for today</p>
         </div>
       </header>
-      <div className="week-navigation-container">
-        <div className="week-navigation">
-          <button className="btn btn-secondary" onClick={() => navigateWeek(-1)}>
-            {isSmallScreen ? '← Previous 3 Days' : '← Previous Week'}
-          </button>
-          <h2>
-            {formatDateDisplay(weekDates[0])} - {formatDateDisplay(weekDates[weekDates.length - 1])}
-          </h2>
-          <button className="btn btn-secondary" onClick={() => navigateWeek(1)}>
-            {isSmallScreen ? 'Next 3 Days →' : 'Next Week →'}
-          </button>
-          <button className="btn btn-secondary" onClick={goToToday} style={{ marginLeft: '1rem' }}>
-            Today
-          </button>
-        </div>
-      </div>
 
       <div className="meal-planning-calendar">
+        <h2 className="planner-title">Your Planner For Today</h2>
         <div className="calendar-grid">
-          {/* Header row with days */}
-          <div className="calendar-header">
-            <div className="calendar-time-column"></div>
-            {weekDates.map((date, index) => (
-              <div key={`day-header-${formatDate(date)}`} className="calendar-day-header">
-                <div className="day-name">{DAYS_OF_WEEK[date.getDay()]}</div>
-                <div className="day-number">{date.getDate()}</div>
-              </div>
-            ))}
-          </div>
-
           {/* Meal rows */}
           {MEAL_TYPES.map((mealType) => (
             <div key={mealType} className="calendar-row">
               <div className="calendar-time-column">
                 <div className="meal-type-label">{mealType.charAt(0).toUpperCase() + mealType.slice(1)}</div>
               </div>
-              {weekDates.map((date, dateIndex) => {
+              {todayDates.map((date, dateIndex) => {
                 const plan = getMealPlanForCell(date, mealType);
                 return (
                   <div 
@@ -2276,16 +2251,6 @@ const MealPlanning = () => {
 
             <div className="modal-content">
               <div className="form-group">
-                <label>Date</label>
-                <input
-                  type="date"
-                  value={selectedDate}
-                  onChange={handleDateChange}
-                  className="form-input"
-                />
-              </div>
-
-              <div className="form-group">
                 <label>Meal Type</label>
                 <CustomSelect
                   value={selectedMealType}
@@ -2360,13 +2325,19 @@ const MealPlanning = () => {
                           <div className="menu-items-list">
                             {items.map((item, itemIndex) => {
                               const isSelected = selectedItems.find(i => i.id === item.id);
+                              const { cleanedName, isVegan } = cleanItemName(item.name);
                               return (
                                 <div
                                   key={`${category}-${item.id}-${itemIndex}`}
                                   className={`menu-item-card ${isSelected ? 'selected' : ''}`}
                                   onClick={() => toggleItemSelection(item)}
                                 >
-                                  <div className="menu-item-name">{capitalizeFoodName(item.name)}</div>
+                                  <div className="menu-item-name-container">
+                                    <div className="menu-item-name">{capitalizeFoodName(cleanedName)}</div>
+                                  </div>
+                                  {isVegan && (
+                                    <div className="vegan-badge" title="Vegan">Vegan</div>
+                                  )}
                                   <div className="menu-item-details">
                                     <span>{item.calories} cal</span>
                                     {item.protein && <span>{item.protein}g protein</span>}
