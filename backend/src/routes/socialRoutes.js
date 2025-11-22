@@ -19,6 +19,7 @@ router.post('/posts', socialController.createPost);
 router.post('/posts/scan', socialController.createPostFromScan);
 router.get('/posts/feed', socialController.getFeedPosts);
 router.get('/posts/feed/dining-halls', socialController.getDiningHallFeedPosts);
+router.get('/posts/popular', socialController.getPopularPosts);
 router.get('/posts/user/:userId', socialController.getPostsByUser);
 router.get('/posts/location/:locationId', socialController.getPostsByLocation);
 router.get('/posts/location-name/:locationName', socialController.getPostsByLocationName);
