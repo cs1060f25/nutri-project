@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Upload, ArrowRight, Clock } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { analyzeMealImage } from '../services/geminiService';
-import CreatePostModal from './CreatePostModal';
+import SaveLogModal from './SaveLogModal';
 import './FoodScanner.css';
 
 const formatNumber = (value) => {
@@ -12,12 +13,13 @@ const formatNumber = (value) => {
 };
 
 const FoodScanner = () => {
+  const navigate = useNavigate();
   const [selectedFile, setSelectedFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState(null);
   const [error, setError] = useState(null);
-  const [showPostModal, setShowPostModal] = useState(false);
+  const [showSaveModal, setShowSaveModal] = useState(false);
 
   const handleFileSelect = (e) => {
     const file = e.target.files[0];
@@ -84,6 +86,14 @@ const FoodScanner = () => {
     setPreviewUrl(null);
     setResults(null);
     setError(null);
+  };
+
+  const handleSaveLogClick = () => {
+    if (!results) {
+      setError('No scan results to save');
+      return;
+    }
+    setShowSaveModal(true);
   };
 
   return (
@@ -275,7 +285,7 @@ const FoodScanner = () => {
                   Scanned {new Date(results.timestamp).toLocaleString()}
                 </div>
                 <button
-                  onClick={() => setShowPostModal(true)}
+                  onClick={handleSaveLogClick}
                   className="scanner-primary-btn scanner-save-log-btn"
                 >
                   Save Log
@@ -286,12 +296,13 @@ const FoodScanner = () => {
         </div>
       </div>
 
-      <CreatePostModal
-        isOpen={showPostModal}
-        onClose={() => setShowPostModal(false)}
+      <SaveLogModal
+        isOpen={showSaveModal}
+        onClose={() => setShowSaveModal(false)}
         onSuccess={() => {
-          setShowPostModal(false);
-          resetScanner(); // Reset scanner to upload state after successful save
+          setShowSaveModal(false);
+          resetScanner();
+          navigate('/home/meal-logs');
         }}
         scanData={results}
         imageUrl={previewUrl}
@@ -299,7 +310,6 @@ const FoodScanner = () => {
       />
     </div>
   );
-}
-;
+};
 
 export default FoodScanner;

@@ -147,6 +147,8 @@
   background: white;
   cursor: pointer;
   transition: border-color 0.2s;
+  height: 48px;
+  box-sizing: border-box;
 }
 
 .create-post-modal-date:focus,
@@ -154,6 +156,12 @@
   outline: none;
   border-color: #2d6a4f;
   box-shadow: 0 0 0 3px rgba(45, 106, 79, 0.1);
+}
+
+/* Match CustomSelect height to date inputs */
+.create-post-modal-field .custom-select-wrapper .custom-select-trigger {
+  height: 48px;
+  box-sizing: border-box;
 }
 
 .create-post-modal-textarea {
