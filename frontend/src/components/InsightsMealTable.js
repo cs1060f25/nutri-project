@@ -8,7 +8,7 @@ const nutrientOrder = [
   { key: 'transFat', label: 'Trans Fat', suffix: 'g' },
   { key: 'cholesterol', label: 'Cholesterol', suffix: 'mg' },
   { key: 'sodium', label: 'Sodium', suffix: 'mg' },
-  { key: 'totalCarb', label: 'Total Carbs', suffix: 'g' },
+  { key: 'totalCarbs', label: 'Total Carbs', suffix: 'g' },
   { key: 'dietaryFiber', label: 'Fiber', suffix: 'g' },
   { key: 'sugars', label: 'Sugars', suffix: 'g' },
   { key: 'protein', label: 'Protein', suffix: 'g' },

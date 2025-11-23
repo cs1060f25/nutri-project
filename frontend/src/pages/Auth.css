@@ -290,30 +290,14 @@
   color: #a0aec0;
 }
 
-.residence-select {
-  padding: 14px 16px;
-  border: 2px solid #e2e8f0;
-  border-radius: 12px;
-  font-size: 15px;
-  transition: all 0.3s ease;
-  background: white;
-  color: #2d3748;
-  cursor: pointer;
+
+/* Override CustomSelect text color to match input fields */
+.auth-form .custom-select-trigger {
+  color: #2d3748 !important;
 }
 
-.residence-select:focus {
-  outline: none;
-  border-color: #2d8659;
-  box-shadow: 0 0 0 3px rgba(45, 134, 89, 0.1);
-}
-
-.residence-select:disabled {
-  background: #f7fafc;
-  cursor: not-allowed;
-}
-
-.residence-select option {
-  padding: 8px;
+.auth-form .custom-select-trigger .selected-value {
+  color: #2d3748 !important;
 }
 
 .form-options {
@@ -557,7 +541,7 @@
 .form-navigation {
   display: flex;
   gap: 12px;
-  margin-top: 24px;
+  margin-top: 10px;
 }
 
 .form-navigation .auth-button {
@@ -643,5 +627,90 @@
   color: #2d3748;
   line-height: 1.5;
   flex: 1;
+}
+
+/* Chip styles for selectable options */
+.chip-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border: 2px solid #e2e8f0;
+  border-radius: 24px;
+  background: #f5f5f5;
+  color: #2d3748;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  outline: none;
+  user-select: none;
+  position: relative;
+}
+
+.chip:hover:not(:disabled) {
+  border-color: #1a5f3f;
+  background: #f0f9f4;
+  color: #1a5f3f;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(26, 95, 63, 0.15);
+}
+
+.chip.chip-selected {
+  background: #1a5f3f;
+  border-color: #1a5f3f;
+  color: white;
+  box-shadow: 0 2px 8px rgba(26, 95, 63, 0.2);
+}
+
+.chip.chip-selected:hover:not(:disabled) {
+  background: #2d8659;
+  border-color: #2d8659;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 12px rgba(26, 95, 63, 0.3);
+}
+
+.chip:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.chip:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(26, 95, 63, 0.1);
+}
+
+.chip-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.chip:not(.chip-selected) .chip-icon {
+  background: #f0f9f4;
+  color: #1a5f3f;
+  border: 1px solid #1a5f3f;
+}
+
+.chip.chip-selected .chip-icon {
+  background: white;
+  color: #1a5f3f;
+  border: 1px solid white;
 }
 

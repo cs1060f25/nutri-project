@@ -10,6 +10,9 @@ import ResetPassword from './pages/ResetPassword';
 import FirebaseActionHandler from './pages/FirebaseActionHandler';
 import Insights from './pages/Insights';
 import Scanner from './pages/Scanner';
+import Social from './pages/Social';
+import MealPlanning from './pages/MealPlanning';
+import MealLogs from './pages/MealLogs';
 import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
@@ -48,8 +51,11 @@ function MainLayout() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/nutrition-plan" element={<NutritionPlan />} />
-          <Route path="/insights" element={<Insights />} />
           <Route path="/scanner" element={<Scanner />} />
+          <Route path="/meal-logs" element={<MealLogs />} />
+          <Route path="/insights" element={<Insights />} />
+          <Route path="/meal-planning" element={<MealPlanning />} />
+          <Route path="/social/*" element={<Social />} />
         </Routes>
       </div>
     </div>

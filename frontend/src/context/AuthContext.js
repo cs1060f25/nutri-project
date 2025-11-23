@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
+import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
 
 const AuthContext = createContext(null);
 
@@ -54,6 +54,76 @@ export const AuthProvider = ({ children }) => {
     setLoading(false);
   }, []);
 
+  const logout = useCallback(async () => {
+    try {
+      if (accessToken) {
+        await fetch('/auth/logout', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
+        });
+      }
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      // Clear both local storage and session storage
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('refreshToken');
+      localStorage.removeItem('user');
+      sessionStorage.removeItem('accessToken');
+      sessionStorage.removeItem('refreshToken');
+      sessionStorage.removeItem('user');
+      setAccessToken(null);
+      setRefreshToken(null);
+      setUser(null);
+    }
+  }, [accessToken]);
+
+  const refreshAccessToken = useCallback(async () => {
+    try {
+      const storedRefreshToken = localStorage.getItem('refreshToken') || sessionStorage.getItem('refreshToken');
+      
+      if (!storedRefreshToken) {
+        throw new Error('No refresh token available');
+      }
+
+      const data = await postJson('/auth/refresh', { refreshToken: storedRefreshToken });
+
+      // Update tokens in storage (use same storage type as before)
+      const storage = localStorage.getItem('refreshToken') ? localStorage : sessionStorage;
+      storage.setItem('accessToken', data.accessToken);
+      storage.setItem('refreshToken', data.refreshToken);
+
+      setAccessToken(data.accessToken);
+      setRefreshToken(data.refreshToken);
+
+      return data.accessToken;
+    } catch (error) {
+      console.error('Token refresh error:', error);
+      // If refresh fails, log out the user
+      await logout();
+      throw error;
+    }
+  }, [logout]);
+
+  // Set up automatic token refresh every 50 minutes (tokens expire after 1 hour)
+  useEffect(() => {
+    if (!accessToken || !refreshToken) return;
+
+    const refreshInterval = setInterval(async () => {
+      console.log('Auto-refreshing token...');
+      try {
+        await refreshAccessToken();
+      } catch (error) {
+        console.error('Auto-refresh failed:', error);
+      }
+    }, 50 * 60 * 1000); // 50 minutes
+
+    return () => clearInterval(refreshInterval);
+  }, [accessToken, refreshToken, refreshAccessToken]);
+
   const login = async (email, password, rememberMe = false) => {
     try {
       const data = await postJson('/auth/login', { email, password });
@@ -104,60 +174,6 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       console.error('Registration error:', error);
       return { success: false, error: error.message };
-    }
-  };
-
-  const refreshAccessToken = async () => {
-    try {
-      const storedRefreshToken = localStorage.getItem('refreshToken') || sessionStorage.getItem('refreshToken');
-      
-      if (!storedRefreshToken) {
-        throw new Error('No refresh token available');
-      }
-
-      const data = await postJson('/auth/refresh', { refreshToken: storedRefreshToken });
-
-      // Update tokens in storage (use same storage type as before)
-      const storage = localStorage.getItem('refreshToken') ? localStorage : sessionStorage;
-      storage.setItem('accessToken', data.accessToken);
-      storage.setItem('refreshToken', data.refreshToken);
-
-      setAccessToken(data.accessToken);
-      setRefreshToken(data.refreshToken);
-
-      return data.accessToken;
-    } catch (error) {
-      console.error('Token refresh error:', error);
-      // If refresh fails, log out the user
-      await logout();
-      throw error;
-    }
-  };
-
-  const logout = async () => {
-    try {
-      if (accessToken) {
-        await fetch('/auth/logout', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${accessToken}`,
-            'Content-Type': 'application/json',
-          },
-        });
-      }
-    } catch (error) {
-      console.error('Logout error:', error);
-    } finally {
-      // Clear both local storage and session storage
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('refreshToken');
-      localStorage.removeItem('user');
-      sessionStorage.removeItem('accessToken');
-      sessionStorage.removeItem('refreshToken');
-      sessionStorage.removeItem('user');
-      setAccessToken(null);
-      setRefreshToken(null);
-      setUser(null);
     }
   };
 

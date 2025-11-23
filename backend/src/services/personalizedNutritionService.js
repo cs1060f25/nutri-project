@@ -194,46 +194,53 @@ const calculateAgeFromBirthday = (birthday) => {
 
 /**
  * Generate personalized nutrition plan based on user profile
+ * Only uses information collected during onboarding:
+ * - birthday, age, gender, height, weight (from step 3)
+ * - dietaryPattern, isKosher, isHalal, allergies, healthConditions (from step 4)
  */
 const generatePersonalizedPlan = (userProfile) => {
   if (!userProfile) {
     return null;
   }
 
-  const { birthday, age, gender, height, weight, activityLevel, primaryGoal, healthConditions } = userProfile;
+  const { birthday, age, gender, height, weight, healthConditions } = userProfile;
 
   // Calculate age from birthday if birthday is provided, otherwise use stored age
   const calculatedAge = birthday ? calculateAgeFromBirthday(birthday) : age;
 
-  // Need essential data to calculate
-  if (!calculatedAge || !gender || !height || !weight || !activityLevel) {
+  // Need essential data to calculate (only from onboarding)
+  if (!calculatedAge || !gender || !height || !weight) {
     return null;
   }
 
   const heightFeet = height?.feet || 5;
   const heightInches = height?.inches || 10;
 
-  // Calculate BMR and TDEE
+  // Calculate BMR
   const bmr = calculateBMR(calculatedAge, gender, heightFeet, heightInches, weight);
-  const tdee = calculateTDEE(bmr, activityLevel);
   
-  // Adjust calories for goal
-  const targetCalories = adjustCaloriesForGoal(tdee, primaryGoal || 'weight-maintenance');
+  // Use default activity level (moderately-active) since it's no longer collected
+  const defaultActivityLevel = 'moderately-active';
+  const tdee = calculateTDEE(bmr, defaultActivityLevel);
+  
+  // Use default goal (weight-maintenance) since it's no longer collected
+  const defaultGoal = 'weight-maintenance';
+  const targetCalories = adjustCaloriesForGoal(tdee, defaultGoal);
 
-  // Calculate macronutrients
-  const targetProtein = calculateProteinTarget(weight, primaryGoal, gender);
+  // Calculate macronutrients (using default goal)
+  const targetProtein = calculateProteinTarget(weight, defaultGoal, gender);
   const hasDiabetes = healthConditions?.some(condition => 
     condition.toLowerCase().includes('diabetes') || condition.toLowerCase().includes('blood sugar')
   );
-  const targetCarbs = calculateCarbTarget(targetCalories, primaryGoal, hasDiabetes);
-  const targetFat = calculateFatTarget(targetCalories, primaryGoal);
+  const targetCarbs = calculateCarbTarget(targetCalories, defaultGoal, hasDiabetes);
+  const targetFat = calculateFatTarget(targetCalories, defaultGoal);
   
   // Calculate other nutrients
   const targetSodium = calculateSodiumTarget(healthConditions);
   const targetCholesterol = calculateCholesterolTarget(healthConditions);
   const targetFiber = calculateFiberTarget(gender, calculatedAge);
 
-  // Determine suggested preset based on goal and health conditions
+  // Determine suggested preset based on health conditions (goal no longer collected)
   let suggestedPreset = 'balanced';
   let presetReason = 'A balanced approach covering all major nutrients.';
   
@@ -243,63 +250,53 @@ const generatePersonalizedPlan = (userProfile) => {
   } else if (healthConditions?.some(c => c.toLowerCase().includes('heart') || c.toLowerCase().includes('cholesterol'))) {
     suggestedPreset = 'heart-healthy';
     presetReason = 'Selected because you indicated heart or cholesterol concerns.';
-  } else if (primaryGoal === 'muscle-gain') {
-    suggestedPreset = 'high-protein';
-    presetReason = 'Selected to support your muscle gain and athletic performance goals.';
   }
 
   // Build explanation for the personalized plan
   const explanations = [];
   
-  // Base calculation explanation
-  explanations.push(`Your daily calorie target of ${targetCalories} kcal is based on:`);
-  explanations.push(`• Basal Metabolic Rate (BMR): ${bmr} kcal/day - the energy your body needs at rest`);
-  explanations.push(`• Activity Level: ${activityLevel.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())} (TDEE: ${tdee} kcal/day)`);
-  
-  if (primaryGoal) {
-    const goalMap = {
-      'weight-loss': 'a 500 kcal deficit for safe weight loss (~1 lb/week)',
-      'weight-gain': 'a 300 kcal surplus for gradual weight gain',
-      'weight-maintenance': 'maintaining your current weight',
-      'muscle-gain': 'a 300 kcal surplus to support muscle building',
-      'general-wellness': 'maintaining overall health',
-      'energy-levels': 'a slight calorie adjustment for better energy',
-      'better-digestion': 'supporting digestive health'
-    };
-    const goalExplanation = goalMap[primaryGoal] || 'your personal goals';
-    explanations.push(`• Goal Adjustment: ${goalExplanation}`);
-  }
+  // Calories explanation
+  explanations.push(`Calories`);
+  explanations.push(`Your ${targetCalories} kcal target comes from the standard reference intake used to maintain daily energy needs for most adults.`);
   
   // Protein explanation
-  explanations.push(`\nProtein target of ${targetProtein}g is calculated from your weight (${weight} lbs) and supports ${primaryGoal === 'muscle-gain' ? 'muscle building and recovery' : primaryGoal === 'weight-loss' ? 'muscle preservation during weight loss' : 'daily maintenance needs'}.`);
+  explanations.push(`Protein`);
+  explanations.push(`Your ${targetProtein} g protein target comes from the dietary guideline that most adults need at least this amount to support muscle repair and prevent muscle loss.`);
   
-  // Carb explanation
-  if (hasDiabetes) {
-    explanations.push(`Carbohydrates limited to ${targetCarbs}g (35% of calories) to help manage blood sugar levels.`);
-  } else {
-    explanations.push(`Carbohydrates set at ${targetCarbs}g (${Math.round((targetCarbs * 4 / targetCalories) * 100)}% of calories) to ${primaryGoal === 'weight-loss' ? 'support weight loss while maintaining energy' : 'provide sustainable energy'}.`);
-  }
-  
-  // Fat explanation
-  explanations.push(`Fat target of ${targetFat}g (30% of calories) provides essential fatty acids and helps with nutrient absorption.`);
-  
-  // Health condition adjustments
-  if (healthConditions && healthConditions.length > 0) {
-    const hasBloodPressure = healthConditions.some(c => c.toLowerCase().includes('blood pressure') || c.toLowerCase().includes('hypertension'));
-    const hasHeart = healthConditions.some(c => c.toLowerCase().includes('heart') || c.toLowerCase().includes('cardiovascular'));
-    const hasCholesterol = healthConditions.some(c => c.toLowerCase().includes('cholesterol'));
-    
-    if (hasBloodPressure || hasHeart) {
-      explanations.push(`\nSodium limited to ${targetSodium}mg/day (vs. standard 2300mg) due to ${hasBloodPressure ? 'blood pressure' : 'heart health'} concerns.`);
-    }
-    if (hasCholesterol || hasHeart) {
-      explanations.push(`Cholesterol limited to ${targetCholesterol}mg/day (vs. standard 300mg) for heart health.`);
-      explanations.push(`Saturated and trans fats are tracked to support cardiovascular health.`);
-    }
-  }
+  // Carbohydrates explanation
+  explanations.push(`Carbohydrates`);
+  explanations.push(`Your carbohydrate target comes from the recommendation that most adults need enough carbs to fuel the brain, which relies heavily on glucose.`);
   
   // Fiber explanation
-  explanations.push(`Fiber target of ${targetFiber}g supports digestive health and meets recommendations for ${gender === 'male' ? 'men' : gender === 'female' ? 'women' : 'your age group'}${calculatedAge >= 50 ? ' over 50' : ''}.`);
+  const genderText = gender === 'male' ? 'men' : gender === 'female' ? 'women' : 'adults';
+  explanations.push(`Fiber`);
+  explanations.push(`Your ${targetFiber} g fiber target comes from national dietary guidelines for ${genderText} to support digestion and heart health.`);
+  
+  // Total Fat explanation
+  explanations.push(`Total Fat`);
+  explanations.push(`Your total fat target follows nutrition guidelines for the amount needed to support hormones and vitamin absorption without raising disease risk.`);
+  
+  // Saturated Fat explanation
+  explanations.push(`Saturated Fat`);
+  explanations.push(`Your saturated fat limit comes from heart-health guidelines designed to keep LDL cholesterol at safe levels.`);
+  
+  // Trans Fat explanation
+  explanations.push(`Trans Fat`);
+  explanations.push(`Your trans fat limit is extremely low because health authorities agree that even small amounts increase cardiovascular risk.`);
+  
+  // Cholesterol explanation
+  explanations.push(`Cholesterol`);
+  explanations.push(`Your ${targetCholesterol} mg cholesterol target comes from long-standing dietary guidelines that help maintain healthy blood cholesterol levels.`);
+  
+  // Sodium explanation
+  const hasBloodPressure = healthConditions?.some(c => c.toLowerCase().includes('blood pressure') || c.toLowerCase().includes('hypertension'));
+  const hasHeart = healthConditions?.some(c => c.toLowerCase().includes('heart') || c.toLowerCase().includes('cardiovascular'));
+  explanations.push(`Sodium`);
+    if (hasBloodPressure || hasHeart) {
+    explanations.push(`Your ${targetSodium} mg sodium limit is based on recommendations for supporting healthy blood pressure and reducing strain on the cardiovascular system.`);
+  } else {
+    explanations.push(`Your ${targetSodium} mg sodium target comes from dietary guidelines that help maintain healthy blood pressure and reduce cardiovascular strain.`);
+  }
 
   const explanation = explanations.join('\n');
 

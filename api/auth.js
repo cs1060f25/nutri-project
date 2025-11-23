@@ -179,6 +179,7 @@ const handleRegister = async (req, res) => {
       // Additional profile fields
       birthday,
       age,
+      classYear,
       gender,
       height,
       weight,
@@ -230,6 +231,10 @@ const handleRegister = async (req, res) => {
     // Add optional fields if provided
     if (birthday) profileData.birthday = birthday;
     if (age) profileData.age = parseInt(age);
+    // Save classYear even if it's an empty string (to distinguish from undefined)
+    if (classYear !== undefined && classYear !== null && classYear !== '') {
+      profileData.classYear = String(classYear).trim();
+    }
     if (gender) profileData.gender = gender;
     if (height) profileData.height = height;
     if (weight) profileData.weight = parseFloat(weight);
@@ -594,6 +599,55 @@ const handleConfirmResetPassword = async (req, res) => {
   }
 };
 
+// Handler for /auth/check-email
+const handleCheckEmail = async (req, res) => {
+  if (req.method !== 'GET') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  try {
+    const { email } = req.query;
+
+    if (!email) {
+      return res.status(400).json(
+        createErrorResponse('INVALID_EMAIL', 'Email is required.')
+      );
+    }
+
+    const allowedDomain = '@college.harvard.edu';
+    if (!email.toLowerCase().endsWith(allowedDomain)) {
+      return res.status(400).json(
+        createErrorResponse(
+          'INVALID_EMAIL',
+          `Email must end with ${allowedDomain}`
+        )
+      );
+    }
+
+    try {
+      await admin.auth().getUserByEmail(email);
+      // If we get here, the user exists
+      return res.status(200).json({ exists: true });
+    } catch (error) {
+      if (error.code === 'auth/user-not-found') {
+        // User doesn't exist, which is what we want for registration
+        return res.status(200).json({ exists: false });
+      }
+      throw error;
+    }
+  } catch (error) {
+    console.error('Check email error:', error.code, error.message);
+    const mappedError = mapFirebaseError(error.code);
+    const statusCode = mappedError ? mappedError.statusCode : 500;
+    const errorCode = mappedError ? mappedError.errorCode : 'INTERNAL';
+    const message = mappedError ? mappedError.message : 'Internal server error';
+    
+    return res.status(statusCode).json(
+      createErrorResponse(errorCode, message)
+    );
+  }
+};
+
 // Handler for /auth/refresh
 const handleRefresh = async (req, res) => {
   if (req.method !== 'POST') {
@@ -647,6 +701,8 @@ module.exports = async (req, res) => {
     
     // Route to appropriate handler
     switch (operation) {
+      case 'check-email':
+        return await handleCheckEmail(req, res);
       case 'login':
         return await handleLogin(req, res);
       case 'register':

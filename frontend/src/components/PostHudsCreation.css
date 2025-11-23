@@ -1,0 +1,596 @@
+.post-huds-container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.post-huds-header {
+  margin-top: 1.25rem;
+  margin-bottom: 2rem;
+}
+
+.post-huds-header h2 {
+  font-size: 1.5rem;
+  color: #1a4d2e;
+  margin: 0 0 0.5rem 0;
+  font-weight: 600;
+}
+
+.post-huds-header p {
+  font-size: 0.9rem;
+  color: #5a7968;
+  margin: 0;
+}
+
+.post-huds-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  color: #5a7968;
+}
+
+.post-huds-loading .spinner {
+  width: 48px;
+  height: 48px;
+  border: 4px solid #e0efe6;
+  border-top-color: #2d6a4f;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 1rem;
+}
+
+.post-huds-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  text-align: center;
+  color: #5a7968;
+  background: #f8fbf9;
+  border-radius: 20px;
+  border: 1px solid #e0efe6;
+}
+
+.post-huds-empty svg {
+  color: #cfe4d7;
+  margin-bottom: 1.5rem;
+}
+
+.post-huds-empty h3 {
+  font-size: 1.5rem;
+  color: #1a4d2e;
+  margin: 0 0 0.5rem 0;
+}
+
+.post-huds-empty p {
+  font-size: 1rem;
+  color: #5a7968;
+  margin: 0;
+}
+
+.post-huds-success {
+  background: #d1f4e0;
+  color: #1a5f3f;
+  padding: 1rem 1.5rem;
+  border-radius: 12px;
+  border: 1px solid #9de6be;
+  margin-bottom: 2rem;
+  text-align: center;
+  font-weight: 600;
+}
+
+.post-huds-error {
+  background: #ffe3e2;
+  color: #b42318;
+  padding: 1rem 1.5rem;
+  border-radius: 12px;
+  border: 1px solid #ffbdb7;
+  margin-bottom: 2rem;
+}
+
+/* Meal Logs Grid */
+.meal-logs-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+
+.meal-log-card-compact {
+  background: white;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid #e0efe6;
+  box-shadow: 0 2px 8px rgba(21, 76, 57, 0.08);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.meal-log-card-compact:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 6px 20px rgba(21, 76, 57, 0.15);
+  border-color: #2d6a4f;
+}
+
+.meal-log-card-compact.already-posted {
+  border-color: #9de6be;
+  background: #fafffe;
+}
+
+.meal-log-card-compact.already-posted:hover {
+  border-color: #2d6a4f;
+}
+
+.posted-badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: linear-gradient(135deg, #2d6a4f, #1a5f3f);
+  color: white;
+  padding: 0.4rem 0.75rem;
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  z-index: 10;
+  box-shadow: 0 2px 8px rgba(45, 106, 79, 0.3);
+}
+
+.posted-badge svg {
+  flex-shrink: 0;
+}
+
+.meal-log-card-image {
+  width: 100%;
+  height: 200px;
+  overflow: hidden;
+  background: #f8fbf9;
+}
+
+.meal-log-card-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.meal-log-card-content {
+  padding: 1.25rem;
+}
+
+.meal-log-card-content h3 {
+  font-size: 1.25rem;
+  color: #1a4d2e;
+  margin: 0 0 0.75rem 0;
+  font-weight: 600;
+}
+
+.meal-log-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.meal-type-badge {
+  background: linear-gradient(135deg, #2d6a4f, #1a5f3f);
+  color: white;
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.meal-date {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.85rem;
+  color: #5a7968;
+}
+
+.meal-location {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.85rem;
+  color: #5a7968;
+  margin-bottom: 0.75rem;
+}
+
+.meal-log-card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 0.75rem;
+  margin-top: 0.75rem;
+  border-top: 1px solid #f0f8f3;
+  color: #2d6a4f;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+/* Form Styles */
+.post-huds-form {
+  background: white;
+  border-radius: 20px;
+  padding: 2rem;
+  border: 1px solid #e0efe6;
+  box-shadow: 0 2px 8px rgba(21, 76, 57, 0.08);
+}
+
+.post-huds-image {
+  width: 100%;
+  max-height: 400px;
+  overflow: hidden;
+  background: #f8fbf9;
+  border: 1px solid #e0efe6;
+  border-radius: 12px;
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.post-huds-image img {
+  width: 100%;
+  height: auto;
+  max-height: 400px;
+  object-fit: contain;
+  display: block;
+  border-radius: 12px;
+}
+
+.post-huds-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.post-huds-field label {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #2d6a4f;
+}
+
+.post-huds-field input,
+.post-huds-field textarea {
+  padding: 0.75rem;
+  border: 1px solid #cfe4d7;
+  border-radius: 10px;
+  font-size: 1rem;
+  background: white;
+  color: #1a4d2e;
+  font-family: inherit;
+  transition: border-color 0.2s ease;
+}
+
+.post-huds-field input:disabled {
+  background: #f8fbf9;
+  color: #6a8777;
+  cursor: not-allowed;
+}
+
+.post-huds-field input:focus,
+.post-huds-field textarea:focus {
+  outline: none;
+  border-color: #2d6a4f;
+}
+
+.post-huds-field textarea {
+  resize: vertical;
+  min-height: 100px;
+}
+
+.post-huds-row {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.post-huds-rating {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.post-huds-star {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  transition: transform 0.2s ease;
+}
+
+.post-huds-star:hover {
+  transform: scale(1.1);
+}
+
+.post-display-chips-selected {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 1rem;
+  background: #f8fbf9;
+  border-radius: 12px;
+  border: 2px solid #2d6a4f;
+  min-height: 70px;
+  align-items: flex-start;
+  align-content: flex-start;
+}
+
+.post-display-chips-selected:empty::before {
+  content: "Selected items will appear here";
+  color: #9ca3af;
+  font-size: 0.9rem;
+  font-style: italic;
+  width: 100%;
+  text-align: center;
+  padding: 0.5rem 0;
+}
+
+.post-display-chips-available {
+  margin-top: 1rem;
+  padding: 0.75rem 0;
+}
+
+.post-display-chips-label {
+  font-size: 0.85rem;
+  color: #5a7968;
+  font-weight: 600;
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+.post-display-chips-bank {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.post-display-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.post-display-chip.selected {
+  background: linear-gradient(135deg, #2d6a4f, #1a5f3f);
+  color: white;
+  border: 2px solid #2d6a4f;
+}
+
+.post-display-chip.selected:hover {
+  background: linear-gradient(135deg, #1a5f3f, #154c39);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(45, 106, 79, 0.3);
+}
+
+.post-display-chip.selected svg {
+  stroke-width: 2.5;
+}
+
+.post-display-chip.available {
+  background: white;
+  color: #2d6a4f;
+  border: 2px dashed #cfe4d7;
+}
+
+.post-display-chip.available:hover {
+  background: #f0f8f3;
+  border-color: #2d6a4f;
+  border-style: solid;
+  transform: translateY(-1px);
+}
+
+.post-display-chip.available .plus-icon {
+  font-size: 1.2rem;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.post-huds-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+  margin-top: 2rem;
+}
+
+.post-huds-cancel,
+.post-huds-submit {
+  padding: 0.75rem 1.5rem;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.post-huds-cancel {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.post-huds-cancel:hover:not(:disabled) {
+  background: #e5e7eb;
+}
+
+.post-huds-submit {
+  background: linear-gradient(135deg, #2d6a4f, #1a5f3f);
+  color: white;
+}
+
+.post-huds-submit:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(45, 106, 79, 0.3);
+}
+
+.post-huds-cancel:disabled,
+.post-huds-submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.spinner-icon {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Display Options - Chip-based UI */
+.display-options-section {
+  margin-bottom: 1.5rem;
+}
+
+.display-options-section label {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #2d6a4f;
+  display: block;
+  margin-bottom: 0.75rem;
+}
+
+.display-options-chips {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.selected-chips,
+.available-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.selected-chips {
+  min-height: 60px;
+  padding: 1rem;
+  background: #f8fbf9;
+  border-radius: 12px;
+  border: 2px solid #2d6a4f;
+  align-items: flex-start;
+  align-content: flex-start;
+}
+
+.selected-chips:empty::before {
+  content: "All items removed. Click items below to add them back.";
+  color: #9ca3af;
+  font-size: 0.9rem;
+  font-style: italic;
+  width: 100%;
+  text-align: center;
+  padding: 0.5rem 0;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+  border: none;
+  outline: none;
+}
+
+.chip-selected {
+  background: linear-gradient(135deg, #2d6a4f, #1a5f3f);
+  color: white;
+  border: 2px solid #2d6a4f;
+}
+
+.chip-selected:hover {
+  background: linear-gradient(135deg, #1a5f3f, #154c39);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(45, 106, 79, 0.3);
+}
+
+.chip-available {
+  background: white;
+  color: #2d6a4f;
+  border: 2px dashed #cfe4d7;
+}
+
+.chip-available:hover {
+  background: #f0f8f3;
+  border-color: #2d6a4f;
+  border-style: solid;
+  transform: translateY(-1px);
+}
+
+.chip-icon {
+  stroke-width: 2.5;
+}
+
+.chip-text {
+  line-height: 1;
+}
+
+@media (max-width: 768px) {
+  .meal-logs-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .post-huds-row {
+    grid-template-columns: 1fr;
+  }
+
+  .post-huds-form {
+    padding: 1.5rem;
+  }
+
+  .post-huds-actions {
+    flex-direction: column;
+  }
+
+  .post-huds-cancel,
+  .post-huds-submit {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .post-display-chip {
+    font-size: 0.85rem;
+    padding: 0.4rem 0.65rem;
+  }
+
+  .post-display-chips-selected {
+    padding: 0.75rem;
+  }
+
+  .chip {
+    font-size: 0.85rem;
+    padding: 0.4rem 0.65rem;
+  }
+
+  .selected-chips {
+    padding: 0.75rem;
+  }
+}
+

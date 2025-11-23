@@ -1,0 +1,390 @@
+.create-post-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+
+.create-post-modal {
+  background: white;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 600px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.create-post-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.create-post-modal-header h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #154c39;
+}
+
+.create-post-modal-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #6b7280;
+  transition: color 0.2s;
+}
+
+.create-post-modal-close:hover {
+  color: #154c39;
+}
+
+.create-post-modal-form {
+  padding: 1.5rem;
+}
+
+.create-post-modal-image {
+  margin-bottom: 1.5rem;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #f3f4f6;
+}
+
+.create-post-modal-image img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.create-post-modal-image-upload {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.create-post-modal-file-input {
+  padding: 0.75rem;
+  border: 2px dashed #d1d5db;
+  border-radius: 8px;
+  background: #f9fafb;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 0.875rem;
+  color: #374151;
+}
+
+.create-post-modal-file-input:hover {
+  border-color: #1a5f3f;
+  background: #f0f9f4;
+}
+
+.create-post-modal-image-preview {
+  position: relative;
+  width: 100%;
+  margin-top: 0.5rem;
+}
+
+.create-post-modal-image-preview img {
+  width: 100%;
+  height: auto;
+  max-height: 300px;
+  object-fit: contain;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+}
+
+.create-post-modal-remove-image {
+  margin-top: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: #dc3545;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.create-post-modal-remove-image:hover {
+  background: #c82333;
+  transform: translateY(-1px);
+}
+
+.create-post-modal-field {
+  margin-bottom: 1.5rem;
+}
+
+.create-post-modal-field label {
+  display: block;
+  margin-bottom: 0.75rem;
+  font-weight: 600;
+  color: #154c39;
+  font-size: 1rem;
+}
+
+.create-post-modal-date,
+.create-post-modal-select,
+.create-post-modal-input {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  background: white;
+  transition: border-color 0.2s;
+  height: 48px;
+  box-sizing: border-box;
+}
+
+.create-post-modal-date,
+.create-post-modal-select {
+  cursor: pointer;
+}
+
+.create-post-modal-date:focus,
+.create-post-modal-select:focus,
+.create-post-modal-input:focus {
+  outline: none;
+  border-color: #2d6a4f;
+  box-shadow: 0 0 0 3px rgba(45, 106, 79, 0.1);
+}
+
+/* Match CustomSelect height to date inputs */
+.create-post-modal-field .custom-select-wrapper .custom-select-trigger {
+  height: 48px;
+  box-sizing: border-box;
+}
+
+.create-post-modal-textarea {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-family: inherit;
+  resize: vertical;
+  transition: border-color 0.2s;
+  min-height: 100px;
+}
+
+.create-post-modal-textarea:focus {
+  outline: none;
+  border-color: #2d6a4f;
+  box-shadow: 0 0 0 3px rgba(45, 106, 79, 0.1);
+}
+
+.create-post-modal-textarea::placeholder {
+  color: #9ca3af;
+}
+
+.create-post-modal-rating {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.create-post-modal-star {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s;
+}
+
+.create-post-modal-star:hover {
+  transform: scale(1.1);
+}
+
+.create-post-modal-star .star-filled {
+  color: #fbbf24;
+}
+
+.create-post-modal-star .star-empty {
+  color: #d1d5db;
+}
+
+.create-post-modal-rating-text {
+  margin-left: 0.5rem;
+  font-weight: 500;
+  color: #374151;
+}
+
+.create-post-modal-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.create-post-modal-chip {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  background: #f3f4f6;
+  border-radius: 20px;
+  font-size: 0.875rem;
+  color: #374151;
+  border: 1px solid #e5e7eb;
+}
+
+.create-post-modal-error {
+  padding: 0.75rem;
+  background: #fee2e2;
+  border: 1px solid #fca5a5;
+  border-radius: 8px;
+  color: #dc2626;
+  font-size: 0.875rem;
+  margin-bottom: 1rem;
+}
+
+.create-post-modal-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  align-items: center;
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+.create-post-modal-cancel,
+.create-post-modal-submit,
+.create-post-modal-delete {
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+  flex: 0 0 auto;
+}
+
+.create-post-modal-delete {
+  background: #dc2626;
+  color: white;
+  margin-right: auto;
+}
+
+.create-post-modal-delete:hover:not(:disabled) {
+  background: #b91c1c;
+}
+
+.create-post-modal-cancel {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.create-post-modal-cancel:hover:not(:disabled) {
+  background: #e5e7eb;
+}
+
+.create-post-modal-submit {
+  background: #2d6a4f;
+  color: white;
+}
+
+.create-post-modal-submit:hover:not(:disabled) {
+  background: #154c39;
+}
+
+.create-post-modal-submit:disabled,
+.create-post-modal-cancel:disabled,
+.create-post-modal-delete:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.spinner-icon {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Success Modal */
+.success-modal {
+  max-width: 450px;
+}
+
+.success-modal .create-post-modal-header {
+  border-bottom: none;
+}
+
+.success-modal .create-post-modal-content {
+  padding: 0;
+  padding-bottom: 0;
+}
+
+.success-message {
+  padding: 1.5rem;
+  text-align: center;
+  font-size: 1rem;
+  line-height: 1.5;
+  color: #333;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+}
+
+.success-modal .create-post-modal-actions {
+  justify-content: center;
+  margin-top: 1.5rem;
+  margin-bottom: 1rem;
+  padding-top: 0;
+  border-top: none;
+}
+
+/* Delete Confirmation Modal */
+.delete-confirmation-message {
+  padding: 1.5rem;
+  text-align: center;
+  font-size: 1rem;
+  line-height: 1.5;
+  color: #333;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 80px;
+}
+
+/* Center buttons in delete confirmation modal */
+.create-post-modal:has(.delete-confirmation-message) .create-post-modal-actions {
+  justify-content: center;
+  margin-bottom: 1rem;
+}
+
+.create-post-modal:has(.delete-confirmation-message) .create-post-modal-delete {
+  margin-right: 0;
+}
+
+/* Make success modal match delete confirmation modal styling */
+.success-modal .create-post-modal-content {
+  padding: 0;
+  padding-bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 80px;
+}
+
