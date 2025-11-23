@@ -194,46 +194,53 @@ const calculateAgeFromBirthday = (birthday) => {
 
 /**
  * Generate personalized nutrition plan based on user profile
+ * Only uses information collected during onboarding:
+ * - birthday, age, gender, height, weight (from step 3)
+ * - dietaryPattern, isKosher, isHalal, allergies, healthConditions (from step 4)
  */
 const generatePersonalizedPlan = (userProfile) => {
   if (!userProfile) {
     return null;
   }
 
-  const { birthday, age, gender, height, weight, activityLevel, primaryGoal, healthConditions } = userProfile;
+  const { birthday, age, gender, height, weight, healthConditions } = userProfile;
 
   // Calculate age from birthday if birthday is provided, otherwise use stored age
   const calculatedAge = birthday ? calculateAgeFromBirthday(birthday) : age;
 
-  // Need essential data to calculate
-  if (!calculatedAge || !gender || !height || !weight || !activityLevel) {
+  // Need essential data to calculate (only from onboarding)
+  if (!calculatedAge || !gender || !height || !weight) {
     return null;
   }
 
   const heightFeet = height?.feet || 5;
   const heightInches = height?.inches || 10;
 
-  // Calculate BMR and TDEE
+  // Calculate BMR
   const bmr = calculateBMR(calculatedAge, gender, heightFeet, heightInches, weight);
-  const tdee = calculateTDEE(bmr, activityLevel);
   
-  // Adjust calories for goal
-  const targetCalories = adjustCaloriesForGoal(tdee, primaryGoal || 'weight-maintenance');
+  // Use default activity level (moderately-active) since it's no longer collected
+  const defaultActivityLevel = 'moderately-active';
+  const tdee = calculateTDEE(bmr, defaultActivityLevel);
+  
+  // Use default goal (weight-maintenance) since it's no longer collected
+  const defaultGoal = 'weight-maintenance';
+  const targetCalories = adjustCaloriesForGoal(tdee, defaultGoal);
 
-  // Calculate macronutrients
-  const targetProtein = calculateProteinTarget(weight, primaryGoal, gender);
+  // Calculate macronutrients (using default goal)
+  const targetProtein = calculateProteinTarget(weight, defaultGoal, gender);
   const hasDiabetes = healthConditions?.some(condition => 
     condition.toLowerCase().includes('diabetes') || condition.toLowerCase().includes('blood sugar')
   );
-  const targetCarbs = calculateCarbTarget(targetCalories, primaryGoal, hasDiabetes);
-  const targetFat = calculateFatTarget(targetCalories, primaryGoal);
+  const targetCarbs = calculateCarbTarget(targetCalories, defaultGoal, hasDiabetes);
+  const targetFat = calculateFatTarget(targetCalories, defaultGoal);
   
   // Calculate other nutrients
   const targetSodium = calculateSodiumTarget(healthConditions);
   const targetCholesterol = calculateCholesterolTarget(healthConditions);
   const targetFiber = calculateFiberTarget(gender, calculatedAge);
 
-  // Determine suggested preset based on goal and health conditions
+  // Determine suggested preset based on health conditions (goal no longer collected)
   let suggestedPreset = 'balanced';
   let presetReason = 'A balanced approach covering all major nutrients.';
   
@@ -243,41 +250,22 @@ const generatePersonalizedPlan = (userProfile) => {
   } else if (healthConditions?.some(c => c.toLowerCase().includes('heart') || c.toLowerCase().includes('cholesterol'))) {
     suggestedPreset = 'heart-healthy';
     presetReason = 'Selected because you indicated heart or cholesterol concerns.';
-  } else if (primaryGoal === 'muscle-gain') {
-    suggestedPreset = 'high-protein';
-    presetReason = 'Selected to support your muscle gain and athletic performance goals.';
   }
 
   // Build explanation for the personalized plan
   const explanations = [];
   
   // Base calculation explanation
-  explanations.push(`Your daily calorie target of ${targetCalories} kcal is based on:`);
-  explanations.push(`• Basal Metabolic Rate (BMR): ${bmr} kcal/day - the energy your body needs at rest`);
-  explanations.push(`• Activity Level: ${activityLevel.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())} (TDEE: ${tdee} kcal/day)`);
-  
-  if (primaryGoal) {
-    const goalMap = {
-      'weight-loss': 'a 500 kcal deficit for safe weight loss (~1 lb/week)',
-      'weight-gain': 'a 300 kcal surplus for gradual weight gain',
-      'weight-maintenance': 'maintaining your current weight',
-      'muscle-gain': 'a 300 kcal surplus to support muscle building',
-      'general-wellness': 'maintaining overall health',
-      'energy-levels': 'a slight calorie adjustment for better energy',
-      'better-digestion': 'supporting digestive health'
-    };
-    const goalExplanation = goalMap[primaryGoal] || 'your personal goals';
-    explanations.push(`• Goal Adjustment: ${goalExplanation}`);
-  }
+  explanations.push(`Your daily calorie target of ${targetCalories} kcal is based on the Basal Metabolic Rate (BMR) of ${bmr} kcal/day, which is the energy your body needs at rest.`);
   
   // Protein explanation
-  explanations.push(`\nProtein target of ${targetProtein}g is calculated from your weight (${weight} lbs) and supports ${primaryGoal === 'muscle-gain' ? 'muscle building and recovery' : primaryGoal === 'weight-loss' ? 'muscle preservation during weight loss' : 'daily maintenance needs'}.`);
+  explanations.push(`\nProtein target of ${targetProtein}g is calculated from your weight (${weight} lbs) and supports daily maintenance needs.`);
   
   // Carb explanation
   if (hasDiabetes) {
     explanations.push(`Carbohydrates limited to ${targetCarbs}g (35% of calories) to help manage blood sugar levels.`);
   } else {
-    explanations.push(`Carbohydrates set at ${targetCarbs}g (${Math.round((targetCarbs * 4 / targetCalories) * 100)}% of calories) to ${primaryGoal === 'weight-loss' ? 'support weight loss while maintaining energy' : 'provide sustainable energy'}.`);
+    explanations.push(`Carbohydrates set at ${targetCarbs}g (${Math.round((targetCarbs * 4 / targetCalories) * 100)}% of calories) to provide sustainable energy.`);
   }
   
   // Fat explanation

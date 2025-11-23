@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './NutritionPlan.css';
-import { createNutritionPlan, getActiveNutritionPlan, updateNutritionPlan, getPersonalizedRecommendation } from '../services/nutritionPlanService';
+import { createNutritionPlan, getActiveNutritionPlan, updateNutritionPlan, getPersonalizedRecommendation, getNutritionPlanHistory, deleteNutritionPlan } from '../services/nutritionPlanService';
 import { getUserProfile } from '../services/profileService';
 import CustomSelect from '../components/CustomSelect';
 
@@ -228,11 +228,17 @@ const NutritionPlan = () => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
   const [personalizedRecommendation, setPersonalizedRecommendation] = useState(null);
-  const [showPersonalizedBanner, setShowPersonalizedBanner] = useState(false);
-  const [planExplanation, setPlanExplanation] = useState(null);
   const [safetyWarnings, setSafetyWarnings] = useState([]);
   const [showSafetyConfirm, setShowSafetyConfirm] = useState(false);
   const [personalizedPresets, setPersonalizedPresets] = useState(null);
+  const [showHistory, setShowHistory] = useState(false);
+  const [planHistory, setPlanHistory] = useState([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [showRestoreConfirm, setShowRestoreConfirm] = useState(false);
+  const [planToRestore, setPlanToRestore] = useState(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [planToDelete, setPlanToDelete] = useState(null);
+  const [showSaveConfirm, setShowSaveConfirm] = useState(false);
 
   // Load existing nutrition plan and personalized recommendations on component mount
   useEffect(() => {
@@ -272,7 +278,6 @@ const NutritionPlan = () => {
             const recommendation = await getPersonalizedRecommendation();
             if (recommendation) {
               setPersonalizedRecommendation(recommendation);
-              setShowPersonalizedBanner(true);
             }
           } catch (recErr) {
             // Don't show error for missing recommendation - just means profile incomplete
@@ -396,23 +401,6 @@ const NutritionPlan = () => {
 
   const unitOptions = ['g', 'mg', 'kcal'];
 
-  const handleApplyPersonalized = () => {
-    if (!personalizedRecommendation) return;
-    
-    setSelectedPreset(personalizedRecommendation.suggestedPreset || '');
-    setMetrics(personalizedRecommendation.metrics || {});
-    setShowPersonalizedBanner(false);
-    // Set explanation for personalized plan
-    if (personalizedRecommendation.explanation) {
-      setPlanExplanation({
-        isPersonalized: true,
-        explanation: personalizedRecommendation.explanation,
-        presetReason: personalizedRecommendation.presetReason,
-        preset: personalizedRecommendation.suggestedPreset
-      });
-    }
-  };
-
   const handlePresetChange = (presetKey) => {
     setSelectedPreset(presetKey);
     setIsDropdownOpen(false);
@@ -422,6 +410,13 @@ const NutritionPlan = () => {
       console.log('Preset metrics:', presets[presetKey].metrics);
       
       Object.entries(presets[presetKey].metrics).forEach(([metricId, presetValues]) => {
+        // Skip metrics with target value of 0 - don't enable them
+        const targetValue = presetValues.target || '';
+        if (targetValue === '0' || parseFloat(targetValue) === 0) {
+          console.log('Skipping metric with 0 value:', metricId);
+          return;
+        }
+        
         // Find the metric in categories to get default unit
         for (const category of Object.values(metricCategories)) {
           const metric = category.metrics.find(m => m.id === metricId);
@@ -429,7 +424,7 @@ const NutritionPlan = () => {
             newMetrics[metricId] = {
               enabled: true,
               unit: metric.defaultUnit,
-              target: presetValues.target
+              target: targetValue
             };
             console.log('Added metric:', metricId, newMetrics[metricId]);
             break;
@@ -440,13 +435,10 @@ const NutritionPlan = () => {
       console.log('Setting metrics to:', newMetrics);
       setMetrics(newMetrics);
       
-      // Clear explanation when manually selecting a preset (only show for personalized)
-      setPlanExplanation(null);
     } else {
       // Clear metrics for custom
       console.log('Clearing metrics for custom preset');
       setMetrics({});
-      setPlanExplanation(null);
     }
   };
 
@@ -544,10 +536,10 @@ const NutritionPlan = () => {
     e.preventDefault();
     setError(null);
 
-      const enabledMetrics = Object.entries(metrics)
-        .filter(([_, value]) => value.enabled)
-        .reduce((acc, [key, value]) => ({ ...acc, [key]: value }), {});
-      
+    const enabledMetrics = Object.entries(metrics)
+      .filter(([_, value]) => value.enabled)
+      .reduce((acc, [key, value]) => ({ ...acc, [key]: value }), {});
+    
     // Check for safety warnings
     const warnings = validateNutritionSafety(enabledMetrics);
     
@@ -557,10 +549,27 @@ const NutritionPlan = () => {
       return; // Don't submit yet, show warnings first
     }
 
-    // User confirmed they want to proceed despite warnings, or no warnings
+    // Check if there's an existing plan that would be replaced
+    const activePlan = await getActiveNutritionPlan();
+    if (activePlan) {
+      // There's an existing plan - show confirmation
+      setShowSaveConfirm(true);
+      return; // Show confirmation modal first
+    }
+
+    // No existing plan, proceed with save
+    await handleConfirmSave();
+  };
+
+  const handleConfirmSave = async () => {
+    setShowSaveConfirm(false);
     setLoading(true);
 
     try {
+      const enabledMetrics = Object.entries(metrics)
+        .filter(([_, value]) => value.enabled)
+        .reduce((acc, [key, value]) => ({ ...acc, [key]: value }), {});
+      
       const planData = {
         preset: selectedPreset,
         presetName: selectedPreset ? presets[selectedPreset]?.name : 'Custom Plan',
@@ -591,23 +600,248 @@ const NutritionPlan = () => {
     }
   };
 
-  const handleCreateNew = () => {
+  const handleCancelSave = () => {
+    setShowSaveConfirm(false);
+  };
+
+  const handleCreateNew = async () => {
     setShowSummary(false);
     setSavedPlan(null);
     setSelectedPreset('');
     setMetrics({});
     setIsEditMode(false);
     setError(null);
-    setPlanExplanation(null);
-    setPersonalizedRecommendation(null);
-    setShowPersonalizedBanner(false);
     setSafetyWarnings([]);
     setShowSafetyConfirm(false);
+    
+    // Load personalized recommendation for new plan
+    try {
+      const recommendation = await getPersonalizedRecommendation();
+      if (recommendation) {
+        setPersonalizedRecommendation(recommendation);
+      }
+    } catch (recErr) {
+      // Don't show error for missing recommendation - just means profile incomplete
+      console.log('No personalized recommendation available:', recErr.message);
+      setPersonalizedRecommendation(null);
+    }
   };
 
   const handleEditPlan = () => {
     setShowSummary(false);
     setError(null);
+  };
+
+  const handleCancel = async () => {
+    setError(null);
+    setSafetyWarnings([]);
+    setShowSafetyConfirm(false);
+    setShowSaveConfirm(false);
+    
+    // Always go to plan summary page - load active plan if not in state
+    if (savedPlan) {
+      setShowSummary(true);
+      // Reset form to saved plan values
+      setSelectedPreset(savedPlan.preset || '');
+      setMetrics(savedPlan.metrics || {});
+      setIsEditMode(true);
+    } else {
+      // Try to load the active plan from backend
+      try {
+        const activePlan = await getActiveNutritionPlan();
+        if (activePlan) {
+          setSavedPlan(activePlan);
+          setSelectedPreset(activePlan.preset || '');
+          setMetrics(activePlan.metrics || {});
+          setIsEditMode(true);
+          setShowSummary(true);
+        } else {
+          // No plan exists, show summary anyway (will show empty state)
+          setShowSummary(true);
+        }
+      } catch (err) {
+        console.error('Error loading active plan:', err);
+        // Still show summary even if there's an error
+        setShowSummary(true);
+      }
+    }
+  };
+
+  const handleViewHistory = async () => {
+    setShowHistory(true);
+    setHistoryLoading(true);
+    try {
+      const history = await getNutritionPlanHistory(50);
+      
+      // Filter out duplicate plans based on metrics
+      const uniquePlans = [];
+      const seenMetrics = new Set();
+      
+      (history || []).forEach(plan => {
+        // Create a unique key based on preset and all metric values
+        const metricsKey = JSON.stringify({
+          preset: plan.preset || '',
+          metrics: plan.metrics || {}
+        });
+        
+        if (!seenMetrics.has(metricsKey)) {
+          seenMetrics.add(metricsKey);
+          uniquePlans.push(plan);
+        }
+      });
+      
+      setPlanHistory(uniquePlans);
+    } catch (err) {
+      console.error('Error loading plan history:', err);
+      setError('Failed to load plan history. Please try again.');
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
+  const handleCloseHistory = () => {
+    setShowHistory(false);
+    setPlanHistory([]);
+  };
+
+  const handleRestoreClick = (planId) => {
+    const plan = planHistory.find(p => p.id === planId);
+    if (plan) {
+      setPlanToRestore(plan);
+      setShowRestoreConfirm(true);
+    }
+  };
+
+  const handleConfirmRestore = async () => {
+    if (!planToRestore) return;
+    
+    try {
+      setLoading(true);
+      setShowRestoreConfirm(false);
+      
+      // Restore the plan by creating a new plan entry (not updating existing)
+      // This ensures the restored plan and all previous plans stay in history
+      const planData = {
+        preset: planToRestore.preset || '',
+        presetName: planToRestore.presetName || 'Custom Plan',
+        metrics: planToRestore.metrics || {}
+      };
+      
+      // Always create a new plan to preserve history
+      await createNutritionPlan(planData);
+      
+      // Reload the plan
+      const updatedPlan = await getActiveNutritionPlan();
+      setSavedPlan(updatedPlan);
+      setSelectedPreset(updatedPlan.preset || '');
+      setMetrics(updatedPlan.metrics || {});
+      setShowSummary(true);
+      setIsEditMode(true);
+      setShowHistory(false);
+      setPlanToRestore(null);
+    } catch (err) {
+      console.error('Error restoring plan:', err);
+      setError('Failed to restore plan. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCancelRestore = () => {
+    setShowRestoreConfirm(false);
+    setPlanToRestore(null);
+  };
+
+  const handleDeleteClick = (planId) => {
+    const plan = planHistory.find(p => p.id === planId);
+    if (plan) {
+      setPlanToDelete(plan);
+      setShowDeleteConfirm(true);
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!planToDelete) return;
+    
+    try {
+      setLoading(true);
+      setShowDeleteConfirm(false);
+      
+      // Check if this is the active plan
+      const activePlan = await getActiveNutritionPlan();
+      if (activePlan && activePlan.id === planToDelete.id) {
+        setError('Cannot delete the active plan. Please restore a different plan first or create a new plan.');
+        setPlanToDelete(null);
+        setLoading(false);
+        return;
+      }
+      
+      // Immediately remove the plan from the history list for instant UI update
+      setPlanHistory(prevHistory => prevHistory.filter(plan => plan.id !== planToDelete.id));
+      
+      // Delete the plan from backend
+      await deleteNutritionPlan(planToDelete.id);
+      
+      // Optionally refresh history to ensure consistency (but UI already updated)
+      try {
+        const history = await getNutritionPlanHistory(50);
+        
+        // Filter out duplicates based on metrics
+        const uniquePlans = [];
+        const seenMetrics = new Set();
+        
+        (history || []).forEach(plan => {
+          const metricsKey = JSON.stringify({
+            preset: plan.preset || '',
+            metrics: plan.metrics || {}
+          });
+          
+          if (!seenMetrics.has(metricsKey)) {
+            seenMetrics.add(metricsKey);
+            uniquePlans.push(plan);
+          }
+        });
+        
+        setPlanHistory(uniquePlans);
+      } catch (refreshErr) {
+        // If refresh fails, that's okay - we already updated the UI
+        console.log('Could not refresh history, but plan was deleted:', refreshErr);
+      }
+      
+      setPlanToDelete(null);
+    } catch (err) {
+      console.error('Error deleting plan:', err);
+      setError('Failed to delete plan. Please try again.');
+      // If deletion failed, refresh history to restore the list
+      try {
+        const history = await getNutritionPlanHistory(50);
+        const uniquePlans = [];
+        const seenMetrics = new Set();
+        
+        (history || []).forEach(plan => {
+          const metricsKey = JSON.stringify({
+            preset: plan.preset || '',
+            metrics: plan.metrics || {}
+          });
+          
+          if (!seenMetrics.has(metricsKey)) {
+            seenMetrics.add(metricsKey);
+            uniquePlans.push(plan);
+          }
+        });
+        
+        setPlanHistory(uniquePlans);
+      } catch (refreshErr) {
+        console.error('Error refreshing history after failed delete:', refreshErr);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCancelDelete = () => {
+    setShowDeleteConfirm(false);
+    setPlanToDelete(null);
   };
 
   // Helper function to get metric label from ID
@@ -641,19 +875,141 @@ const NutritionPlan = () => {
     return 'Invalid date';
   };
 
+  // Show history view
+  if (showHistory) {
+    return (
+      <div className="nutrition-plan-page">
+        <div className="nutrition-plan-container">
+          <div className="hero-section">
+            <h1 className="hero-title">Plan History</h1>
+            <p className="hero-subtitle" style={{ marginBottom: '2rem' }}>View your previous nutrition plans</p>
+          </div>
+
+          <div className="history-container">
+            {historyLoading ? (
+              <div className="loading">
+                <div className="loading-spinner"></div>
+                <p className="loading-text">Loading plan history...</p>
+              </div>
+            ) : planHistory.length === 0 ? (
+              <div className="no-history">
+                <p>No previous plans found.</p>
+              </div>
+            ) : (
+              <div className="history-list">
+                {planHistory.map((plan) => (
+                  <div key={plan.id} className="history-plan-card">
+                    <div className="history-plan-header">
+                      <h4>{plan.presetName || 'Custom Plan'}</h4>
+                      <div className="history-plan-dates">
+                        <span>Created: {formatTimestamp(plan.createdAt)}</span>
+                        {plan.updatedAt && plan.createdAt !== plan.updatedAt && (
+                          <span> | Updated: {formatTimestamp(plan.updatedAt)}</span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="history-plan-metrics">
+                      <div className="history-metrics-grid">
+                        {Object.entries(plan.metrics || {}).slice(0, 6).map(([metricId, metricData]) => (
+                          <div key={metricId} className="history-metric-item">
+                            <span className="history-metric-label">{getMetricLabel(metricId)}:</span>
+                            <span className="history-metric-value">
+                              {metricData.target ? `${metricData.target} ${metricData.unit}` : 'No target'}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                      {Object.keys(plan.metrics || {}).length > 6 && (
+                        <p className="history-more-metrics">
+                          +{Object.keys(plan.metrics || {}).length - 6} more metrics
+                        </p>
+                      )}
+                    </div>
+                    <div className="history-plan-actions">
+                      <button 
+                        onClick={() => handleRestoreClick(plan.id)} 
+                        className="load-plan-button"
+                      >
+                        Restore
+                      </button>
+                      <button 
+                        onClick={() => handleDeleteClick(plan.id)} 
+                        className="delete-plan-button"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div className="history-actions">
+              <button onClick={handleCloseHistory} className="back-button">
+                Back to Summary
+              </button>
+            </div>
+          </div>
+
+          {/* Restore Confirmation Modal */}
+          {showRestoreConfirm && (
+            <div className="modal-overlay" onClick={handleCancelRestore}>
+              <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                <h3>Confirm Restore</h3>
+                <p>Are you sure you want to restore this plan? This will replace your current plan.</p>
+                <div className="modal-actions">
+                  <button onClick={handleCancelRestore} className="modal-cancel-button">
+                    Cancel
+                  </button>
+                  <button onClick={handleConfirmRestore} className="modal-confirm-button">
+                    Restore
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Delete Confirmation Modal */}
+          {showDeleteConfirm && (
+            <div className="modal-overlay" onClick={handleCancelDelete}>
+              <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                <h3>Confirm Delete</h3>
+                <p>Are you sure you want to delete this plan? This action cannot be undone.</p>
+                <div className="modal-actions">
+                  <button onClick={handleCancelDelete} className="modal-cancel-button">
+                    Cancel
+                  </button>
+                  <button onClick={handleConfirmDelete} className="modal-confirm-button" style={{ background: '#dc2626' }}>
+                    Delete
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   // Show summary view
   if (showSummary && savedPlan) {
     return (
       <div className="nutrition-plan-page">
         <div className="nutrition-plan-container">
           <div className="hero-section">
+            <div className="hero-header">
+              <div>
             <h1 className="hero-title">Plan Summary</h1>
             <p className="hero-subtitle">Your nutrition tracking goals have been saved</p>
+              </div>
+              <button onClick={handleViewHistory} className="view-old-plans-button">
+                View Old Plans
+              </button>
+            </div>
           </div>
 
           <div className="summary-container">
             <div className="summary-metrics">
-              <h3>Your Tracking Goals</h3>
+              <h3 style={{ margin: '0 0 1.5rem 0' }}>Your Tracking Goals</h3>
               {savedPlan.presetName && (
                 <div className="preset-subtitle">
                   <span className="preset-label-text">Preset Selected:</span>
@@ -736,64 +1092,6 @@ const NutritionPlan = () => {
           </div>
         )}
 
-        {showPersonalizedBanner && personalizedRecommendation && !isEditMode && (
-          <div className="personalized-banner" style={{
-            background: '#f0fdf4',
-            border: '2px solid #1a5f3f',
-            borderRadius: '12px',
-            padding: '20px',
-            marginBottom: '24px',
-            color: '#1a5f3f'
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '16px' }}>
-              <div style={{ flex: 1 }}>
-                <h3 style={{ margin: '0 0 8px 0', fontSize: '18px', fontWeight: '600' }}>
-                  ✨ Personalized Plan Available
-                </h3>
-                <p style={{ margin: '0', fontSize: '14px', lineHeight: '1.5' }}>
-                  Based on your profile (age, weight, activity level, health conditions, and goals), 
-                  we've calculated personalized daily nutrition targets. Click below to apply these recommendations.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={handleApplyPersonalized}
-                style={{
-                  padding: '10px 20px',
-                  background: '#1a5f3f',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  fontSize: '14px',
-                  fontWeight: '600',
-                  whiteSpace: 'nowrap'
-                }}
-              >
-                Use Personalized Plan
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowPersonalizedBanner(false)}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  color: '#1a5f3f',
-                  cursor: 'pointer',
-                  fontSize: '20px',
-                  padding: '0',
-                  width: '24px',
-                  height: '24px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}
-              >
-                ×
-              </button>
-            </div>
-          </div>
-        )}
 
         <form onSubmit={handleSubmit} className="nutrition-form">
           {/* Preset Selection */}
@@ -857,7 +1155,193 @@ const NutritionPlan = () => {
             <h2 className="section-title">📊 Select Metrics to Track</h2>
             <p className="section-description">Choose nutrition metrics available from HUDS meals and set your daily targets</p>
 
-            {Object.entries(metricCategories).map(([categoryKey, category]) => (
+            {Object.entries(metricCategories).map(([categoryKey, category]) => {
+              // Check if any metrics in this category have values populated
+              const hasPopulatedMetrics = category.metrics.some(metric => {
+                const metricData = metrics[metric.id];
+                return metricData?.enabled && metricData?.target && parseFloat(metricData.target) > 0;
+              });
+              
+              // Generate explanation text based on actual metric values
+              const getCategoryExplanation = () => {
+                if (!hasPopulatedMetrics) return null;
+                
+                // Try to get explanation from personalized recommendation if available
+                let lines = [];
+                if (personalizedRecommendation?.explanation) {
+                  lines = personalizedRecommendation.explanation.split('\n');
+                }
+                
+                if (categoryKey === 'energy') {
+                  const caloriesValue = metrics.calories?.target;
+                  if (!caloriesValue) return null;
+                  
+                  // Find calorie explanation and replace values with actual ones
+                  const calorieLine = lines.find(line => 
+                    line.toLowerCase().includes('daily calorie target') || 
+                    line.toLowerCase().includes('calorie')
+                  );
+                  if (calorieLine) {
+                    // Find the full sentence explanation (now generated as a sentence in backend)
+                    let fullExplanation = '';
+                    for (let i = 0; i < lines.length; i++) {
+                      if (lines[i].includes('daily calorie target') && lines[i].includes('is based on')) {
+                        // Get the full sentence (it's now a single sentence, not bullets)
+                        fullExplanation = lines[i].replace(/\d+\s*kcal/g, `${caloriesValue} kcal`);
+                        // Check if there's more content on the same line or next line
+                        if (i + 1 < lines.length && !lines[i + 1].trim().startsWith('Protein') && !lines[i + 1].trim().startsWith('•')) {
+                          fullExplanation += ' ' + lines[i + 1].trim();
+                        }
+                        break;
+                      }
+                    }
+                    
+                    if (fullExplanation) {
+                      // Replace calorie value in the explanation
+                      const updatedExplanation = fullExplanation.replace(/\d+\s*kcal/g, `${caloriesValue} kcal`);
+                      return updatedExplanation;
+                    }
+                  }
+                } else if (categoryKey === 'macronutrients') {
+                  const explanations = [];
+                  
+                  // Protein
+                  const proteinValue = metrics.protein?.target;
+                  if (proteinValue) {
+                    const proteinLine = lines.find(line => line.toLowerCase().startsWith('protein target'));
+                    if (proteinLine) {
+                      const updatedLine = proteinLine.replace(/\d+g/g, `${proteinValue}g`);
+                      explanations.push(updatedLine);
+                    } else if (lines.length === 0) {
+                      // Fallback explanation
+                      explanations.push(`Protein target of ${proteinValue}g supports muscle maintenance and daily nutritional needs.`);
+                    }
+                  }
+                  
+                  // Carbohydrates
+                  const carbValue = metrics.totalCarbs?.target;
+                  if (carbValue) {
+                    const carbLine = lines.find(line => line.toLowerCase().startsWith('carbohydrate'));
+                    if (carbLine) {
+                      const updatedLine = carbLine.replace(/\d+g/g, `${carbValue}g`);
+                      explanations.push(updatedLine);
+                    } else if (lines.length === 0) {
+                      // Fallback explanation
+                      const carbPercent = Math.round((parseFloat(carbValue) * 4 / parseFloat(metrics.calories?.target || 2000)) * 100);
+                      explanations.push(`Carbohydrates set at ${carbValue}g (${carbPercent}% of calories) to provide sustainable energy.`);
+                    }
+                  }
+                  
+                  // Fiber
+                  const fiberValue = metrics.fiber?.target;
+                  if (fiberValue) {
+                    const fiberLine = lines.find(line => line.toLowerCase().startsWith('fiber target'));
+                    if (fiberLine) {
+                      const updatedLine = fiberLine.replace(/\d+g/g, `${fiberValue}g`);
+                      explanations.push(updatedLine);
+                    } else if (lines.length === 0) {
+                      // Fallback explanation
+                      explanations.push(`Fiber target of ${fiberValue}g supports digestive health and meets dietary recommendations.`);
+                    }
+                  }
+                  
+                  if (explanations.length > 0) {
+                    return explanations.length > 1 ? { bullets: explanations } : explanations[0];
+                  }
+                } else if (categoryKey === 'fats') {
+                  const explanations = [];
+                  
+                  // Total Fat
+                  const fatValue = metrics.totalFat?.target;
+                  if (fatValue) {
+                    const fatLine = lines.find(line => line.toLowerCase().startsWith('fat target'));
+                    if (fatLine) {
+                      explanations.push(fatLine.replace(/\d+g/g, `${fatValue}g`));
+                    } else if (lines.length === 0) {
+                      // Fallback explanation
+                      const fatPercent = Math.round((parseFloat(fatValue) * 9 / parseFloat(metrics.calories?.target || 2000)) * 100);
+                      explanations.push(`Fat target of ${fatValue}g (${fatPercent}% of calories) provides essential fatty acids and helps with nutrient absorption.`);
+                    }
+                  }
+                  
+                  // Saturated Fat
+                  const saturatedFatValue = metrics.saturatedFat?.target;
+                  if (saturatedFatValue) {
+                    const saturatedLine = lines.find(line => 
+                      line.toLowerCase().includes('saturated') && 
+                      !line.toLowerCase().includes('trans')
+                    );
+                    if (saturatedLine) {
+                      explanations.push(saturatedLine.replace(/\d+g/g, `${saturatedFatValue}g`));
+                    } else {
+                      // Fallback explanation for saturated fat
+                      const standardSaturated = 20; // Standard recommendation is ~20g or 10% of calories
+                      if (parseFloat(saturatedFatValue) < standardSaturated) {
+                        explanations.push(`Saturated fat limited to ${saturatedFatValue}g (vs. standard ${standardSaturated}g) to support cardiovascular health.`);
+                      } else {
+                        explanations.push(`Saturated fat target of ${saturatedFatValue}g aligns with standard dietary recommendations.`);
+                      }
+                    }
+                  }
+                  
+                  if (explanations.length > 0) {
+                    return explanations.length > 1 ? { bullets: explanations } : explanations[0];
+                  }
+                } else if (categoryKey === 'other') {
+                  const explanations = [];
+                  
+                  // Sodium
+                  const sodiumValue = metrics.sodium?.target;
+                  if (sodiumValue) {
+                    const sodiumLine = lines.find(line => 
+                      line.toLowerCase().includes('sodium') && 
+                      !line.toLowerCase().includes('saturated')
+                    );
+                    if (sodiumLine) {
+                      const updatedLine = sodiumLine.replace(/\d+mg/g, `${sodiumValue}mg`);
+                      explanations.push(updatedLine);
+                    } else {
+                      // Fallback explanation if no specific explanation exists
+                      const standardSodium = 2300;
+                      if (parseFloat(sodiumValue) < standardSodium) {
+                        explanations.push(`Sodium limited to ${sodiumValue}mg/day (vs. standard ${standardSodium}mg) to support heart health.`);
+                      } else {
+                        explanations.push(`Sodium target of ${sodiumValue}mg/day aligns with standard dietary recommendations.`);
+                      }
+                    }
+                  }
+                  
+                  // Cholesterol
+                  const cholesterolValue = metrics.cholesterol?.target;
+                  if (cholesterolValue) {
+                    const cholesterolLine = lines.find(line => 
+                      line.toLowerCase().includes('cholesterol') &&
+                      !line.toLowerCase().includes('saturated')
+                    );
+                    if (cholesterolLine) {
+                      const updatedLine = cholesterolLine.replace(/\d+mg/g, `${cholesterolValue}mg`);
+                      explanations.push(updatedLine);
+                    } else {
+                      // Fallback explanation if no specific explanation exists
+                      const standardCholesterol = 300;
+                      if (parseFloat(cholesterolValue) < standardCholesterol) {
+                        explanations.push(`Cholesterol limited to ${cholesterolValue}mg/day (vs. standard ${standardCholesterol}mg) for heart health.`);
+                      } else {
+                        explanations.push(`Cholesterol target of ${cholesterolValue}mg/day aligns with standard dietary recommendations.`);
+                      }
+                    }
+                  }
+                  
+                  if (explanations.length > 0) {
+                    return explanations.length > 1 ? { bullets: explanations } : explanations[0];
+                  }
+                }
+                return null;
+              };
+              
+              const categoryExplanation = getCategoryExplanation();
+              
+              return (
               <div key={categoryKey} className="metric-category">
                 <h3 className="category-title">{category.title}</h3>
                 <div className="metrics-grid">
@@ -906,84 +1390,53 @@ const NutritionPlan = () => {
                     );
                   })}
                 </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Plan Summary Section */}
-          {planExplanation && (selectedPreset || Object.keys(metrics).some(k => metrics[k].enabled)) && (
-            <div className="plan-explanation-section" style={{
-              background: '#f0fdf4',
-              border: '2px solid #1a5f3f',
-              borderRadius: '12px',
-              padding: '24px',
-              marginTop: '8px',
-              marginBottom: '8px'
-            }}>
-              <h3 style={{
-                margin: '0 0 12px 0',
-                fontSize: '20px',
-                fontWeight: '600',
-                color: '#1a5f3f',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px'
-              }}>
-                How this plan was selected
-              </h3>
-              
-              {planExplanation.isPersonalized ? (
-                <div style={{ color: '#1a5f3f' }}>
-                  {planExplanation.presetReason && (
-                    <p style={{ 
-                      margin: '0 0 12px 0', 
-                      fontSize: '15px', 
-                      fontWeight: '500',
-                      lineHeight: '1.6'
-                    }}>
-                      <strong>Preset Selection:</strong> {planExplanation.presetReason}
-                    </p>
-                  )}
+                {categoryExplanation && (
                   <div style={{
-                    fontSize: '14px',
-                    lineHeight: '1.8',
-                    color: '#1a5f3f',
-                    whiteSpace: 'pre-line'
+                    background: 'rgba(128, 128, 128, 0.08)',
+                    borderRadius: '8px',
+                    padding: '12px 16px',
+                    marginTop: '16px',
+                    border: '1px solid #e5e7eb'
                   }}>
-                    {planExplanation.explanation}
+                    {typeof categoryExplanation === 'object' && categoryExplanation.bullets ? (
+                      <div>
+                        {categoryExplanation.bullets.map((bullet, idx) => (
+                          <div key={idx} style={{
+                            marginBottom: idx < categoryExplanation.bullets.length - 1 ? '6px' : '0',
+                            paddingLeft: '16px',
+                            position: 'relative',
+                            fontSize: '13px',
+                            color: '#4b5563',
+                            lineHeight: '1.5'
+                          }}>
+                            <span style={{
+                              position: 'absolute',
+                              left: '0',
+                              color: '#6b7280',
+                              fontWeight: '400'
+                            }}>•</span>
+                            {bullet}
                   </div>
+                        ))}
                 </div>
               ) : (
-                <div style={{ color: '#1a5f3f' }}>
-                  <p style={{ 
-                    margin: '0 0 8px 0', 
-                    fontSize: '15px', 
-                    fontWeight: '500',
-                    lineHeight: '1.6'
-                  }}>
-                    <strong>Preset:</strong> {planExplanation.presetName || planExplanation.preset}
-                  </p>
                   <p style={{ 
                     margin: '0', 
-                    fontSize: '14px', 
-                    lineHeight: '1.6',
-                    color: '#1a5f3f'
-                  }}>
-                    {planExplanation.presetDescription || 'This preset has been selected with recommended targets for the chosen nutrition goal.'}
-                  </p>
-                  <p style={{ 
-                    margin: '12px 0 0 0', 
                     fontSize: '13px', 
-                    lineHeight: '1.6',
-                    color: '#1a5f3f',
-                    fontStyle: 'italic'
-                  }}>
-                    💡 Tip: You can customize individual metric targets above to match your specific needs.
-                  </p>
-                </div>
+                        fontWeight: '400',
+                        color: '#4b5563',
+                        lineHeight: '1.6'
+                      }}>
+                        {typeof categoryExplanation === 'string' ? categoryExplanation : String(categoryExplanation || '')}
+                      </p>
               )}
             </div>
           )}
+              </div>
+            );
+            })}
+          </div>
+
 
           {showSafetyConfirm && safetyWarnings.length > 0 && (
             <div className="safety-warning-banner" style={{
@@ -1125,10 +1578,33 @@ const NutritionPlan = () => {
             </div>
           )}
 
-          <button type="submit" className="submit-plan-button" disabled={loading}>
-            {loading ? 'Saving...' : (isEditMode ? 'Update Nutrition Plan' : 'Save Nutrition Plan')}
-          </button>
+          <div className="form-actions">
+            <button type="button" onClick={handleCancel} className="cancel-plan-button" disabled={loading}>
+              Cancel
+            </button>
+            <button type="submit" className="submit-plan-button" disabled={loading}>
+              {loading ? 'Saving...' : (isEditMode ? 'Update Nutrition Plan' : 'Save Nutrition Plan')}
+            </button>
+          </div>
         </form>
+
+        {/* Save Confirmation Modal */}
+        {showSaveConfirm && (
+          <div className="modal-overlay" onClick={handleCancelSave}>
+            <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+              <h3>Confirm Save</h3>
+              <p>Saving this nutrition plan will replace your old one. Are you sure?</p>
+              <div className="modal-actions">
+                <button onClick={handleCancelSave} className="modal-cancel-button">
+                  Cancel
+                </button>
+                <button onClick={handleConfirmSave} className="modal-confirm-button">
+                  Save Plan
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
