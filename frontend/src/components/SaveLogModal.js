@@ -3,6 +3,7 @@ import { X, Star } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { getLocations } from '../services/hudsService';
 import { saveMealLog } from '../services/mealLogService';
+import { getUserProfile } from '../services/profileService';
 import CustomSelect from './CustomSelect';
 import './CreatePostModal.css';
 
@@ -71,28 +72,48 @@ const getMealTypeFromTime = () => {
   const [hours, minutes] = etTime.split(':').map(Number);
   const timeInMinutes = hours * 60 + minutes;
   
-  // 7:00 AM - 10:30 AM (420 - 630 minutes)
-  if (timeInMinutes >= 420 && timeInMinutes < 630) {
+  // 12:00 AM - 11:29 AM (0 - 689 minutes)
+  if (timeInMinutes >= 0 && timeInMinutes < 690) {
     return 'Breakfast';
   }
-  // 11:30 AM - 2:00 PM (690 - 840 minutes)
-  if (timeInMinutes >= 690 && timeInMinutes < 840) {
+  // 11:30 AM - 4:59 PM (690 - 1079 minutes)
+  if (timeInMinutes >= 690 && timeInMinutes < 1080) {
     return 'Lunch';
   }
-  // 5:00 PM - 8:30 PM (1020 - 1230 minutes)
-  if (timeInMinutes >= 1020 && timeInMinutes < 1230) {
+  // 5:00 PM - 11:59 PM (1080 - 1439 minutes)
+  if (timeInMinutes >= 1080 && timeInMinutes < 1440) {
     return 'Dinner';
   }
   
-  // Default to empty if outside meal times
-  return '';
+  // Default to breakfast if somehow outside 24-hour range
+  return 'Breakfast';
+};
+
+// Get current date in Eastern Time
+const getEasternDate = () => {
+  const now = new Date();
+  // Use Intl.DateTimeFormat to get date parts in Eastern Time
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/New_York',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  });
+  
+  const parts = formatter.formatToParts(now);
+  const year = parts.find(p => p.type === 'year').value;
+  const month = parts.find(p => p.type === 'month').value;
+  const day = parts.find(p => p.type === 'day').value;
+  
+  return `${year}-${month}-${day}`;
 };
 
 const SaveLogModal = ({ isOpen, onClose, onSuccess, scanData, imageUrl, imageFile }) => {
   const { accessToken, user } = useAuth();
+  const [userResidence, setUserResidence] = useState(null);
   const [diningHalls, setDiningHalls] = useState([]);
   const [selectedLocation, setSelectedLocation] = useState({ locationId: '', locationName: '' });
-  const [mealDate, setMealDate] = useState(new Date().toISOString().split('T')[0]);
+  const [mealDate, setMealDate] = useState(getEasternDate());
   const [mealType, setMealType] = useState('');
   const [rating, setRating] = useState(0);
   const [hoveredRating, setHoveredRating] = useState(0);
@@ -130,19 +151,39 @@ const SaveLogModal = ({ isOpen, onClose, onSuccess, scanData, imageUrl, imageFil
       setDiningHalls(expanded);
 
       // Set user's residence as default dining hall if available
-      if (user?.residence && expanded.length > 0) {
-        let targetDiningHall = user.residence;
+      // Try user.residence first, then userResidence state (from profile)
+      const residence = user?.residence || userResidence;
+      if (residence && expanded.length > 0) {
+        let targetDiningHall = residence;
         
         // If user is in a freshman dorm, default to Annenberg Hall
-        if (FRESHMAN_DORMS.includes(user.residence)) {
+        if (FRESHMAN_DORMS.includes(targetDiningHall)) {
           targetDiningHall = 'Annenberg Hall';
         }
         
         const normalizedTarget = normalizeHouseName(targetDiningHall);
         
-        const matchingHall = expanded.find(hall => 
+        // Try multiple matching strategies
+        let matchingHall = expanded.find(hall => 
           hall.location_name.toLowerCase() === normalizedTarget.toLowerCase()
         );
+        
+        // If no exact match, try without "House" suffix
+        if (!matchingHall) {
+          const targetWithoutHouse = normalizedTarget.replace(/\s+House\s*$/i, '').trim();
+          matchingHall = expanded.find(hall => {
+            const hallWithoutHouse = hall.location_name.replace(/\s+House\s*$/i, '').trim();
+            return hallWithoutHouse.toLowerCase() === targetWithoutHouse.toLowerCase();
+          });
+        }
+        
+        // If still no match, try partial match
+        if (!matchingHall) {
+          matchingHall = expanded.find(hall => 
+            hall.location_name.toLowerCase().includes(normalizedTarget.toLowerCase()) ||
+            normalizedTarget.toLowerCase().includes(hall.location_name.toLowerCase())
+          );
+        }
         
         if (matchingHall) {
           const uniqueId = `${matchingHall.location_number}|${matchingHall.location_name}`;
@@ -150,17 +191,50 @@ const SaveLogModal = ({ isOpen, onClose, onSuccess, scanData, imageUrl, imageFil
             locationId: uniqueId,
             locationName: matchingHall.location_name
           });
+          console.log('Auto-selected dining hall:', matchingHall.location_name, 'from user residence:', residence);
+        } else {
+          console.log('Could not find matching dining hall for residence:', residence, 'Normalized:', normalizedTarget);
+          console.log('Available dining halls:', expanded.map(h => h.location_name));
         }
+      } else {
+        console.log('User residence not available:', residence, 'or no dining halls loaded');
       }
     } catch (err) {
       console.error('Failed to load dining halls:', err);
       setError('Failed to load dining halls');
     }
-  }, [user]);
+  }, [user, userResidence]);
+
+  // Fetch user profile to get residence if not in user object
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      if (accessToken && !user?.residence) {
+        try {
+          const profile = await getUserProfile();
+          if (profile?.residence) {
+            setUserResidence(profile.residence);
+          }
+        } catch (err) {
+          console.error('Failed to fetch user profile:', err);
+        }
+      } else if (user?.residence) {
+        setUserResidence(user.residence);
+      }
+    };
+    
+    if (isOpen) {
+      fetchUserProfile();
+    }
+  }, [isOpen, accessToken, user]);
 
   useEffect(() => {
     if (isOpen) {
       loadDiningHalls();
+      
+      // Set current date in Eastern Time
+      const easternDate = getEasternDate();
+      console.log('Setting meal date to Eastern Time:', easternDate);
+      setMealDate(easternDate);
       
       // Auto-detect meal type based on current time
       const detectedMealType = getMealTypeFromTime();
@@ -168,7 +242,7 @@ const SaveLogModal = ({ isOpen, onClose, onSuccess, scanData, imageUrl, imageFil
     } else {
       // Reset form when modal closes
       setSelectedLocation({ locationId: '', locationName: '' });
-      setMealDate(new Date().toISOString().split('T')[0]);
+      setMealDate(getEasternDate());
       setMealType('');
       setRating(0);
       setReview('');

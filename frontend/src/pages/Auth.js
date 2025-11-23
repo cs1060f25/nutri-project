@@ -459,12 +459,12 @@ const Auth = () => {
                 // Map step 1-5 to registrationStep 2-6 (step 1 is landing page)
                 const actualStep = step + 1;
                 return (
-                  <div
-                    key={step}
+                <div
+                  key={step}
                     className={`progress-step ${actualStep === registrationStep ? 'active' : ''} ${actualStep < registrationStep ? 'completed' : ''}`}
-                  >
+                >
                     <div className="step-number">{actualStep < registrationStep ? '✓' : step}</div>
-                  </div>
+                </div>
                 );
               })}
             </div>
@@ -600,17 +600,17 @@ const Auth = () => {
               {/* Step 1: Welcome/Intro */}
               {registrationStep === 1 && (
                 <div className="registration-intro">
-                  <div style={{ textAlign: 'center', marginBottom: '1rem' }}> 
+                  <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
                     <p style={{ fontSize: '1rem', color: '#475569', lineHeight: '1.6', marginBottom: '2rem', maxWidth: '600px', margin: '0 auto 2rem' }}>
                       Track your dining hall meals, monitor your nutrition goals, and get personalized recommendations based on Harvard University Dining Services menus.
                     </p>
                     <div style={{ background: '#f0f9f4', padding: '1.5rem', borderRadius: '12px', maxWidth: '600px', margin: '0 auto', marginBottom: '0' }}>
                       <h4 style={{ fontSize: '1rem', fontWeight: 600, color: '#1a5f3f', marginBottom: '0.75rem', marginTop: 0 }}>
-                        Your Data is Private & Secure
-                      </h4>
+                            Your Data is Private & Secure
+                          </h4>
                       <p style={{ fontSize: '0.875rem', color: '#475569', lineHeight: '1.6', margin: 0 }}>
-                        All information you provide is kept private and secure. Your data is only used to make calculations, estimates, and recommendations within the app.
-                      </p>
+                            All information you provide is kept private and secure. Your data is only used to make calculations, estimates, and recommendations within the app.
+                          </p>
                     </div>
                   </div>
                 </div>
@@ -915,7 +915,7 @@ const Auth = () => {
                         type="button"
                         className={`chip ${isKosher ? 'chip-selected' : ''}`}
                         onClick={() => setIsKosher(!isKosher)}
-                        disabled={loading}
+                          disabled={loading}
                       >
                         <span className="chip-icon">{isKosher ? '×' : '+'}</span>
                         <span>I require Kosher meals</span>
@@ -924,7 +924,7 @@ const Auth = () => {
                         type="button"
                         className={`chip ${isHalal ? 'chip-selected' : ''}`}
                         onClick={() => setIsHalal(!isHalal)}
-                        disabled={loading}
+                          disabled={loading}
                       >
                         <span className="chip-icon">{isHalal ? '×' : '+'}</span>
                         <span>I require Halal meals</span>
@@ -946,7 +946,7 @@ const Auth = () => {
                             disabled={loading}
                           >
                             <span className="chip-icon">{isSelected ? '×' : '+'}</span>
-                            <span>{allergy}</span>
+                          <span>{allergy}</span>
                           </button>
                         );
                       })}
@@ -964,10 +964,10 @@ const Auth = () => {
                             type="button"
                             className={`chip ${isSelected ? 'chip-selected' : ''}`}
                             onClick={() => handleHealthConditionToggle(condition)}
-                            disabled={loading}
+                  disabled={loading}
                           >
                             <span className="chip-icon">{isSelected ? '×' : '+'}</span>
-                            <span>{condition}</span>
+                          <span>{condition}</span>
                           </button>
                         );
                       })}
@@ -975,10 +975,10 @@ const Auth = () => {
                   </div>
 
                   <div className="form-group" style={{ marginTop: 'calc(24px - 2rem)', marginBottom: '0.5rem' }}>
-                    <div style={{ 
+                    <div style={{
                       background: '#f0f9f4', 
                       padding: '0', 
-                      borderRadius: '8px', 
+                      borderRadius: '8px',
                       marginBottom: '0',
                       fontSize: '0.875rem',
                       color: '#475569',
@@ -1013,7 +1013,7 @@ const Auth = () => {
                         <span>
                           I agree to the collection and use of my data for personalized nutrition recommendations. This app is for educational purposes and does not replace professional medical advice.
                         </span>
-                      </label>
+              </label>
                     </div>
                   </div>
                 </>

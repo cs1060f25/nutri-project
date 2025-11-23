@@ -35,7 +35,11 @@ const saveNutritionPlan = async (userId, planData, planId = null) => {
   if (planId) {
     // Update existing plan
     docRef = plansRef.doc(planId);
+    // Use merge: true but explicitly set metrics to replace the entire object
+    // This ensures disabled metrics are removed
     await docRef.set(payload, { merge: true });
+    // Explicitly update metrics to ensure disabled ones are removed
+    await docRef.update({ metrics: planData.metrics || {} });
   } else {
     // Create new plan
     payload.createdAt = timestamp;

@@ -294,8 +294,8 @@ const CreatePostModal = ({ isOpen, onClose, onSuccess, scanData, imageUrl, image
         nutritionTotals: {
           calories: scanData.calories,
           protein: scanData.protein,
-          carbs: scanData.carbs,
-          fat: scanData.fat,
+          totalCarbs: scanData.carbs || scanData.totalCarbs,
+          totalFat: scanData.fat || scanData.totalFat,
         },
         timestamp: scanData.timestamp || new Date().toISOString(),
       };

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Filter, ArrowLeft } from 'lucide-react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { getFriends, getFriendRequests, acceptFriendRequest, rejectFriendRequest, removeFriend, sendFriendRequest, getFollowedDiningHalls, unfollowDiningHall, getPostsByLocationName } from '../services/socialService';
+import { getFriends, getFriendRequests, acceptFriendRequest, rejectFriendRequest, removeFriend, sendFriendRequest, getFollowedDiningHalls, followDiningHall, unfollowDiningHall, getPostsByLocationName } from '../services/socialService';
 import { getPostsByUser } from '../services/socialService';
 import PostCard from './PostCard';
 import CustomSelect from './CustomSelect';
@@ -311,6 +311,18 @@ const SocialProfile = () => {
       } else {
         alert('Failed to send friend request: ' + err.message);
       }
+    }
+  };
+
+  const handleFollowDiningHall = async (locationId, locationName) => {
+    try {
+      await followDiningHall(locationId, locationName, accessToken);
+      // Refresh followed dining halls
+      const diningHallsData = await getFollowedDiningHalls(accessToken);
+      setFollowedDiningHalls(diningHallsData.diningHalls || []);
+    } catch (err) {
+      console.error('Error following dining hall:', err);
+      alert('Failed to follow dining hall: ' + err.message);
     }
   };
 
@@ -983,18 +995,33 @@ const SocialProfile = () => {
                     <h2>{selectedLocation.locationName}</h2>
                   </div>
                   <div onClick={(e) => e.stopPropagation()}>
-                    <button
-                      className="btn btn-secondary"
-                      onClick={() => {
-                        setLocationToUnfollow({
-                          locationId: selectedLocation.locationId,
-                          locationName: selectedLocation.locationName
-                        });
-                        setShowUnfollowModal(true);
-                      }}
-                    >
-                      Unfollow
-                    </button>
+                    {(() => {
+                      const isFollowing = followedDiningHalls.some(
+                        hall => hall.locationId === selectedLocation.locationId && 
+                                hall.locationName === selectedLocation.locationName
+                      );
+                      return isFollowing ? (
+                        <button
+                          className="btn btn-secondary"
+                          onClick={() => {
+                            setLocationToUnfollow({
+                              locationId: selectedLocation.locationId,
+                              locationName: selectedLocation.locationName
+                            });
+                            setShowUnfollowModal(true);
+                          }}
+                        >
+                          Unfollow
+                        </button>
+                      ) : (
+                        <button
+                          className="btn btn-primary"
+                          onClick={() => handleFollowDiningHall(selectedLocation.locationId, selectedLocation.locationName)}
+                        >
+                          Follow
+                        </button>
+                      );
+                    })()}
                   </div>
                 </div>
               </div>

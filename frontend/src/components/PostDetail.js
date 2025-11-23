@@ -275,8 +275,8 @@ const PostDetail = ({ postId, onClose }) => {
                   if (displayOptions.protein && item.protein !== undefined) {
                     nutritionParts.push(`${Math.round(Number(item.protein) || 0)}g protein`);
                   }
-                  if (displayOptions.carbs && (item.carbs !== undefined || item.totalCarb !== undefined)) {
-                    const carbs = item.carbs !== undefined ? item.carbs : item.totalCarb;
+                  if (displayOptions.carbs && (item.carbs !== undefined || item.totalCarbs !== undefined || item.totalCarb !== undefined)) {
+                    const carbs = item.carbs !== undefined ? item.carbs : (item.totalCarbs !== undefined ? item.totalCarbs : item.totalCarb);
                     nutritionParts.push(`${Math.round(Number(carbs) || 0)}g carbs`);
                   }
                   if (displayOptions.fat && (item.fat !== undefined || item.totalFat !== undefined)) {
@@ -307,25 +307,25 @@ const PostDetail = ({ postId, onClose }) => {
                 {displayOptions.calories && post.totals.calories !== undefined && (
                   <div className="post-total-item">
                     <div className="post-total-label">Calories</div>
-                    <div className="post-total-value">{Math.round(Number(post.totals.calories) || 0)}</div>
+                    <div className="post-total-value">{Math.round(parseFloat(String(post.totals.calories).replace(/[^0-9.]/g, '')) || 0)}</div>
                   </div>
                 )}
                 {displayOptions.protein && post.totals.protein !== undefined && (
                   <div className="post-total-item">
                     <div className="post-total-label">Protein</div>
-                    <div className="post-total-value">{Math.round(Number(post.totals.protein) || 0)}g</div>
+                    <div className="post-total-value">{Math.round(parseFloat(String(post.totals.protein).replace(/[^0-9.]/g, '')) || 0)}g</div>
                   </div>
                 )}
-                {displayOptions.carbs && post.totals.totalCarb !== undefined && (
+                {displayOptions.carbs && (post.totals.totalCarbs !== undefined || post.totals.totalCarb !== undefined) && (
                   <div className="post-total-item">
                     <div className="post-total-label">Carbs</div>
-                    <div className="post-total-value">{Math.round(Number(post.totals.totalCarb) || 0)}g</div>
+                    <div className="post-total-value">{Math.round(parseFloat(String(post.totals.totalCarbs || post.totals.totalCarb).replace(/[^0-9.]/g, '')) || 0)}g</div>
                   </div>
                 )}
                 {displayOptions.fat && post.totals.totalFat !== undefined && (
                   <div className="post-total-item">
                     <div className="post-total-label">Fat</div>
-                    <div className="post-total-value">{Math.round(Number(post.totals.totalFat) || 0)}g</div>
+                    <div className="post-total-value">{Math.round(parseFloat(String(post.totals.totalFat).replace(/[^0-9.]/g, '')) || 0)}g</div>
                   </div>
                 )}
               </div>

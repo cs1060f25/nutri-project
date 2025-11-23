@@ -209,10 +209,29 @@ const buildCallToAction = (day, metrics) => {
  * Get today's nutrition progress compared to active plan
  * GET /api/nutrition-progress/today
  */
+// Get current date in Eastern Time (America/New_York)
+const getEasternDate = () => {
+  const now = new Date();
+  // Use Intl.DateTimeFormat to get date in Eastern Time
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/New_York',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  });
+  
+  const parts = formatter.formatToParts(now);
+  const year = parts.find(p => p.type === 'year').value;
+  const month = parts.find(p => p.type === 'month').value;
+  const day = parts.find(p => p.type === 'day').value;
+  
+  return `${year}-${month}-${day}`;
+};
+
 const getTodayProgress = async (req, res) => {
   try {
     const userId = req.user.uid;
-    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+    const today = getEasternDate(); // YYYY-MM-DD format in Eastern Time
 
     // Get active nutrition plan
     const activePlan = await nutritionPlanService.getActiveNutritionPlan(userId);
@@ -227,17 +246,28 @@ const getTodayProgress = async (req, res) => {
     // Get today's meals summary
    const dailySummary = await mealLogService.getDailySummary(userId, today);
 
+    // Debug logging
+    console.log('=== TODAY PROGRESS DEBUG ===');
+    console.log('Date:', today);
+    console.log('User ID:', userId);
+    console.log('Meal count:', dailySummary.mealCount);
+    console.log('Meals:', JSON.stringify(dailySummary.meals, null, 2));
+    console.log('Daily totals:', JSON.stringify(dailySummary.dailyTotals, null, 2));
+
     // Parse nutritional totals from today's meals
     const consumed = {
       calories: parseNutrient(dailySummary.dailyTotals.calories),
       protein: parseNutrient(dailySummary.dailyTotals.protein),
-      totalFat: parseNutrient(dailySummary.dailyTotals.totalFat),
+      totalFat: parseNutrient(dailySummary.dailyTotals.totalFat || dailySummary.dailyTotals.fat),
       saturatedFat: parseNutrient(dailySummary.dailyTotals.saturatedFat),
-      totalCarbs: parseNutrient(dailySummary.dailyTotals.totalCarb),
+      totalCarbs: parseNutrient(dailySummary.dailyTotals.totalCarbs || dailySummary.dailyTotals.totalCarb || dailySummary.dailyTotals.carbs),
       fiber: parseNutrient(dailySummary.dailyTotals.dietaryFiber),
       sugars: parseNutrient(dailySummary.dailyTotals.sugars),
       sodium: parseNutrient(dailySummary.dailyTotals.sodium),
     };
+
+    console.log('Parsed consumed:', JSON.stringify(consumed, null, 2));
+    console.log('=== END DEBUG ===');
 
     const progress = buildProgress(consumed, activePlan.metrics || {});
 
@@ -300,7 +330,7 @@ const getRangeProgress = async (req, res) => {
         protein: parseNutrient(summary.totals.protein),
         totalFat: parseNutrient(summary.totals.totalFat),
         saturatedFat: parseNutrient(summary.totals.saturatedFat),
-        totalCarbs: parseNutrient(summary.totals.totalCarb),
+        totalCarbs: parseNutrient(summary.totals.totalCarbs),
         fiber: parseNutrient(summary.totals.dietaryFiber),
         sugars: parseNutrient(summary.totals.sugars),
         sodium: parseNutrient(summary.totals.sodium),

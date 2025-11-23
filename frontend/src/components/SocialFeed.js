@@ -44,17 +44,17 @@ const SocialFeed = () => {
     // For popular posts, dining hall and meal type are already filtered server-side
     // But we still need to apply rating filter client-side
     if (activeTab !== 'popular') {
-      // Filter by dining hall - only show posts that have location visible
-      if (filterDiningHall) {
-        filtered = filtered.filter(post => {
-          // Check if the post has location enabled in display options
-          const options = post.displayOptions || {};
-          const locationVisible = options.location !== undefined ? options.location : (options.showLocation !== undefined ? options.showLocation : true);
-          
-          // Only include post if location is visible AND matches the filter
-          return locationVisible && (post.locationName === filterDiningHall || post.locationId === filterDiningHall);
-        });
-      }
+    // Filter by dining hall - only show posts that have location visible
+    if (filterDiningHall) {
+      filtered = filtered.filter(post => {
+        // Check if the post has location enabled in display options
+        const options = post.displayOptions || {};
+        const locationVisible = options.location !== undefined ? options.location : (options.showLocation !== undefined ? options.showLocation : true);
+        
+        // Only include post if location is visible AND matches the filter
+        return locationVisible && (post.locationName === filterDiningHall || post.locationId === filterDiningHall);
+      });
+    }
 
       // Filter by meal type - only show posts that have meal type visible
       if (filterMealType) {
@@ -242,12 +242,12 @@ const SocialFeed = () => {
         // Get visible meal types (only from posts with meal type visible)
         // Normalize to ensure uniqueness and proper capitalization
         const mealTypeMap = new Map();
-        posts
-          .filter(post => {
-            const options = post.displayOptions || {};
-            const mealTypeVisible = options.mealType !== undefined ? options.mealType : true;
-            return mealTypeVisible && (post.mealType || post.mealName);
-          })
+          posts
+            .filter(post => {
+              const options = post.displayOptions || {};
+              const mealTypeVisible = options.mealType !== undefined ? options.mealType : true;
+              return mealTypeVisible && (post.mealType || post.mealName);
+            })
           .forEach(p => {
             const mealType = p.mealType || p.mealName;
             if (mealType) {

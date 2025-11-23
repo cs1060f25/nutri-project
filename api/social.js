@@ -453,6 +453,30 @@ const createPost = async (userId, mealId) => {
   const mealData = mealDoc.data();
   const userData = userDoc.data();
 
+  // Parse totals and normalize field names (handle fat/totalFat, carbs/totalCarbs/totalCarb)
+  const parseNutrient = (value) => {
+    if (!value) return 0;
+    const num = parseFloat(String(value).replace(/[^0-9.]/g, ''));
+    return isNaN(num) ? 0 : num;
+  };
+
+  console.log('Creating post from meal log - mealData.totals:', JSON.stringify(mealData.totals));
+  
+  const totals = mealData.totals ? {
+    calories: parseNutrient(mealData.totals.calories),
+    protein: parseNutrient(mealData.totals.protein),
+    totalCarbs: parseNutrient(mealData.totals.totalCarbs || mealData.totals.totalCarb || mealData.totals.carbs),
+    totalFat: parseNutrient(mealData.totals.totalFat || mealData.totals.fat),
+    saturatedFat: parseNutrient(mealData.totals.saturatedFat),
+    transFat: parseNutrient(mealData.totals.transFat),
+    cholesterol: parseNutrient(mealData.totals.cholesterol),
+    sodium: parseNutrient(mealData.totals.sodium),
+    dietaryFiber: parseNutrient(mealData.totals.dietaryFiber),
+    sugars: parseNutrient(mealData.totals.sugars),
+  } : null;
+  
+  console.log('Parsed totals for post:', JSON.stringify(totals));
+
   // Store logged date (when meal was logged) and posted date (when post was created)
   const loggedDate = mealData.mealDate ? new Date(mealData.mealDate) : null;
   const postedDate = admin.firestore.FieldValue.serverTimestamp();
@@ -470,11 +494,17 @@ const createPost = async (userId, mealId) => {
     locationId: mealData.locationId,
     locationName: mealData.locationName,
     items: mealData.items,
-    totals: mealData.totals,
+    totals,
+    rating: mealData.rating || null,
+    review: mealData.review || null,
+    image: mealData.imageUrl || null, // PostCard expects 'image' field
+    isPublic: true, // Default to public
     timestamp: postedDate, // Keep for backwards compatibility
     createdAt: postedDate, // Posted date - when the post was created
     updatedAt: admin.firestore.FieldValue.serverTimestamp(),
   };
+  
+  console.log('Creating post from meal log - has imageUrl:', !!mealData.imageUrl, 'image length:', mealData.imageUrl?.length || 0);
 
   const postRef = await db.collection(POSTS_COLLECTION).add(post);
   const postDoc = await postRef.get();
@@ -535,13 +565,36 @@ const createPostFromScan = async (userId, scanData) => {
       return cleanItem;
     });
 
-    // Format totals
+    // Format totals - use nutritionTotals directly, but calculate from items if missing
+    console.log('Creating post totals - scanData.nutritionTotals:', JSON.stringify(scanData.nutritionTotals));
+    
+    let totalCarbs = Number(scanData.nutritionTotals?.totalCarbs || 0);
+    let totalFat = Number(scanData.nutritionTotals?.totalFat || 0);
+    
+    // If carbs/fat are 0 or missing, calculate from items
+    if (!totalCarbs || totalCarbs === 0) {
+      totalCarbs = items.reduce((sum, item) => {
+        const itemCarbs = item.carbs || item.totalCarbs || item.totalCarb || 0;
+        const qty = item.quantity || 1;
+        return sum + (Number(itemCarbs) * qty);
+      }, 0);
+    }
+    
+    if (!totalFat || totalFat === 0) {
+      totalFat = items.reduce((sum, item) => {
+        const itemFat = item.fat || item.totalFat || 0;
+        const qty = item.quantity || 1;
+        return sum + (Number(itemFat) * qty);
+      }, 0);
+    }
+    
     const totals = {
       calories: Number(scanData.nutritionTotals?.calories || 0),
       protein: Number(scanData.nutritionTotals?.protein || 0),
-      totalCarb: Number(scanData.nutritionTotals?.carbs || 0),
-      totalFat: Number(scanData.nutritionTotals?.fat || 0),
+      totalCarbs: Number(totalCarbs),
+      totalFat: Number(totalFat),
     };
+    console.log('Final totals being stored:', JSON.stringify(totals));
 
     // Handle timestamp
     let timestampValue;
@@ -669,7 +722,7 @@ const createPostFromScan = async (userId, scanData) => {
         servingSize: item.servingSize || '1 serving',
         calories: String(item.calories || 0),
         protein: `${item.protein || 0}g`,
-        totalCarb: `${item.carbs || 0}g`,
+        totalCarbs: `${item.carbs || 0}g`,
         totalFat: `${item.fat || 0}g`,
         saturatedFat: '0g',
         transFat: '0g',
@@ -729,7 +782,7 @@ const createPostFromScan = async (userId, scanData) => {
         mealDate,
         totalsCalories: totals.calories,
         totalsProtein: totals.protein,
-        totalsCarbs: totals.totalCarb,
+        totalsCarbs: totals.totalCarbs || totals.totalCarb,
         totalsFat: totals.totalFat,
         itemsCount: mealLogItems.length,
         firstItemCalories: mealLogItems[0]?.calories,
@@ -761,14 +814,18 @@ const getFeedPosts = async (userId, limit = 50) => {
   const friends = await getFriends(userId);
   const friendIds = friends.map(f => f.id);
 
-  if (friendIds.length === 0) {
+  // Include the user's own posts in the feed
+  const userIdsToQuery = [userId, ...friendIds];
+
+  if (userIdsToQuery.length === 0) {
     return [];
   }
 
   const allPosts = [];
   // Remove orderBy to avoid requiring composite index - sort in-memory instead
-  for (let i = 0; i < friendIds.length; i += 10) {
-    const batch = friendIds.slice(i, i + 10);
+  // Firestore 'in' limit is 10, so we need to batch queries
+  for (let i = 0; i < userIdsToQuery.length; i += 10) {
+    const batch = userIdsToQuery.slice(i, i + 10);
     const snapshot = await db
       .collection(POSTS_COLLECTION)
       .where('userId', 'in', batch)
@@ -863,34 +920,71 @@ const getPostsByLocation = async (locationId, limit = 50) => {
 
 const getPostsByLocationName = async (locationName, limit = 50) => {
   const db = getDb();
-  // Remove orderBy to avoid requiring composite index - sort in-memory instead
-  const snapshot = await db
-    .collection(POSTS_COLLECTION)
-    .where('locationName', '==', locationName)
-    .get();
 
-  const posts = [];
-  snapshot.forEach(doc => {
-    const postData = doc.data();
-    posts.push({
-      id: doc.id,
-      ...postData,
-      timestamp: postData.timestamp?.toDate(),
-      createdAt: postData.createdAt?.toDate(),
-      updatedAt: postData.updatedAt?.toDate(),
-      loggedDate: postData.loggedDate?.toDate?.() || (postData.loggedDate ? new Date(postData.loggedDate) : null),
+  // Normalize the location name to handle variations
+  const normalizeHouseName = (houseName) => {
+    const trimmed = houseName.trim();
+    const baseName = trimmed.replace(/\s+House\s*$/i, '').trim();
+    const ALL_HOUSES = [
+      'Pforzheimer', 'Cabot', 'Currier', 'Kirkland', 'Leverett', 'Lowell',
+      'Eliot', 'Adams', 'Mather', 'Dunster', 'Winthrop', 'Quincy'
+    ];
+    const isHouse = ALL_HOUSES.some(base => 
+      base.toLowerCase() === baseName.toLowerCase()
+    );
+    if (isHouse && !trimmed.endsWith('House')) {
+      return `${trimmed} House`;
+    }
+    return trimmed;
+  };
+
+  const normalizedName = normalizeHouseName(locationName);
+  
+  // Generate variations to search for (with and without "House")
+  const baseName = normalizedName.replace(/\s+House\s*$/i, '').trim();
+  const variations = [
+    normalizedName, // "Dunster House"
+    baseName, // "Dunster"
+    locationName, // Original input (in case it's different)
+  ];
+  
+  // Remove duplicates
+  const uniqueVariations = [...new Set(variations)];
+
+  // Query for all variations and combine results
+  const allPosts = [];
+  for (const variation of uniqueVariations) {
+    const query = db
+      .collection(POSTS_COLLECTION)
+      .where('locationName', '==', variation);
+
+    const snapshot = await query.get();
+    snapshot.forEach(doc => {
+      // Avoid duplicates by checking if post ID already exists
+      if (!allPosts.find(p => p.id === doc.id)) {
+        const postData = doc.data();
+        allPosts.push({
+          id: doc.id,
+          ...postData,
+          timestamp: postData.timestamp?.toDate(),
+          createdAt: postData.createdAt?.toDate(),
+          updatedAt: postData.updatedAt?.toDate(),
+          loggedDate: postData.loggedDate?.toDate?.() || (postData.loggedDate ? new Date(postData.loggedDate) : null),
+        });
+      }
     });
-  });
+  }
 
+  // Sort by timestamp descending in-memory
   // Sort by posted date (createdAt) - most recent first
-  posts.sort((a, b) => {
+  allPosts.sort((a, b) => {
     const aTime = a.createdAt || a.timestamp || new Date(0);
     const bTime = b.createdAt || b.timestamp || new Date(0);
     return bTime - aTime;
   });
 
   // Return limited results
-  return posts.slice(0, limit);
+  return allPosts.slice(0, limit);
 };
 
 const deletePost = async (userId, postId) => {
@@ -1312,13 +1406,10 @@ const getDiningHallFeedPosts = async (userId, limit = 50) => {
   // Get user's followed dining halls
   const followedHalls = await getFollowedDiningHalls(userId);
 
-  if (followedHalls.length === 0) {
-    return [];
-  }
-
   // Get posts from followed dining halls
   // Match by both locationId and locationName to get posts from specific dining halls
   const allPosts = [];
+  const seenPostIds = new Set(); // Track seen post IDs to avoid duplicates
 
   // For each followed dining hall, get posts matching both locationId and locationName
   // Remove orderBy to avoid requiring composite index - sort in-memory instead
@@ -1330,6 +1421,30 @@ const getDiningHallFeedPosts = async (userId, limit = 50) => {
     
     const snapshot = await query.get();
     snapshot.forEach(doc => {
+      if (!seenPostIds.has(doc.id)) {
+        seenPostIds.add(doc.id);
+        const postData = doc.data();
+        allPosts.push({
+          id: doc.id,
+          ...postData,
+          timestamp: postData.timestamp?.toDate(),
+          createdAt: postData.createdAt?.toDate(),
+          updatedAt: postData.updatedAt?.toDate(),
+          loggedDate: postData.loggedDate?.toDate?.() || (postData.loggedDate ? new Date(postData.loggedDate) : null),
+        });
+      }
+    });
+  }
+
+  // Also get user's own posts from any dining hall (even if not following)
+  const userPostsQuery = db
+    .collection(POSTS_COLLECTION)
+    .where('userId', '==', userId);
+  
+  const userPostsSnapshot = await userPostsQuery.get();
+  userPostsSnapshot.forEach(doc => {
+    if (!seenPostIds.has(doc.id)) {
+      seenPostIds.add(doc.id);
       const postData = doc.data();
       allPosts.push({
         id: doc.id,
@@ -1339,8 +1454,8 @@ const getDiningHallFeedPosts = async (userId, limit = 50) => {
         updatedAt: postData.updatedAt?.toDate(),
         loggedDate: postData.loggedDate?.toDate?.() || (postData.loggedDate ? new Date(postData.loggedDate) : null),
       });
-    });
-  }
+    }
+  });
 
   // Sort all posts by posted date (createdAt) - most recent first
   allPosts.sort((a, b) => {
@@ -1397,8 +1512,15 @@ const getPopularPosts = async (limit = 50, options = {}) => {
       return; // Skip this post
     }
     
-    const upvotes = postData.upvotes || [];
-    const upvoteCount = Array.isArray(upvotes) ? upvotes.length : 0;
+    // Calculate upvote count - handle various formats
+    let upvoteCount = 0;
+    if (postData.upvotes) {
+      if (Array.isArray(postData.upvotes)) {
+        upvoteCount = postData.upvotes.length;
+      } else if (typeof postData.upvotes === 'number') {
+        upvoteCount = postData.upvotes;
+      }
+    }
     
     posts.push({
       id: doc.id,
@@ -1410,6 +1532,8 @@ const getPopularPosts = async (limit = 50, options = {}) => {
       loggedDate: postData.loggedDate?.toDate?.() || (postData.loggedDate ? new Date(postData.loggedDate) : null),
     });
   });
+
+  console.log(`getPopularPosts: Found ${posts.length} public posts before sorting`);
 
   // Sort by upvote count (descending), then by creation date (descending) as tiebreaker
   posts.sort((a, b) => {
@@ -1425,6 +1549,8 @@ const getPopularPosts = async (limit = 50, options = {}) => {
     const bTime = b.createdAt || b.timestamp || new Date(0);
     return bTime - aTime;
   });
+
+  console.log(`getPopularPosts: Top 5 posts after sorting - upvotes:`, posts.slice(0, 5).map(p => ({ id: p.id, upvotes: p.upvoteCount, createdAt: p.createdAt })));
 
   // Return limited results
   return posts.slice(0, limit);
@@ -1442,9 +1568,25 @@ module.exports = async (req, res) => {
 
   try {
     // Handle both Vercel's url format and standard format
-    const url = req.url || req.path || '';
+    let url = req.url || req.path || '';
     // Remove query string
-    const pathWithoutQuery = url.split('?')[0];
+    let pathWithoutQuery = url.split('?')[0];
+    
+    // Extract path from URL - handle both /api/social and direct paths
+    if (pathWithoutQuery.startsWith('/api/social')) {
+      pathWithoutQuery = pathWithoutQuery.replace('/api/social', '');
+    }
+    // Also handle /api/photo-upload
+    if (pathWithoutQuery.startsWith('/api/photo-upload')) {
+      pathWithoutQuery = pathWithoutQuery.replace('/api/photo-upload', '/photo-upload');
+    }
+    // Ensure path starts with / if it's not empty
+    if (pathWithoutQuery && !pathWithoutQuery.startsWith('/')) {
+      pathWithoutQuery = '/' + pathWithoutQuery;
+    }
+    if (!pathWithoutQuery) {
+      pathWithoutQuery = '/';
+    }
     
     // Check if this is a photo-upload request (no auth required)
     if (pathWithoutQuery.includes('/photo-upload')) {
@@ -1474,14 +1616,10 @@ module.exports = async (req, res) => {
     const decodedToken = await verifyToken(req.headers.authorization);
     const userId = decodedToken.uid;
 
-    // Remove /api/social prefix
-    let path = pathWithoutQuery.replace(/^\/api\/social/, '');
-    // Also handle /api/photo-upload if it somehow gets here
-    path = path.replace(/^\/api\/photo-upload/, '/photo-upload');
-    // If path is empty, it means we're at the root /api/social
-    if (!path || path === '') {
-      path = '/';
-    }
+    // Use the already processed path
+    const path = pathWithoutQuery;
+    
+    console.log('Social API - method:', req.method, 'path:', path, 'userId:', userId);
 
     // Friend request routes
     if (req.method === 'POST' && path === '/friends/request') {
@@ -1730,18 +1868,30 @@ module.exports = async (req, res) => {
     // Search routes
     if (req.method === 'GET' && path === '/search/users') {
       try {
-      const q = req.query.q;
+      // Get query parameter - handle both req.query (Vercel) and manual parsing
+      let q = req.query?.q;
+      if (!q && req.url) {
+        const urlMatch = req.url.match(/[?&]q=([^&]*)/);
+        if (urlMatch) {
+          q = decodeURIComponent(urlMatch[1]);
+        }
+      }
+      
+      console.log('Search users - path:', path, 'req.query:', req.query, 'q:', q, 'req.url:', req.url);
+      
       if (!q || q.trim().length === 0) {
         return res.status(400).json(createErrorResponse('INVALID_REQUEST', 'Search query is required'));
       }
 
       const searchTerm = q.trim().toLowerCase();
+      console.log('Searching for users with term:', searchTerm);
         const db = getDb();
         
         // Step 1: Get all valid users from Firebase Auth first
         // This ensures we only include users that actually exist in Auth (not deleted)
         // Wrap in try-catch to handle potential timeouts or errors on Vercel
         let validAuthUserIds = new Set();
+        let useAuthFilter = false;
         try {
           // Use a timeout to prevent hanging on Vercel
           const authUsersResult = await Promise.race([
@@ -1753,21 +1903,25 @@ module.exports = async (req, res) => {
           authUsersResult.users.forEach(user => {
             validAuthUserIds.add(user.uid);
           });
+          useAuthFilter = true;
+          console.log(`Loaded ${validAuthUserIds.size} valid user IDs from Firebase Auth`);
         } catch (authError) {
           console.error('Error fetching users from Firebase Auth, falling back to Firestore-only filter:', authError.message || authError);
           // If listUsers fails (e.g., timeout), we'll just filter by email presence
           // This is a fallback - not ideal but prevents the function from crashing
+          useAuthFilter = false;
         }
 
         // Step 2: Get all users from Firestore and filter by search term
         // Only include users that exist in Firebase Auth (not deleted)
         const snapshot = await db.collection(USERS_COLLECTION).get();
+        console.log(`Found ${snapshot.size} user documents in Firestore`);
       const matchingUsers = [];
 
       snapshot.forEach(doc => {
           try {
         const userData = doc.data();
-            const userId = doc.id;
+            const searchedUserId = doc.id;
             
             // Only include users that:
             // 1. Have an email (required field for valid users)
@@ -1778,7 +1932,7 @@ module.exports = async (req, res) => {
             
             // If we have validAuthUserIds (from successful listUsers call), check it
             // Otherwise, just check for email (fallback mode)
-            if (validAuthUserIds.size > 0 && !validAuthUserIds.has(userId)) {
+            if (useAuthFilter && !validAuthUserIds.has(searchedUserId)) {
               return;
             }
 
@@ -1787,13 +1941,13 @@ module.exports = async (req, res) => {
         const residence = (userData.residence || '').toLowerCase();
 
         // Exclude the current user from search results
-        if (userId === doc.id) {
+        if (searchedUserId === userId) {
           return;
         }
 
         if (fullName.includes(searchTerm) || email.includes(searchTerm) || residence.includes(searchTerm)) {
           matchingUsers.push({
-            id: doc.id,
+            id: searchedUserId,
             email: userData.email,
             firstName: userData.firstName,
             lastName: userData.lastName,
@@ -1807,11 +1961,12 @@ module.exports = async (req, res) => {
         }
       });
 
+      console.log(`Found ${matchingUsers.length} matching users for search term: ${searchTerm}`);
       const limit = parseInt(req.query.limit || 20, 10);
       return res.status(200).json({ users: matchingUsers.slice(0, limit), count: matchingUsers.length });
       } catch (error) {
         console.error('Error in search/users endpoint:', error);
-        return res.status(500).json(createErrorResponse('INTERNAL_ERROR', 'A server error has occurred'));
+        return res.status(500).json(createErrorResponse('INTERNAL_ERROR', error.message || 'A server error has occurred'));
       }
     }
 
@@ -1964,11 +2119,19 @@ module.exports = async (req, res) => {
         
         // Only keep the first occurrence of each location name
         if (!uniqueLocationsMap.has(locationNameKey)) {
-          // Try to match posts by location number or name
+          // Try to match posts by location number or name (with normalization)
           let postCount = 0;
+          const normalizedLocName = normalizeHouseName(loc.location_name);
+          const normalizedLocOriginal = normalizeHouseName(loc.original_name || loc.location_name);
+          
           for (const [key, count] of postCountMap.entries()) {
             const [postLocationId, postLocationName] = key.split('|');
+            const normalizedPostName = normalizeHouseName(postLocationName);
+            
+            // Match by location ID or normalized location name
             if (postLocationId === loc.location_number || 
+                normalizedPostName === normalizedLocName ||
+                normalizedPostName === normalizedLocOriginal ||
                 postLocationName === loc.location_name ||
                 postLocationName === loc.original_name) {
               postCount += count;

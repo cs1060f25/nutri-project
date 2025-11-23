@@ -32,11 +32,13 @@ const createPost = async (userId, mealId, mealData, isPublic = true, displayOpti
     return isNaN(num) ? 0 : num;
   };
 
+  console.log('Creating post from meal log - mealData.totals:', JSON.stringify(mealData.totals));
+  
   const totals = mealData.totals ? {
     calories: parseNutrient(mealData.totals.calories),
     protein: parseNutrient(mealData.totals.protein),
-    totalCarb: parseNutrient(mealData.totals.totalCarb),
-    totalFat: parseNutrient(mealData.totals.totalFat),
+    totalCarbs: parseNutrient(mealData.totals.totalCarbs || mealData.totals.totalCarb || mealData.totals.carbs),
+    totalFat: parseNutrient(mealData.totals.totalFat || mealData.totals.fat),
     saturatedFat: parseNutrient(mealData.totals.saturatedFat),
     transFat: parseNutrient(mealData.totals.transFat),
     cholesterol: parseNutrient(mealData.totals.cholesterol),
@@ -44,6 +46,8 @@ const createPost = async (userId, mealId, mealData, isPublic = true, displayOpti
     dietaryFiber: parseNutrient(mealData.totals.dietaryFiber),
     sugars: parseNutrient(mealData.totals.sugars),
   } : null;
+  
+  console.log('Parsed totals for post:', JSON.stringify(totals));
 
   // Store logged date (when meal was logged) and posted date (when post was created)
   const loggedDate = mealData.mealDate ? new Date(mealData.mealDate) : null;
@@ -129,7 +133,7 @@ const createPostFromScan = async (userId, scanData) => {
         servingSize: String(item.portionDescription || '1 serving'),
         calories: Number(item.calories || 0),
         protein: Number(item.protein || 0),
-        carbs: Number(item.carbs || item.totalCarb || 0),
+        carbs: Number(item.carbs || item.totalCarbs || 0),
         fat: Number(item.fat || item.totalFat || 0),
       };
       
@@ -170,12 +174,36 @@ const createPostFromScan = async (userId, scanData) => {
     });
 
     // Format totals - round to 2 decimal places
+    // Use nutritionTotals directly, but calculate from items if missing
+    console.log('Creating post totals - scanData.nutritionTotals:', JSON.stringify(scanData.nutritionTotals));
+    
+    let totalCarbs = Number(scanData.nutritionTotals?.totalCarbs || 0);
+    let totalFat = Number(scanData.nutritionTotals?.totalFat || 0);
+    
+    // If carbs/fat are 0 or missing, calculate from items
+    if (!totalCarbs || totalCarbs === 0) {
+      totalCarbs = items.reduce((sum, item) => {
+        const itemCarbs = item.carbs || item.totalCarbs || item.totalCarb || 0;
+        const qty = item.quantity || 1;
+        return sum + (Number(itemCarbs) * qty);
+      }, 0);
+    }
+    
+    if (!totalFat || totalFat === 0) {
+      totalFat = items.reduce((sum, item) => {
+        const itemFat = item.fat || item.totalFat || 0;
+        const qty = item.quantity || 1;
+        return sum + (Number(itemFat) * qty);
+      }, 0);
+    }
+    
     const totals = {
       calories: Math.round(Number(scanData.nutritionTotals?.calories || 0)),
       protein: parseFloat(Number(scanData.nutritionTotals?.protein || 0).toFixed(2)),
-      totalCarb: parseFloat(Number(scanData.nutritionTotals?.carbs || 0).toFixed(2)),
-      totalFat: parseFloat(Number(scanData.nutritionTotals?.fat || 0).toFixed(2)),
+      totalCarbs: parseFloat(totalCarbs.toFixed(2)),
+      totalFat: parseFloat(totalFat.toFixed(2)),
     };
+    console.log('Final totals being stored:', JSON.stringify(totals));
 
     // Handle timestamp conversion safely
     let timestampValue;
@@ -325,7 +353,7 @@ const createPostFromScan = async (userId, scanData) => {
         // Format nutrition values with units (required for calculateTotals to parse correctly)
         calories: String(item.calories || 0),
         protein: `${item.protein || 0}g`,
-        totalCarb: `${item.carbs || 0}g`,
+        totalCarbs: `${item.carbs || 0}g`,
         totalFat: `${item.fat || 0}g`,
         // Set defaults for missing nutrition fields
         saturatedFat: '0g',
@@ -350,7 +378,7 @@ const createPostFromScan = async (userId, scanData) => {
           quantity: item.quantity,
           calories: item.calories,
           protein: item.protein,
-          totalCarb: item.totalCarb,
+          totalCarbs: item.totalCarbs || item.totalCarb,
           totalFat: item.totalFat,
         })),
       });
