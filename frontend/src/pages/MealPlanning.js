@@ -597,7 +597,7 @@ const MealPlanning = () => {
                           calories: parseNutritionValue(recipe.Calories),
                           totalFat: parseNutritionValue(recipe.Total_Fat),
                           protein: parseNutritionValue(recipe.Protein),
-                          totalCarb: parseNutritionValue(recipe.Total_Carbohydrate),
+                          totalCarbs: parseNutritionValue(recipe.Total_Carbohydrate),
                         });
                       });
                     }
@@ -629,7 +629,7 @@ const MealPlanning = () => {
                           calories: parseNutritionValue(recipe.Calories),
                           totalFat: parseNutritionValue(recipe.Total_Fat),
                           protein: parseNutritionValue(recipe.Protein),
-                          totalCarb: parseNutritionValue(recipe.Total_Carbohydrate),
+                          totalCarbs: parseNutritionValue(recipe.Total_Carbohydrate),
                         });
                       });
                     }
@@ -998,14 +998,14 @@ const MealPlanning = () => {
       nutrition: {
         calories: item.calories || 0,
         protein: item.protein || 0,
-        carbs: item.totalCarb || 0, // totalCarb from meal plan -> carbs for backend
+        carbs: item.totalCarbs || item.totalCarb || 0, // totalCarbs from meal plan -> carbs for backend
         fat: item.totalFat || 0,   // totalFat from meal plan -> fat for backend
       },
       id: item.id || `item-${idx}`,
       name: item.name,
       calories: item.calories || 0,
       protein: item.protein || 0,
-      carbs: item.totalCarb || 0,  // Use 'carbs' not 'totalCarb' for backend
+      carbs: item.totalCarbs || item.totalCarb || 0,  // Use 'carbs' not 'totalCarbs' for backend
       fat: item.totalFat || 0,     // Use 'fat' not 'totalFat' for backend
       recipeId: item.id || null,
       recipeName: item.name || 'Unknown dish',
@@ -1017,7 +1017,7 @@ const MealPlanning = () => {
       unmatchedDishes: [],
       calories: totals?.calories || 0,
       protein: totals?.protein || 0,
-      carbs: totals?.totalCarb || 0,
+      carbs: totals?.totalCarbs || totals?.totalCarb || 0,
       fat: totals?.totalFat || 0,
       timestamp: new Date().toISOString(),
     };
@@ -1245,13 +1245,13 @@ const MealPlanning = () => {
         calories: (totals.calories || 0) + parseNumber(item.calories),
         totalFat: (totals.totalFat || 0) + parseNumber(item.totalFat),
         protein: (totals.protein || 0) + parseNumber(item.protein),
-        totalCarb: (totals.totalCarb || 0) + parseNumber(item.totalCarb),
+        totalCarbs: (totals.totalCarbs || totals.totalCarb || 0) + parseNumber(item.totalCarbs || item.totalCarb),
       };
     }, {
       calories: 0,
       totalFat: 0,
       protein: 0,
-      totalCarb: 0
+      totalCarbs: 0
     });
   };
 
@@ -1679,7 +1679,7 @@ const MealPlanning = () => {
                         </div>
                         <div className="nutrition-metric">
                           <span className="metric-label">Carbs</span>
-                          <span className="metric-value">{Math.round(totals.totalCarb || 0)}g</span>
+                          <span className="metric-value">{Math.round(totals.totalCarbs || totals.totalCarb || 0)}g</span>
                         </div>
                         <div className="nutrition-metric">
                           <span className="metric-label">Fat</span>
@@ -1944,7 +1944,7 @@ const MealPlanning = () => {
                         </div>
                         <div className="nutrition-metric">
                           <span className="metric-label">Carbs</span>
-                          <span className="metric-value">{Math.round(totals.totalCarb || 0)}g</span>
+                          <span className="metric-value">{Math.round(totals.totalCarbs || totals.totalCarb || 0)}g</span>
                         </div>
                         <div className="nutrition-metric">
                           <span className="metric-label">Fat</span>
@@ -2070,7 +2070,7 @@ const MealPlanning = () => {
                                       <span className="goal-label">Carbs</span>
                                       <span className="goal-percentage">
                                         {(() => {
-                                          const mealValue = totals.totalCarb || 0;
+                                          const mealValue = totals.totalCarbs || totals.totalCarb || 0;
                                           const mealPercent = calculatePercentage(mealValue, goals.carbohydrates);
                                           return `+${Math.round(mealValue)}g (+${Math.round(mealPercent)}%)`;
                                         })()}
@@ -2079,7 +2079,7 @@ const MealPlanning = () => {
                                     <div className="goal-progress-bar">
                                       {(() => {
                                         const current = getCurrentConsumption('totalCarbs');
-                                        const mealValue = totals.totalCarb || 0;
+                                        const mealValue = totals.totalCarbs || totals.totalCarb || 0;
                                         const currentPercent = calculatePercentage(current, goals.carbohydrates);
                                         const mealPercent = calculatePercentage(mealValue, goals.carbohydrates);
                                         return (
@@ -2237,42 +2237,44 @@ const MealPlanning = () => {
               }}>×</button>
             </div>
 
-            <div className="modal-content">
-              <div className="form-group">
-                <label>Meal Type</label>
-                <CustomSelect
-                  value={selectedMealType}
-                  onChange={handleMealTypeChange}
-                  options={[
-                    { value: '', label: 'Select meal type' },
-                    { value: 'breakfast', label: 'Breakfast' },
-                    { value: 'lunch', label: 'Lunch' },
-                    { value: 'dinner', label: 'Dinner' }
-                  ]}
-                  placeholder="Select meal type"
-                  className="form-input-wrapper"
-                />
-              </div>
+            <div style={{ padding: '1.5rem'}}>
+              <div className="">
+                <div className="form-group">
+                  <label>Meal Type</label>
+                  <CustomSelect
+                    value={selectedMealType}
+                    onChange={handleMealTypeChange}
+                    options={[
+                      { value: '', label: 'Select meal type' },
+                      { value: 'breakfast', label: 'Breakfast' },
+                      { value: 'lunch', label: 'Lunch' },
+                      { value: 'dinner', label: 'Dinner' }
+                    ]}
+                    placeholder="Select meal type"
+                    className="form-input-wrapper"
+                  />
+                </div>
 
-              <div className="form-group">
-                <label>Dining Hall</label>
-                <CustomSelect
-                  value={selectedLocationId}
-                  onChange={handleLocationChange}
-                  options={locations.length > 0 
-                    ? [
-                        { value: '', label: 'Select dining hall' },
-                        ...locations.map((loc, index) => ({
-                          value: loc.location_number,
-                          label: loc.location_name
-                        }))
-                      ]
-                    : [{ value: '', label: 'Loading dining halls...' }]
-                  }
-                  placeholder="Select dining hall"
-                  disabled={locations.length === 0}
-                  className="form-input-wrapper"
-                />
+                <div className="form-group">
+                  <label>Dining Hall</label>
+                  <CustomSelect
+                    value={selectedLocationId}
+                    onChange={handleLocationChange}
+                    options={locations.length > 0 
+                      ? [
+                          { value: '', label: 'Select dining hall' },
+                          ...locations.map((loc, index) => ({
+                            value: loc.location_number,
+                            label: loc.location_name
+                          }))
+                        ]
+                      : [{ value: '', label: 'Loading dining halls...' }]
+                    }
+                    placeholder="Select dining hall"
+                    disabled={locations.length === 0}
+                    className="form-input-wrapper"
+                  />
+                </div>
               </div>
 
               {menuLoading && (

@@ -365,9 +365,7 @@ const PostCard = ({ post, showDelete = false, onPostUpdated, onPostDeleted, show
               // Build nutrition details array
               const nutritionDetails = [];
               
-              if (item.quantity > 1) {
-                nutritionDetails.push(`${item.quantity}x`);
-              }
+              // Quantity removed - don't show quantity multiplier
               if (item.servingSize) {
                 nutritionDetails.push(item.servingSize);
               }
@@ -380,8 +378,14 @@ const PostCard = ({ post, showDelete = false, onPostUpdated, onPostDeleted, show
               if (displayOptions.carbs) {
                 if (item.carbs !== undefined && item.carbs !== null) {
                   nutritionDetails.push(`${Math.round(Number(item.carbs) || 0)}g carbs`);
+                } else if (item.totalCarbs !== undefined && item.totalCarbs !== null) {
+                  // Handle both carbs and totalCarbs for backward compatibility
+                  const carbValue = typeof item.totalCarbs === 'string' 
+                    ? parseFloat(item.totalCarbs.replace(/[^0-9.]/g, '')) 
+                    : Number(item.totalCarbs) || 0;
+                  nutritionDetails.push(`${Math.round(carbValue)}g carbs`);
                 } else if (item.totalCarb !== undefined && item.totalCarb !== null) {
-                  // Handle both carbs and totalCarb for backward compatibility
+                  // Handle legacy totalCarb key
                   const carbValue = typeof item.totalCarb === 'string' 
                     ? parseFloat(item.totalCarb.replace(/[^0-9.]/g, '')) 
                     : Number(item.totalCarb) || 0;
@@ -460,25 +464,25 @@ const PostCard = ({ post, showDelete = false, onPostUpdated, onPostDeleted, show
               {displayOptions.calories && post.totals.calories !== undefined && post.totals.calories !== null && (
                 <div className="post-total-item">
                   <div className="post-total-label">Calories</div>
-                  <div className="post-total-value">{Math.round(Number(post.totals.calories) || 0)}</div>
+                  <div className="post-total-value">{Math.round(parseFloat(String(post.totals.calories).replace(/[^0-9.]/g, '')) || 0)}</div>
                 </div>
               )}
               {displayOptions.protein && post.totals.protein !== undefined && post.totals.protein !== null && (
                 <div className="post-total-item">
                   <div className="post-total-label">Protein</div>
-                  <div className="post-total-value">{Math.round(Number(post.totals.protein) || 0)}g</div>
+                  <div className="post-total-value">{Math.round(parseFloat(String(post.totals.protein).replace(/[^0-9.]/g, '')) || 0)}g</div>
                 </div>
               )}
-              {displayOptions.carbs && ((post.totals.totalCarb !== undefined && post.totals.totalCarb !== null) || (post.totals.carbs !== undefined && post.totals.carbs !== null)) ? (
+              {displayOptions.carbs && ((post.totals.totalCarbs !== undefined && post.totals.totalCarbs !== null) || (post.totals.totalCarb !== undefined && post.totals.totalCarb !== null) || (post.totals.carbs !== undefined && post.totals.carbs !== null)) ? (
                 <div className="post-total-item">
                   <div className="post-total-label">Carbs</div>
-                  <div className="post-total-value">{Math.round(Number(post.totals.totalCarb || post.totals.carbs || 0))}g</div>
+                  <div className="post-total-value">{Math.round(parseFloat(String(post.totals.totalCarbs || post.totals.totalCarb || post.totals.carbs || 0).replace(/[^0-9.]/g, '')) || 0)}g</div>
                 </div>
               ) : null}
-              {displayOptions.fat && post.totals.totalFat !== undefined && post.totals.totalFat !== null && (
+              {displayOptions.fat && ((post.totals.totalFat !== undefined && post.totals.totalFat !== null) || (post.totals.fat !== undefined && post.totals.fat !== null)) && (
                 <div className="post-total-item">
                   <div className="post-total-label">Fat</div>
-                  <div className="post-total-value">{Math.round(Number(post.totals.totalFat) || 0)}g</div>
+                  <div className="post-total-value">{Math.round(parseFloat(String(post.totals.totalFat || post.totals.fat || 0).replace(/[^0-9.]/g, '')) || 0)}g</div>
                 </div>
               )}
             </div>

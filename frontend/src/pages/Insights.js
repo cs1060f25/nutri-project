@@ -10,15 +10,30 @@ import InsightsMealTable from '../components/InsightsMealTable';
 import { getMetricName } from '../utils/nutrition';
 import CustomSelect from '../components/CustomSelect';
 
-const formatDateInput = (date) => date.toISOString().split('T')[0];
+// Get date in Eastern Time format (YYYY-MM-DD)
+const getEasternDate = (date = new Date()) => {
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/New_York',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  });
+  
+  const parts = formatter.formatToParts(date);
+  const year = parts.find(p => p.type === 'year').value;
+  const month = parts.find(p => p.type === 'month').value;
+  const day = parts.find(p => p.type === 'day').value;
+  
+  return `${year}-${month}-${day}`;
+};
 
 const defaultRange = () => {
   const end = new Date();
   const start = new Date();
   start.setDate(end.getDate() - 6);
   return {
-    start: formatDateInput(start),
-    end: formatDateInput(end),
+    start: getEasternDate(start),
+    end: getEasternDate(end),
   };
 };
 

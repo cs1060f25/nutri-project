@@ -536,10 +536,10 @@ const NutritionPlan = () => {
     e.preventDefault();
     setError(null);
 
-    const enabledMetrics = Object.entries(metrics)
-      .filter(([_, value]) => value.enabled)
-      .reduce((acc, [key, value]) => ({ ...acc, [key]: value }), {});
-    
+      const enabledMetrics = Object.entries(metrics)
+        .filter(([_, value]) => value.enabled)
+        .reduce((acc, [key, value]) => ({ ...acc, [key]: value }), {});
+      
     // Check for safety warnings
     const warnings = validateNutritionSafety(enabledMetrics);
     
@@ -1598,9 +1598,9 @@ const NutritionPlan = () => {
             <button type="button" onClick={handleCancel} className="cancel-plan-button" disabled={loading}>
               Cancel
             </button>
-            <button type="submit" className="submit-plan-button" disabled={loading}>
-              {loading ? 'Saving...' : (isEditMode ? 'Update Nutrition Plan' : 'Save Nutrition Plan')}
-            </button>
+          <button type="submit" className="submit-plan-button" disabled={loading}>
+            {loading ? 'Saving...' : (isEditMode ? 'Update Nutrition Plan' : 'Save Nutrition Plan')}
+          </button>
           </div>
         </form>
 

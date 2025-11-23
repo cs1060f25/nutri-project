@@ -22,7 +22,7 @@ const calculateTotals = (items) => {
     transFat: 0,
     cholesterol: 0,
     sodium: 0,
-    totalCarb: 0,
+    totalCarbs: 0,
     dietaryFiber: 0,
     sugars: 0,
     protein: 0,
@@ -39,12 +39,12 @@ const calculateTotals = (items) => {
     };
 
     totals.calories += parseNutrient(item.calories) * qty;
-    totals.totalFat += parseNutrient(item.totalFat) * qty;
+    totals.totalFat += parseNutrient(item.totalFat || item.fat) * qty;
     totals.saturatedFat += parseNutrient(item.saturatedFat) * qty;
     totals.transFat += parseNutrient(item.transFat) * qty;
     totals.cholesterol += parseNutrient(item.cholesterol) * qty;
     totals.sodium += parseNutrient(item.sodium) * qty;
-    totals.totalCarb += parseNutrient(item.totalCarb) * qty;
+    totals.totalCarbs += parseNutrient(item.totalCarbs || item.totalCarb || item.carbs) * qty;
     totals.dietaryFiber += parseNutrient(item.dietaryFiber) * qty;
     totals.sugars += parseNutrient(item.sugars) * qty;
     totals.protein += parseNutrient(item.protein) * qty;
@@ -58,7 +58,7 @@ const calculateTotals = (items) => {
     transFat: `${totals.transFat.toFixed(1)}g`,
     cholesterol: `${totals.cholesterol.toFixed(1)}mg`,
     sodium: `${totals.sodium.toFixed(1)}mg`,
-    totalCarb: `${totals.totalCarb.toFixed(1)}g`,
+    totalCarbs: `${totals.totalCarbs.toFixed(1)}g`,
     dietaryFiber: `${totals.dietaryFiber.toFixed(1)}g`,
     sugars: `${totals.sugars.toFixed(1)}g`,
     protein: `${totals.protein.toFixed(1)}g`,
@@ -283,6 +283,27 @@ const getDailySummary = async (userId, date) => {
   });
 
   // Aggregate totals
+  const allItems = meals.flatMap(m => m.items);
+  
+  console.log('=== GET DAILY SUMMARY DEBUG ===');
+  console.log('Date:', date);
+  console.log('User ID:', userId);
+  console.log('Meals found:', meals.length);
+  console.log('Meals data:', JSON.stringify(meals.map(m => ({
+    id: m.id,
+    mealDate: m.mealDate,
+    mealType: m.mealType,
+    itemCount: m.items?.length || 0,
+    totals: m.totals,
+    firstItem: m.items?.[0] || null,
+  })), null, 2));
+  console.log('All items count:', allItems.length);
+  console.log('First item sample:', allItems[0] ? JSON.stringify(allItems[0], null, 2) : 'No items');
+  
+  const dailyTotals = calculateTotals(allItems);
+  console.log('Calculated daily totals:', JSON.stringify(dailyTotals, null, 2));
+  console.log('=== END GET DAILY SUMMARY DEBUG ===');
+  
   const summary = {
     date,
     mealCount: meals.length,
@@ -290,12 +311,10 @@ const getDailySummary = async (userId, date) => {
       id: m.id,
       mealType: m.mealType,
       locationName: m.locationName,
-      itemCount: m.items.length,
+      itemCount: m.items?.length || 0,
       totals: m.totals,
     })),
-    dailyTotals: calculateTotals(
-      meals.flatMap(m => m.items)
-    ),
+    dailyTotals,
   };
 
   return summary;

@@ -26,6 +26,7 @@ const SocialSearch = () => {
   const [friendRequestStatus, setFriendRequestStatus] = useState({});
   const [incomingRequests, setIncomingRequests] = useState({}); // userId -> requestId map
   const [followingStatus, setFollowingStatus] = useState({});
+  const [followedDiningHalls, setFollowedDiningHalls] = useState([]);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [successMessage, setSuccessMessage] = useState('Friend request sent!');
   const [showUnfriendModal, setShowUnfriendModal] = useState(false);
@@ -54,6 +55,7 @@ const SocialSearch = () => {
             getFriendRequests('received', accessToken),
           ]);
           setFriends(friendsData.friends || []);
+          setFollowedDiningHalls(diningHallsData.diningHalls || []);
           
           // Build friend request status map from sent requests
           const requestStatusMap = {};
@@ -240,12 +242,15 @@ const SocialSearch = () => {
   };
 
   const handleFollowDiningHall = async (locationId, locationName, e) => {
-    e.stopPropagation(); // Prevent navigation to location page
+    if (e) e.stopPropagation(); // Prevent navigation to location page if event exists
     try {
       await followDiningHall(locationId, locationName, accessToken);
       // Use composite key: locationId|locationName to uniquely identify
       const key = `${locationId}|${locationName}`;
       setFollowingStatus((prev) => ({ ...prev, [key]: 'following' }));
+      // Refresh followed dining halls
+      const diningHallsData = await getFollowedDiningHalls(accessToken);
+      setFollowedDiningHalls(diningHallsData.diningHalls || []);
     } catch (err) {
       console.error('Error following dining hall:', err);
       alert('Failed to follow dining hall: ' + err.message);
@@ -253,7 +258,7 @@ const SocialSearch = () => {
   };
 
   const handleUnfollowDiningHall = async (locationId, locationName, e) => {
-    e.stopPropagation(); // Prevent navigation to location page
+    if (e) e.stopPropagation(); // Prevent navigation to location page if event exists
     try {
       await unfollowDiningHall(locationId, locationName, accessToken);
       // Use composite key: locationId|locationName to uniquely identify
@@ -263,6 +268,9 @@ const SocialSearch = () => {
         delete newStatus[key];
         return newStatus;
       });
+      // Refresh followed dining halls
+      const diningHallsData = await getFollowedDiningHalls(accessToken);
+      setFollowedDiningHalls(diningHallsData.diningHalls || []);
     } catch (err) {
       console.error('Error unfollowing dining hall:', err);
       alert('Failed to unfollow dining hall: ' + err.message);
@@ -303,10 +311,45 @@ const SocialSearch = () => {
           Back to Search
         </button>
         <div className="profile-detail-header-card">
-          <h2>{selectedLocation.locationName}</h2>
-          <p style={{ color: '#666', marginTop: '0.5rem', marginBottom: 0 }}>
-            {selectedLocation.postCount} {selectedLocation.postCount === 1 ? 'creation' : 'creations'}
-          </p>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <h2>{selectedLocation.locationName}</h2>
+              <p style={{ color: '#666', marginTop: '0.5rem', marginBottom: 0 }}>
+                {selectedLocation.postCount} {selectedLocation.postCount === 1 ? 'creation' : 'creations'}
+              </p>
+            </div>
+            <div onClick={(e) => e.stopPropagation()}>
+              {(() => {
+                const key = `${selectedLocation.locationId}|${selectedLocation.locationName}`;
+                const isFollowing = followingStatus[key] === 'following' || 
+                                  followedDiningHalls.some(
+                                    hall => hall.locationId === selectedLocation.locationId && 
+                                            hall.locationName === selectedLocation.locationName
+                                  );
+                return isFollowing ? (
+                  <button
+                    className="btn btn-secondary"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleUnfollowDiningHall(selectedLocation.locationId, selectedLocation.locationName, e);
+                    }}
+                  >
+                    Unfollow
+                  </button>
+                ) : (
+                  <button
+                    className="btn btn-primary"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleFollowDiningHall(selectedLocation.locationId, selectedLocation.locationName, e);
+                    }}
+                  >
+                    Follow
+                  </button>
+                );
+              })()}
+            </div>
+          </div>
         </div>
         {locationPosts.length === 0 ? (
           <div className="empty-state">

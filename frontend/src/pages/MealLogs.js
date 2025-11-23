@@ -85,16 +85,41 @@ const MealLogs = () => {
     });
   };
 
-  const getTotalNutrition = (items) => {
-    return items.reduce(
-      (totals, item) => ({
-        calories: totals.calories + (item.calories || 0),
-        protein: totals.protein + (item.protein || 0),
-        carbs: totals.carbs + (item.carbs || 0),
-        fat: totals.fat + (item.fat || 0),
-      }),
-      { calories: 0, protein: 0, carbs: 0, fat: 0 }
-    );
+  const parseNutrient = (value) => {
+    if (!value) return 0;
+    const num = parseFloat(String(value).replace(/[^0-9.]/g, ''));
+    return isNaN(num) ? 0 : num;
+  };
+
+  const getTotalNutrition = (items, logTotals) => {
+    // Always calculate from items if available (items are the source of truth)
+    if (items && items.length > 0) {
+      return items.reduce(
+        (totals, item) => {
+          const qty = item.quantity || 1;
+          return {
+            calories: totals.calories + parseNutrient(item.calories) * qty,
+            protein: totals.protein + parseNutrient(item.protein) * qty,
+            carbs: totals.carbs + parseNutrient(item.totalCarbs || item.totalCarb || item.carbs) * qty,
+            fat: totals.fat + parseNutrient(item.totalFat || item.fat) * qty,
+          };
+        },
+        { calories: 0, protein: 0, carbs: 0, fat: 0 }
+      );
+    }
+
+    // Fallback to stored totals if items are not available
+    if (logTotals) {
+      return {
+        calories: parseNutrient(logTotals.calories),
+        protein: parseNutrient(logTotals.protein),
+        carbs: parseNutrient(logTotals.totalCarbs || logTotals.totalCarb || logTotals.carbs),
+        fat: parseNutrient(logTotals.totalFat || logTotals.fat),
+      };
+    }
+
+    // Default to zeros if nothing is available
+    return { calories: 0, protein: 0, carbs: 0, fat: 0 };
   };
 
   return (
@@ -177,7 +202,7 @@ const MealLogs = () => {
       {!loading && !error && logs.length > 0 && (
         <div className="meal-logs-list">
           {logs.map((log) => {
-            const totals = getTotalNutrition(log.items);
+            const totals = getTotalNutrition(log.items || [], log.totals);
             return (
               <div key={log.id} className="meal-log-card">
                 <div className="meal-log-header">
@@ -279,10 +304,10 @@ const MealLogs = () => {
                             )}
                           </div>
                           <div className="meal-item-macros">
-                            <span>{Math.round(item.calories || 0)} cal</span>
-                            <span>Protein: {Math.round(item.protein || 0)}g</span>
-                            <span>Carbs: {Math.round(item.carbs || 0)}g</span>
-                            <span>Fat: {Math.round(item.fat || 0)}g</span>
+                            <span>{Math.round(parseNutrient(item.calories))} cal</span>
+                            <span>Protein: {Math.round(parseNutrient(item.protein))}g</span>
+                            <span>Carbs: {Math.round(parseNutrient(item.totalCarbs || item.totalCarb || item.carbs))}g</span>
+                            <span>Fat: {Math.round(parseNutrient(item.totalFat || item.fat))}g</span>
                           </div>
                         </div>
                       ))}

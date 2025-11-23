@@ -59,6 +59,25 @@ const metricDisplayNames = {
 
 const getMetricDisplayName = (key) => metricDisplayNames[key] || key;
 
+// Get current date in Eastern Time (America/New_York)
+const getEasternDate = () => {
+  const now = new Date();
+  // Use Intl.DateTimeFormat to get date in Eastern Time
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/New_York',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  });
+  
+  const parts = formatter.formatToParts(now);
+  const year = parts.find(p => p.type === 'year').value;
+  const month = parts.find(p => p.type === 'month').value;
+  const day = parts.find(p => p.type === 'day').value;
+  
+  return `${year}-${month}-${day}`;
+};
+
 const buildProgress = (consumedTotals, metrics = {}) => {
   const progress = {};
 
@@ -278,7 +297,7 @@ const getDailySummary = async (userId, date) => {
     protein: 0,
     totalFat: 0,
     saturatedFat: 0,
-    totalCarb: 0,
+    totalCarbs: 0,
     dietaryFiber: 0,
     sugars: 0,
     sodium: 0,
@@ -297,7 +316,7 @@ const getDailySummary = async (userId, date) => {
       dailyTotals.protein += mealTotals.protein;
       dailyTotals.totalFat += mealTotals.totalFat;
       dailyTotals.saturatedFat += mealTotals.saturatedFat;
-      dailyTotals.totalCarb += mealTotals.totalCarb;
+      dailyTotals.totalCarbs += mealTotals.totalCarbs || mealTotals.totalCarb || mealTotals.carbs || 0;
       dailyTotals.dietaryFiber += mealTotals.dietaryFiber;
       dailyTotals.sugars += mealTotals.sugars;
       dailyTotals.sodium += mealTotals.sodium;
@@ -305,9 +324,9 @@ const getDailySummary = async (userId, date) => {
       // If meal has pre-calculated totals, use those
       dailyTotals.calories += parseNutrient(meal.totals.calories || 0);
       dailyTotals.protein += parseNutrient(meal.totals.protein || 0);
-      dailyTotals.totalFat += parseNutrient(meal.totals.totalFat || 0);
+      dailyTotals.totalFat += parseNutrient(meal.totals.totalFat || meal.totals.fat || 0);
       dailyTotals.saturatedFat += parseNutrient(meal.totals.saturatedFat || 0);
-      dailyTotals.totalCarb += parseNutrient(meal.totals.totalCarb || 0);
+      dailyTotals.totalCarbs += parseNutrient(meal.totals.totalCarbs || meal.totals.totalCarb || meal.totals.carbs || 0);
       dailyTotals.dietaryFiber += parseNutrient(meal.totals.dietaryFiber || 0);
       dailyTotals.sugars += parseNutrient(meal.totals.sugars || 0);
       dailyTotals.sodium += parseNutrient(meal.totals.sodium || 0);
@@ -315,9 +334,9 @@ const getDailySummary = async (userId, date) => {
       // Legacy format: nutrition directly on meal
       dailyTotals.calories += parseNutrient(meal.nutrition.calories || 0);
       dailyTotals.protein += parseNutrient(meal.nutrition.protein || 0);
-      dailyTotals.totalFat += parseNutrient(meal.nutrition.totalFat || 0);
+      dailyTotals.totalFat += parseNutrient(meal.nutrition.totalFat || meal.nutrition.fat || 0);
       dailyTotals.saturatedFat += parseNutrient(meal.nutrition.saturatedFat || 0);
-      dailyTotals.totalCarb += parseNutrient(meal.nutrition.totalCarb || 0);
+      dailyTotals.totalCarbs += parseNutrient(meal.nutrition.totalCarbs || meal.nutrition.totalCarb || meal.nutrition.carbs || 0);
       dailyTotals.dietaryFiber += parseNutrient(meal.nutrition.dietaryFiber || 0);
       dailyTotals.sugars += parseNutrient(meal.nutrition.sugars || 0);
       dailyTotals.sodium += parseNutrient(meal.nutrition.sodium || 0);
@@ -339,7 +358,7 @@ const calculateTotals = (items) => {
     protein: 0,
     totalFat: 0,
     saturatedFat: 0,
-    totalCarb: 0,
+    totalCarbs: 0,
     dietaryFiber: 0,
     sugars: 0,
     sodium: 0,
@@ -357,9 +376,9 @@ const calculateTotals = (items) => {
       // Old format: nutrition nested in item.nutrition
       totals.calories += parseNutrient(item.nutrition.calories || 0) * qty;
       totals.protein += parseNutrient(item.nutrition.protein || 0) * qty;
-      totals.totalFat += parseNutrient(item.nutrition.totalFat || 0) * qty;
+      totals.totalFat += parseNutrient(item.nutrition.totalFat || item.nutrition.fat || 0) * qty;
       totals.saturatedFat += parseNutrient(item.nutrition.saturatedFat || 0) * qty;
-      totals.totalCarb += parseNutrient(item.nutrition.totalCarb || 0) * qty;
+      totals.totalCarbs += parseNutrient(item.nutrition.totalCarbs || item.nutrition.totalCarb || item.nutrition.carbs || 0) * qty;
       totals.dietaryFiber += parseNutrient(item.nutrition.dietaryFiber || 0) * qty;
       totals.sugars += parseNutrient(item.nutrition.sugars || 0) * qty;
       totals.sodium += parseNutrient(item.nutrition.sodium || 0) * qty;
@@ -368,9 +387,9 @@ const calculateTotals = (items) => {
       // These values may have units (e.g., "10g"), so parseNutrient handles that
       totals.calories += parseNutrient(item.calories || 0) * qty;
       totals.protein += parseNutrient(item.protein || 0) * qty;
-      totals.totalFat += parseNutrient(item.totalFat || 0) * qty;
+      totals.totalFat += parseNutrient(item.totalFat || item.fat || 0) * qty;
       totals.saturatedFat += parseNutrient(item.saturatedFat || 0) * qty;
-      totals.totalCarb += parseNutrient(item.totalCarb || 0) * qty;
+      totals.totalCarbs += parseNutrient(item.totalCarbs || item.totalCarb || item.carbs || 0) * qty;
       totals.dietaryFiber += parseNutrient(item.dietaryFiber || 0) * qty;
       totals.sugars += parseNutrient(item.sugars || 0) * qty;
       totals.sodium += parseNutrient(item.sodium || 0) * qty;
@@ -480,7 +499,7 @@ module.exports = async (req, res) => {
 
     // Route: GET /api/nutrition-progress/today
     if (req.method === 'GET' && path === '/today') {
-      const today = new Date().toISOString().split('T')[0];
+      const today = getEasternDate(); // YYYY-MM-DD format in Eastern Time
 
       // Get active nutrition plan
       const activePlan = await getActiveNutritionPlan(userId);
@@ -499,9 +518,9 @@ module.exports = async (req, res) => {
       const consumed = {
         calories: parseNutrient(dailySummary.dailyTotals.calories),
         protein: parseNutrient(dailySummary.dailyTotals.protein),
-        totalFat: parseNutrient(dailySummary.dailyTotals.totalFat),
+        totalFat: parseNutrient(dailySummary.dailyTotals.totalFat || dailySummary.dailyTotals.fat),
         saturatedFat: parseNutrient(dailySummary.dailyTotals.saturatedFat),
-        totalCarbs: parseNutrient(dailySummary.dailyTotals.totalCarb),
+        totalCarbs: parseNutrient(dailySummary.dailyTotals.totalCarbs || dailySummary.dailyTotals.totalCarb || dailySummary.dailyTotals.carbs),
         fiber: parseNutrient(dailySummary.dailyTotals.dietaryFiber),
         sugars: parseNutrient(dailySummary.dailyTotals.sugars),
         sodium: parseNutrient(dailySummary.dailyTotals.sodium),
@@ -556,9 +575,9 @@ module.exports = async (req, res) => {
         const consumed = {
           calories: parseNutrient(summary.totals.calories),
           protein: parseNutrient(summary.totals.protein),
-          totalFat: parseNutrient(summary.totals.totalFat),
+          totalFat: parseNutrient(summary.totals.totalFat || summary.totals.fat),
           saturatedFat: parseNutrient(summary.totals.saturatedFat),
-          totalCarbs: parseNutrient(summary.totals.totalCarb),
+          totalCarbs: parseNutrient(summary.totals.totalCarbs || summary.totals.totalCarb || summary.totals.carbs),
           fiber: parseNutrient(summary.totals.dietaryFiber),
           sugars: parseNutrient(summary.totals.sugars),
           sodium: parseNutrient(summary.totals.sodium),

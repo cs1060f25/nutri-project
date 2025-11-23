@@ -2,6 +2,8 @@
   padding: 2rem;
   max-width: 100%;
   overflow-x: auto;
+  position: relative;
+  min-height: calc(100vh - 4rem);
 }
 
 .meal-planning-loading {
@@ -360,7 +362,7 @@
 
 /* Modal */
 .meal-planning-modal-overlay {
-  position: fixed;
+  position: absolute;
   top: 0;
   left: 0;
   right: 0;
@@ -420,16 +422,16 @@
 }
 
 /* Center modal content */
-.modal-content {
+/* .modal-content {
     display: flex;
     flex-direction: column;
-  }
+  } */
   
-  /* Center form groups and limit width */
+  /* Center form groups and limit width
   .modal-content .form-group {
     width: 100%;
     box-sizing: border-box;
-  }
+  } */
   
   /* Make all modal areas the same background */
   .meal-planning-modal,
@@ -443,6 +445,34 @@
 
 .modal-content .form-group:first-child {
   padding-top: .5rem;
+}
+
+.meal-plan-selects-container {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.meal-plan-selects-container .form-group {
+  width: 100%;
+  max-width: 500px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 0;
+}
+
+.meal-plan-selects-container .form-group label {
+  text-align: center;
+  width: 100%;
+}
+
+.meal-plan-selects-container .form-input-wrapper {
+  width: 100%;
+  max-width: 400px;
 }
 
 .form-group {

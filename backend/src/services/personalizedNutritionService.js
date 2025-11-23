@@ -292,7 +292,7 @@ const generatePersonalizedPlan = (userProfile) => {
   const hasBloodPressure = healthConditions?.some(c => c.toLowerCase().includes('blood pressure') || c.toLowerCase().includes('hypertension'));
   const hasHeart = healthConditions?.some(c => c.toLowerCase().includes('heart') || c.toLowerCase().includes('cardiovascular'));
   explanations.push(`Sodium`);
-  if (hasBloodPressure || hasHeart) {
+    if (hasBloodPressure || hasHeart) {
     explanations.push(`Your ${targetSodium} mg sodium limit is based on recommendations for supporting healthy blood pressure and reducing strain on the cardiovascular system.`);
   } else {
     explanations.push(`Your ${targetSodium} mg sodium target comes from dietary guidelines that help maintain healthy blood pressure and reduce cardiovascular strain.`);

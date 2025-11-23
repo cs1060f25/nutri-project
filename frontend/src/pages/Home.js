@@ -826,7 +826,7 @@ const Home = () => {
           protein: evaluateFormula(expected.protein || 0),
           totalFat: evaluateFormula(expected.totalFat || 0),
           saturatedFat: evaluateFormula(expected.saturatedFat || 0),
-          totalCarb: evaluateFormula(expected.totalCarbs || expected.totalCarb || 0),
+          totalCarbs: evaluateFormula(expected.totalCarbs || expected.totalCarb || 0),
           dietaryFiber: evaluateFormula(expected.fiber || expected.dietaryFiber || 0),
           sugars: evaluateFormula(expected.sugars || 0),
           sodium: evaluateFormula(expected.sodium || 0),
@@ -896,7 +896,7 @@ const Home = () => {
       acc.protein += parseNutrient(meal.protein);
       acc.totalFat += parseNutrient(meal.totalFat);
       acc.saturatedFat += parseNutrient(meal.saturatedFat);
-      acc.totalCarbs += parseNutrient(meal.totalCarb);
+      acc.totalCarbs += parseNutrient(meal.totalCarbs || meal.totalCarb);
       acc.fiber += parseNutrient(meal.dietaryFiber);
       acc.sugars += parseNutrient(meal.sugars);
       acc.sodium += parseNutrient(meal.sodium);

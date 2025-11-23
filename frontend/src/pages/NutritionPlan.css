@@ -104,15 +104,6 @@
 .custom-select-wrapper {
   position: relative;
   flex: 1;
-  z-index: 9999;
-}
-
-.preset-select-container .custom-select-wrapper {
-  z-index: 10002;
-}
-
-.preset-select-container .custom-select-dropdown {
-  z-index: 10003;
 }
 
 .custom-select-trigger {

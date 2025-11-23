@@ -363,7 +363,7 @@ const MealLogger = ({ isOpen, onClose, onSave }) => {
         transFat: recipe.Trans_Fat || '0g',
         cholesterol: recipe.Cholesterol || '0mg',
         sodium: recipe.Sodium || '0mg',
-        totalCarb: recipe.Total_Carb || '0g',
+        totalCarbs: recipe.Total_Carb || '0g',
         dietaryFiber: recipe.Dietary_Fiber || '0g',
         sugars: recipe.Sugars || '0g',
         protein: recipe.Protein || '0g',
@@ -384,24 +384,46 @@ const MealLogger = ({ isOpen, onClose, onSave }) => {
     const totals = {
       calories: 0,
       totalFat: 0,
+      saturatedFat: 0,
+      transFat: 0,
+      cholesterol: 0,
+      sodium: 0,
+      totalCarbs: 0,
+      dietaryFiber: 0,
+      sugars: 0,
       protein: 0,
     };
 
     selectedItems.forEach(item => {
       const qty = item.quantity || 1;
       const parseNutrient = (value) => {
+        if (!value) return 0;
         const num = parseFloat(value.toString().replace(/[^0-9.]/g, ''));
         return isNaN(num) ? 0 : num;
       };
 
       totals.calories += parseNutrient(item.calories) * qty;
       totals.totalFat += parseNutrient(item.totalFat) * qty;
+      totals.saturatedFat += parseNutrient(item.saturatedFat) * qty;
+      totals.transFat += parseNutrient(item.transFat) * qty;
+      totals.cholesterol += parseNutrient(item.cholesterol) * qty;
+      totals.sodium += parseNutrient(item.sodium) * qty;
+      totals.totalCarbs += parseNutrient(item.totalCarbs || item.totalCarb) * qty;
+      totals.dietaryFiber += parseNutrient(item.dietaryFiber) * qty;
+      totals.sugars += parseNutrient(item.sugars) * qty;
       totals.protein += parseNutrient(item.protein) * qty;
     });
 
     return {
       calories: Math.round(totals.calories),
       totalFat: totals.totalFat.toFixed(1),
+      saturatedFat: totals.saturatedFat.toFixed(1),
+      transFat: totals.transFat.toFixed(1),
+      cholesterol: totals.cholesterol.toFixed(1),
+      sodium: totals.sodium.toFixed(1),
+      totalCarbs: totals.totalCarbs.toFixed(1),
+      dietaryFiber: totals.dietaryFiber.toFixed(1),
+      sugars: totals.sugars.toFixed(1),
       protein: totals.protein.toFixed(1),
     };
   };

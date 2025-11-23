@@ -43,7 +43,7 @@ const calculateTotals = (items) => {
     transFat: 0,
     cholesterol: 0,
     sodium: 0,
-    totalCarb: 0,
+    totalCarbs: 0,
     dietaryFiber: 0,
     sugars: 0,
     protein: 0,
@@ -59,12 +59,12 @@ const calculateTotals = (items) => {
     };
 
     totals.calories += parseNutrient(item.calories) * qty;
-    totals.totalFat += parseNutrient(item.totalFat) * qty;
+    totals.totalFat += parseNutrient(item.totalFat || item.fat) * qty;
     totals.saturatedFat += parseNutrient(item.saturatedFat) * qty;
     totals.transFat += parseNutrient(item.transFat) * qty;
     totals.cholesterol += parseNutrient(item.cholesterol) * qty;
     totals.sodium += parseNutrient(item.sodium) * qty;
-    totals.totalCarb += parseNutrient(item.totalCarb) * qty;
+    totals.totalCarbs += parseNutrient(item.totalCarbs || item.totalCarb || item.carbs) * qty;
     totals.dietaryFiber += parseNutrient(item.dietaryFiber) * qty;
     totals.sugars += parseNutrient(item.sugars) * qty;
     totals.protein += parseNutrient(item.protein) * qty;
@@ -77,7 +77,7 @@ const calculateTotals = (items) => {
     transFat: `${totals.transFat.toFixed(1)}g`,
     cholesterol: `${totals.cholesterol.toFixed(1)}mg`,
     sodium: `${totals.sodium.toFixed(1)}mg`,
-    totalCarb: `${totals.totalCarb.toFixed(1)}g`,
+    totalCarbs: `${totals.totalCarbs.toFixed(1)}g`,
     dietaryFiber: `${totals.dietaryFiber.toFixed(1)}g`,
     sugars: `${totals.sugars.toFixed(1)}g`,
     protein: `${totals.protein.toFixed(1)}g`,
@@ -100,7 +100,20 @@ module.exports = async (req, res) => {
     const userId = decodedToken.uid;
     const userEmail = decodedToken.email;
 
-    const path = req.url.replace('/api/meals', '');
+    // Extract path from URL - handle both /api/meals and direct paths
+    let path = req.url;
+    if (path.startsWith('/api/meals')) {
+      path = path.replace('/api/meals', '');
+    }
+    // Remove query string
+    path = path.split('?')[0];
+    // Ensure path starts with / if it's not empty
+    if (path && !path.startsWith('/')) {
+      path = '/' + path;
+    }
+    if (!path) {
+      path = '/';
+    }
 
     // Route: GET /api/meals/summary/:date
     if (req.method === 'GET' && path.startsWith('/summary/')) {
@@ -166,71 +179,81 @@ module.exports = async (req, res) => {
     }
 
     // Route: PUT /api/meals/:id (update meal)
-    if (req.method === 'PUT' && path.match(/^\/[^/]+$/)) {
-      const id = path.substring(1);
-      
-      const docRef = getDb()
-        .collection(USERS_COLLECTION)
-        .doc(userId)
-        .collection(MEALS_SUBCOLLECTION)
-        .doc(id);
-      
-      const doc = await docRef.get();
+    // Match paths like /G4EY6PDt9IZ0m8rTp4AP (single ID segment)
+    if (req.method === 'PUT') {
+      // Check if path matches a single ID (not /summary/ or empty)
+      const idMatch = path.match(/^\/([^/]+)$/);
+      if (idMatch && !path.startsWith('/summary')) {
+        const id = idMatch[1];
+        
+        const docRef = getDb()
+          .collection(USERS_COLLECTION)
+          .doc(userId)
+          .collection(MEALS_SUBCOLLECTION)
+          .doc(id);
+        
+        const doc = await docRef.get();
 
-      if (!doc.exists) {
-        return res.status(404).json(createErrorResponse('NOT_FOUND', 'Meal log not found'));
+        if (!doc.exists) {
+          return res.status(404).json(createErrorResponse('NOT_FOUND', 'Meal log not found'));
+        }
+
+        const updates = req.body;
+        delete updates.userId;
+        delete updates.userEmail;
+        delete updates.createdAt;
+
+        if (updates.items) {
+          updates.totals = calculateTotals(updates.items);
+        }
+
+        updates.updatedAt = admin.firestore.FieldValue.serverTimestamp();
+
+        await docRef.update(updates);
+
+        const updatedDoc = await docRef.get();
+        const data = updatedDoc.data();
+
+        return res.status(200).json({
+          message: 'Meal log updated successfully',
+          meal: {
+            id: updatedDoc.id,
+            ...data,
+            timestamp: data.timestamp?.toDate(),
+            createdAt: data.createdAt?.toDate(),
+            updatedAt: data.updatedAt?.toDate(),
+          },
+        });
       }
-
-      const updates = req.body;
-      delete updates.userId;
-      delete updates.userEmail;
-      delete updates.createdAt;
-
-      if (updates.items) {
-        updates.totals = calculateTotals(updates.items);
-      }
-
-      updates.updatedAt = admin.firestore.FieldValue.serverTimestamp();
-
-      await docRef.update(updates);
-
-      const updatedDoc = await docRef.get();
-      const data = updatedDoc.data();
-
-      return res.status(200).json({
-        message: 'Meal log updated successfully',
-        meal: {
-          id: updatedDoc.id,
-          ...data,
-          timestamp: data.timestamp?.toDate(),
-          createdAt: data.createdAt?.toDate(),
-          updatedAt: data.updatedAt?.toDate(),
-        },
-      });
     }
 
     // Route: DELETE /api/meals/:id (delete meal)
-    if (req.method === 'DELETE' && path.match(/^\/[^/]+$/)) {
-      const id = path.substring(1);
-      
-      const docRef = getDb()
-        .collection(USERS_COLLECTION)
-        .doc(userId)
-        .collection(MEALS_SUBCOLLECTION)
-        .doc(id);
-      
-      const doc = await docRef.get();
+    // Match paths like /G4EY6PDt9IZ0m8rTp4AP (single ID segment)
+    if (req.method === 'DELETE') {
+      // Check if path matches a single ID (not /summary/ or empty)
+      const idMatch = path.match(/^\/([^/]+)$/);
+      if (idMatch && !path.startsWith('/summary')) {
+        const id = idMatch[1];
+        
+        const docRef = getDb()
+          .collection(USERS_COLLECTION)
+          .doc(userId)
+          .collection(MEALS_SUBCOLLECTION)
+          .doc(id);
+        
+        const doc = await docRef.get();
 
-      if (!doc.exists) {
-        return res.status(404).json(createErrorResponse('NOT_FOUND', 'Meal log not found'));
+        if (!doc.exists) {
+          return res.status(404).json(createErrorResponse('NOT_FOUND', 'Meal log not found'));
+        }
+
+        await docRef.delete();
+
+        return res.status(200).json({
+          message: 'Meal log deleted successfully',
+          id,
+        });
       }
-
-      await docRef.delete();
-
-      return res.status(200).json({
-        message: 'Meal log deleted successfully',
-        id,
-      });
     }
 
     // Route: GET /api/meals (list meals with filters)
@@ -279,7 +302,8 @@ module.exports = async (req, res) => {
     }
 
     // Route: POST /api/meals (create new meal)
-    if (req.method === 'POST') {
+    // Only handle POST if path is empty or root (not a specific ID path)
+    if (req.method === 'POST' && (path === '' || path === '/')) {
       const { mealDate, mealType, mealName, timestamp, locationId, locationName, items, imageUrl, rating, review } = req.body;
 
       if (!mealDate || !mealType || !locationId || !items || items.length === 0) {
