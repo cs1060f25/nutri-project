@@ -1176,73 +1176,78 @@ const NutritionPlan = () => {
                   const caloriesValue = metrics.calories?.target;
                   if (!caloriesValue) return null;
                   
-                  // Find calorie explanation and replace values with actual ones
-                  const calorieLine = lines.find(line => 
-                    line.toLowerCase().includes('daily calorie target') || 
-                    line.toLowerCase().includes('calorie')
+                  // Find calorie explanation
+                  const calorieIndex = lines.findIndex(line => 
+                    line.toLowerCase().includes('calories') && 
+                    !line.toLowerCase().includes('protein') &&
+                    !line.toLowerCase().includes('carbohydrate')
                   );
-                  if (calorieLine) {
-                    // Find the full sentence explanation (now generated as a sentence in backend)
-                    let fullExplanation = '';
-                    for (let i = 0; i < lines.length; i++) {
-                      if (lines[i].includes('daily calorie target') && lines[i].includes('is based on')) {
-                        // Get the full sentence (it's now a single sentence, not bullets)
-                        fullExplanation = lines[i].replace(/\d+\s*kcal/g, `${caloriesValue} kcal`);
-                        // Check if there's more content on the same line or next line
-                        if (i + 1 < lines.length && !lines[i + 1].trim().startsWith('Protein') && !lines[i + 1].trim().startsWith('•')) {
-                          fullExplanation += ' ' + lines[i + 1].trim();
-                        }
-                        break;
-                      }
-                    }
-                    
-                    if (fullExplanation) {
-                      // Replace calorie value in the explanation
-                      const updatedExplanation = fullExplanation.replace(/\d+\s*kcal/g, `${caloriesValue} kcal`);
-                      return updatedExplanation;
-                    }
+                  
+                  if (calorieIndex !== -1 && calorieIndex + 1 < lines.length) {
+                    // Get the explanation line after "Calories"
+                    const explanation = lines[calorieIndex + 1].replace(/\d+\s*kcal/g, `${caloriesValue} kcal`);
+                    return explanation;
                   }
+                  
+                  // Fallback explanation
+                  return `Your ${caloriesValue} kcal target comes from the standard reference intake used to maintain daily energy needs for most adults.`;
                 } else if (categoryKey === 'macronutrients') {
                   const explanations = [];
                   
                   // Protein
                   const proteinValue = metrics.protein?.target;
                   if (proteinValue) {
-                    const proteinLine = lines.find(line => line.toLowerCase().startsWith('protein target'));
-                    if (proteinLine) {
-                      const updatedLine = proteinLine.replace(/\d+g/g, `${proteinValue}g`);
-                      explanations.push(updatedLine);
-                    } else if (lines.length === 0) {
+                    const proteinIndex = lines.findIndex(line => 
+                      line.toLowerCase().trim() === 'protein' || 
+                      line.toLowerCase().startsWith('protein\n')
+                    );
+                    
+                    if (proteinIndex !== -1 && proteinIndex + 1 < lines.length) {
+                      const explanation = lines[proteinIndex + 1].replace(/\d+\s*g/g, `${proteinValue} g`);
+                      explanations.push(explanation);
+                    } else {
                       // Fallback explanation
-                      explanations.push(`Protein target of ${proteinValue}g supports muscle maintenance and daily nutritional needs.`);
+                      explanations.push(`Your ${proteinValue} g protein target comes from the dietary guideline that most adults need at least this amount to support muscle repair and prevent muscle loss.`);
                     }
                   }
                   
                   // Carbohydrates
                   const carbValue = metrics.totalCarbs?.target;
                   if (carbValue) {
-                    const carbLine = lines.find(line => line.toLowerCase().startsWith('carbohydrate'));
-                    if (carbLine) {
-                      const updatedLine = carbLine.replace(/\d+g/g, `${carbValue}g`);
-                      explanations.push(updatedLine);
-                    } else if (lines.length === 0) {
+                    const carbIndex = lines.findIndex(line => 
+                      line.toLowerCase().trim() === 'carbohydrates' || 
+                      line.toLowerCase().startsWith('carbohydrates\n')
+                    );
+                    
+                    if (carbIndex !== -1 && carbIndex + 1 < lines.length) {
+                      explanations.push(lines[carbIndex + 1]);
+                    } else {
                       // Fallback explanation
-                      const carbPercent = Math.round((parseFloat(carbValue) * 4 / parseFloat(metrics.calories?.target || 2000)) * 100);
-                      explanations.push(`Carbohydrates set at ${carbValue}g (${carbPercent}% of calories) to provide sustainable energy.`);
+                      explanations.push(`Your carbohydrate target comes from the recommendation that most adults need enough carbs to fuel the brain, which relies heavily on glucose.`);
                     }
                   }
                   
                   // Fiber
                   const fiberValue = metrics.fiber?.target;
                   if (fiberValue) {
-                    const fiberLine = lines.find(line => line.toLowerCase().startsWith('fiber target'));
-                    if (fiberLine) {
-                      const updatedLine = fiberLine.replace(/\d+g/g, `${fiberValue}g`);
-                      explanations.push(updatedLine);
-                    } else if (lines.length === 0) {
+                    const fiberIndex = lines.findIndex(line => 
+                      line.toLowerCase().trim() === 'fiber' || 
+                      line.toLowerCase().startsWith('fiber\n')
+                    );
+                    
+                    if (fiberIndex !== -1 && fiberIndex + 1 < lines.length) {
+                      const explanation = lines[fiberIndex + 1].replace(/\d+\s*g/g, `${fiberValue} g`);
+                      explanations.push(explanation);
+                    } else {
                       // Fallback explanation
-                      explanations.push(`Fiber target of ${fiberValue}g supports digestive health and meets dietary recommendations.`);
+                      explanations.push(`Your ${fiberValue} g fiber target comes from national dietary guidelines for adults to support digestion and heart health.`);
                     }
+                  }
+                  
+                  // Sugars (if present)
+                  const sugarsValue = metrics.addedSugars?.target;
+                  if (sugarsValue) {
+                    explanations.push(`Your added sugar limit is set to the recommended daily cap that helps prevent sharp blood sugar spikes and energy crashes.`);
                   }
                   
                   if (explanations.length > 0) {
@@ -1254,33 +1259,48 @@ const NutritionPlan = () => {
                   // Total Fat
                   const fatValue = metrics.totalFat?.target;
                   if (fatValue) {
-                    const fatLine = lines.find(line => line.toLowerCase().startsWith('fat target'));
-                    if (fatLine) {
-                      explanations.push(fatLine.replace(/\d+g/g, `${fatValue}g`));
-                    } else if (lines.length === 0) {
+                    const fatIndex = lines.findIndex(line => 
+                      line.toLowerCase().includes('total fat') || 
+                      (line.toLowerCase().trim() === 'fat' && !line.toLowerCase().includes('saturated'))
+                    );
+                    
+                    if (fatIndex !== -1 && fatIndex + 1 < lines.length) {
+                      explanations.push(lines[fatIndex + 1]);
+                    } else {
                       // Fallback explanation
-                      const fatPercent = Math.round((parseFloat(fatValue) * 9 / parseFloat(metrics.calories?.target || 2000)) * 100);
-                      explanations.push(`Fat target of ${fatValue}g (${fatPercent}% of calories) provides essential fatty acids and helps with nutrient absorption.`);
+                      explanations.push(`Your total fat target follows nutrition guidelines for the amount needed to support hormones and vitamin absorption without raising disease risk.`);
                     }
                   }
                   
                   // Saturated Fat
                   const saturatedFatValue = metrics.saturatedFat?.target;
                   if (saturatedFatValue) {
-                    const saturatedLine = lines.find(line => 
-                      line.toLowerCase().includes('saturated') && 
-                      !line.toLowerCase().includes('trans')
+                    const saturatedIndex = lines.findIndex(line => 
+                      line.toLowerCase().includes('saturated fat') || 
+                      (line.toLowerCase().includes('saturated') && !line.toLowerCase().includes('trans'))
                     );
-                    if (saturatedLine) {
-                      explanations.push(saturatedLine.replace(/\d+g/g, `${saturatedFatValue}g`));
+                    
+                    if (saturatedIndex !== -1 && saturatedIndex + 1 < lines.length) {
+                      explanations.push(lines[saturatedIndex + 1]);
                     } else {
-                      // Fallback explanation for saturated fat
-                      const standardSaturated = 20; // Standard recommendation is ~20g or 10% of calories
-                      if (parseFloat(saturatedFatValue) < standardSaturated) {
-                        explanations.push(`Saturated fat limited to ${saturatedFatValue}g (vs. standard ${standardSaturated}g) to support cardiovascular health.`);
-                      } else {
-                        explanations.push(`Saturated fat target of ${saturatedFatValue}g aligns with standard dietary recommendations.`);
-                      }
+                      // Fallback explanation
+                      explanations.push(`Your saturated fat limit comes from heart-health guidelines designed to keep LDL cholesterol at safe levels.`);
+                    }
+                  }
+                  
+                  // Trans Fat
+                  const transFatValue = metrics.transFat?.target;
+                  if (transFatValue !== undefined) {
+                    const transIndex = lines.findIndex(line => 
+                      line.toLowerCase().includes('trans fat') || 
+                      line.toLowerCase().includes('trans')
+                    );
+                    
+                    if (transIndex !== -1 && transIndex + 1 < lines.length) {
+                      explanations.push(lines[transIndex + 1]);
+                    } else {
+                      // Fallback explanation
+                      explanations.push(`Your trans fat limit is extremely low because health authorities agree that even small amounts increase cardiovascular risk.`);
                     }
                   }
                   
@@ -1290,44 +1310,40 @@ const NutritionPlan = () => {
                 } else if (categoryKey === 'other') {
                   const explanations = [];
                   
-                  // Sodium
-                  const sodiumValue = metrics.sodium?.target;
-                  if (sodiumValue) {
-                    const sodiumLine = lines.find(line => 
-                      line.toLowerCase().includes('sodium') && 
-                      !line.toLowerCase().includes('saturated')
-                    );
-                    if (sodiumLine) {
-                      const updatedLine = sodiumLine.replace(/\d+mg/g, `${sodiumValue}mg`);
-                      explanations.push(updatedLine);
-                    } else {
-                      // Fallback explanation if no specific explanation exists
-                      const standardSodium = 2300;
-                      if (parseFloat(sodiumValue) < standardSodium) {
-                        explanations.push(`Sodium limited to ${sodiumValue}mg/day (vs. standard ${standardSodium}mg) to support heart health.`);
-                      } else {
-                        explanations.push(`Sodium target of ${sodiumValue}mg/day aligns with standard dietary recommendations.`);
-                      }
-                    }
-                  }
-                  
                   // Cholesterol
                   const cholesterolValue = metrics.cholesterol?.target;
                   if (cholesterolValue) {
-                    const cholesterolLine = lines.find(line => 
-                      line.toLowerCase().includes('cholesterol') &&
-                      !line.toLowerCase().includes('saturated')
+                    const cholesterolIndex = lines.findIndex(line => 
+                      line.toLowerCase().trim() === 'cholesterol' || 
+                      line.toLowerCase().startsWith('cholesterol\n')
                     );
-                    if (cholesterolLine) {
-                      const updatedLine = cholesterolLine.replace(/\d+mg/g, `${cholesterolValue}mg`);
-                      explanations.push(updatedLine);
+                    
+                    if (cholesterolIndex !== -1 && cholesterolIndex + 1 < lines.length) {
+                      const explanation = lines[cholesterolIndex + 1].replace(/\d+\s*mg/g, `${cholesterolValue} mg`);
+                      explanations.push(explanation);
                     } else {
-                      // Fallback explanation if no specific explanation exists
-                      const standardCholesterol = 300;
-                      if (parseFloat(cholesterolValue) < standardCholesterol) {
-                        explanations.push(`Cholesterol limited to ${cholesterolValue}mg/day (vs. standard ${standardCholesterol}mg) for heart health.`);
+                      // Fallback explanation
+                      explanations.push(`Your ${cholesterolValue} mg cholesterol target comes from long-standing dietary guidelines that help maintain healthy blood cholesterol levels.`);
+                    }
+                  }
+                  
+                  // Sodium
+                  const sodiumValue = metrics.sodium?.target;
+                  if (sodiumValue) {
+                    const sodiumIndex = lines.findIndex(line => 
+                      line.toLowerCase().trim() === 'sodium' || 
+                      line.toLowerCase().startsWith('sodium\n')
+                    );
+                    
+                    if (sodiumIndex !== -1 && sodiumIndex + 1 < lines.length) {
+                      const explanation = lines[sodiumIndex + 1].replace(/\d+\s*mg/g, `${sodiumValue} mg`);
+                      explanations.push(explanation);
+                    } else {
+                      // Fallback explanation
+                      if (parseFloat(sodiumValue) <= 1500) {
+                        explanations.push(`Your ${sodiumValue} mg sodium limit is based on recommendations for supporting healthy blood pressure and reducing strain on the cardiovascular system.`);
                       } else {
-                        explanations.push(`Cholesterol target of ${cholesterolValue}mg/day aligns with standard dietary recommendations.`);
+                        explanations.push(`Your ${sodiumValue} mg sodium target comes from dietary guidelines that help maintain healthy blood pressure and reduce cardiovascular strain.`);
                       }
                     }
                   }

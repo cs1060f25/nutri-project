@@ -255,39 +255,48 @@ const generatePersonalizedPlan = (userProfile) => {
   // Build explanation for the personalized plan
   const explanations = [];
   
-  // Base calculation explanation
-  explanations.push(`Your daily calorie target of ${targetCalories} kcal is based on the Basal Metabolic Rate (BMR) of ${bmr} kcal/day, which is the energy your body needs at rest.`);
+  // Calories explanation
+  explanations.push(`Calories`);
+  explanations.push(`Your ${targetCalories} kcal target comes from the standard reference intake used to maintain daily energy needs for most adults.`);
   
   // Protein explanation
-  explanations.push(`\nProtein target of ${targetProtein}g is calculated from your weight (${weight} lbs) and supports daily maintenance needs.`);
+  explanations.push(`Protein`);
+  explanations.push(`Your ${targetProtein} g protein target comes from the dietary guideline that most adults need at least this amount to support muscle repair and prevent muscle loss.`);
   
-  // Carb explanation
-  if (hasDiabetes) {
-    explanations.push(`Carbohydrates limited to ${targetCarbs}g (35% of calories) to help manage blood sugar levels.`);
-  } else {
-    explanations.push(`Carbohydrates set at ${targetCarbs}g (${Math.round((targetCarbs * 4 / targetCalories) * 100)}% of calories) to provide sustainable energy.`);
-  }
-  
-  // Fat explanation
-  explanations.push(`Fat target of ${targetFat}g (30% of calories) provides essential fatty acids and helps with nutrient absorption.`);
-  
-  // Health condition adjustments
-  if (healthConditions && healthConditions.length > 0) {
-    const hasBloodPressure = healthConditions.some(c => c.toLowerCase().includes('blood pressure') || c.toLowerCase().includes('hypertension'));
-    const hasHeart = healthConditions.some(c => c.toLowerCase().includes('heart') || c.toLowerCase().includes('cardiovascular'));
-    const hasCholesterol = healthConditions.some(c => c.toLowerCase().includes('cholesterol'));
-    
-    if (hasBloodPressure || hasHeart) {
-      explanations.push(`\nSodium limited to ${targetSodium}mg/day (vs. standard 2300mg) due to ${hasBloodPressure ? 'blood pressure' : 'heart health'} concerns.`);
-    }
-    if (hasCholesterol || hasHeart) {
-      explanations.push(`Cholesterol limited to ${targetCholesterol}mg/day (vs. standard 300mg) for heart health.`);
-      explanations.push(`Saturated and trans fats are tracked to support cardiovascular health.`);
-    }
-  }
+  // Carbohydrates explanation
+  explanations.push(`Carbohydrates`);
+  explanations.push(`Your carbohydrate target comes from the recommendation that most adults need enough carbs to fuel the brain, which relies heavily on glucose.`);
   
   // Fiber explanation
-  explanations.push(`Fiber target of ${targetFiber}g supports digestive health and meets recommendations for ${gender === 'male' ? 'men' : gender === 'female' ? 'women' : 'your age group'}${calculatedAge >= 50 ? ' over 50' : ''}.`);
+  const genderText = gender === 'male' ? 'men' : gender === 'female' ? 'women' : 'adults';
+  explanations.push(`Fiber`);
+  explanations.push(`Your ${targetFiber} g fiber target comes from national dietary guidelines for ${genderText} to support digestion and heart health.`);
+  
+  // Total Fat explanation
+  explanations.push(`Total Fat`);
+  explanations.push(`Your total fat target follows nutrition guidelines for the amount needed to support hormones and vitamin absorption without raising disease risk.`);
+  
+  // Saturated Fat explanation
+  explanations.push(`Saturated Fat`);
+  explanations.push(`Your saturated fat limit comes from heart-health guidelines designed to keep LDL cholesterol at safe levels.`);
+  
+  // Trans Fat explanation
+  explanations.push(`Trans Fat`);
+  explanations.push(`Your trans fat limit is extremely low because health authorities agree that even small amounts increase cardiovascular risk.`);
+  
+  // Cholesterol explanation
+  explanations.push(`Cholesterol`);
+  explanations.push(`Your ${targetCholesterol} mg cholesterol target comes from long-standing dietary guidelines that help maintain healthy blood cholesterol levels.`);
+  
+  // Sodium explanation
+  const hasBloodPressure = healthConditions?.some(c => c.toLowerCase().includes('blood pressure') || c.toLowerCase().includes('hypertension'));
+  const hasHeart = healthConditions?.some(c => c.toLowerCase().includes('heart') || c.toLowerCase().includes('cardiovascular'));
+  explanations.push(`Sodium`);
+  if (hasBloodPressure || hasHeart) {
+    explanations.push(`Your ${targetSodium} mg sodium limit is based on recommendations for supporting healthy blood pressure and reducing strain on the cardiovascular system.`);
+  } else {
+    explanations.push(`Your ${targetSodium} mg sodium target comes from dietary guidelines that help maintain healthy blood pressure and reduce cardiovascular strain.`);
+  }
 
   const explanation = explanations.join('\n');
 
