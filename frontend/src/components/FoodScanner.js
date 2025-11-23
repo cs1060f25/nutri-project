@@ -1,21 +1,25 @@
 import React, { useState } from 'react';
 import { Upload, ArrowRight, Clock } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { analyzeMealImage } from '../services/geminiService';
+import SaveLogModal from './SaveLogModal';
 import './FoodScanner.css';
 
 const formatNumber = (value) => {
   if (value === undefined || value === null || Number.isNaN(Number(value))) {
-    return '0.00';
+    return '0';
   }
-  return Number(value).toFixed(2);
+  return Math.round(Number(value)).toString();
 };
 
 const FoodScanner = () => {
+  const navigate = useNavigate();
   const [selectedFile, setSelectedFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState(null);
   const [error, setError] = useState(null);
+  const [showSaveModal, setShowSaveModal] = useState(false);
 
   const handleFileSelect = (e) => {
     const file = e.target.files[0];
@@ -84,6 +88,14 @@ const FoodScanner = () => {
     setError(null);
   };
 
+  const handleSaveLogClick = () => {
+    if (!results) {
+      setError('No scan results to save');
+      return;
+    }
+    setShowSaveModal(true);
+  };
+
   return (
     <div className="scanner-page">
       <div className="scanner-container">
@@ -119,7 +131,7 @@ const FoodScanner = () => {
                 <label htmlFor="file-upload" className="scanner-dropzone">
                   <Upload className="scanner-dropzone-icon" />
                   <p className="scanner-dropzone-title">Drop image or browse files</p>
-                  <p className="scanner-dropzone-subtitle">Supports JPG/PNG up to 10MB</p>
+                  <p className="scanner-dropzone-subtitle">Supports JPG/PNG up to 20MB</p>
                 </label>
                 <input
                   id="file-upload"
@@ -272,14 +284,32 @@ const FoodScanner = () => {
                   <Clock className="scanner-footer-icon" />
                   Scanned {new Date(results.timestamp).toLocaleString()}
                 </div>
+                <button
+                  onClick={handleSaveLogClick}
+                  className="scanner-primary-btn scanner-save-log-btn"
+                >
+                  Save Log
+                </button>
               </div>
             </div>
           )}
         </div>
       </div>
+
+      <SaveLogModal
+        isOpen={showSaveModal}
+        onClose={() => setShowSaveModal(false)}
+        onSuccess={() => {
+          setShowSaveModal(false);
+          resetScanner();
+          navigate('/home/meal-logs');
+        }}
+        scanData={results}
+        imageUrl={previewUrl}
+        imageFile={selectedFile}
+      />
     </div>
   );
-}
-;
+};
 
 export default FoodScanner;

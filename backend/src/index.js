@@ -10,6 +10,10 @@ const profileRoutes = require('./routes/profileRoutes');
 const nutritionPlanRoutes = require('./routes/nutritionPlanRoutes');
 const nutritionProgressRoutes = require('./routes/nutritionProgressRoutes');
 const mealSuggestionRoutes = require('./routes/mealSuggestionRoutes');
+const socialRoutes = require('./routes/socialRoutes');
+const mealPlanRoutes = require('./routes/mealPlanRoutes');
+const savedMealPlanRoutes = require('./routes/savedMealPlanRoutes');
+const leaderboardRoutes = require('./routes/leaderboardRoutes');
 const geminiRoutes = require('./routes/geminiRoutes');
 const { homeData } = require('../data');
 
@@ -19,8 +23,8 @@ const PORT = process.env.PORT || 3000;
 
 // Middleware
 app.use(cors());
-app.use(express.json({ limit: '10mb' })); // Increase limit for large menu item arrays
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(express.json({ limit: '30mb' })); // Increase limit for large images and menu item arrays
+app.use(express.urlencoded({ extended: true, limit: '30mb' }));
 
 // Request logging middleware
 app.use((req, res, next) => {
@@ -73,6 +77,18 @@ app.use('/api/meal-suggestion', mealSuggestionRoutes);
 
 // Gemini analyzer route
 app.use('/api', geminiRoutes);
+
+// Social routes (friends and posts)
+app.use('/api/social', socialRoutes);
+
+// Meal plan routes
+app.use('/api/meal-plans', mealPlanRoutes);
+
+// Saved meal plan routes
+app.use('/api/saved-meal-plans', savedMealPlanRoutes);
+
+// Leaderboard routes
+app.use('/api/leaderboard', leaderboardRoutes);
 
 // Home endpoint - returns app data
 app.get('/home', (req, res) => {

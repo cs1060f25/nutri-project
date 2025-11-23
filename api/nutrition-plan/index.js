@@ -398,6 +398,25 @@ const generatePersonalizedPlan = (userProfile) => {
   };
 };
 
+// Get current date in Eastern Time (America/New_York)
+const getEasternDate = () => {
+  const now = new Date();
+  // Use Intl.DateTimeFormat to get date in Eastern Time
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/New_York',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  });
+  
+  const parts = formatter.formatToParts(now);
+  const year = parts.find(p => p.type === 'year').value;
+  const month = parts.find(p => p.type === 'month').value;
+  const day = parts.find(p => p.type === 'day').value;
+  
+  return `${year}-${month}-${day}`;
+};
+
 // Verify Firebase ID token
 const verifyToken = async (authHeader) => {
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -428,16 +447,26 @@ module.exports = async (req, res) => {
     const userId = decodedToken.uid;
 
     // Parse the path - Vercel may or may not include the /api/nutrition-plan prefix
-    let path = req.url.split('?')[0]; // Remove query params
-    path = path.replace('/api/nutrition-plan', ''); // Remove prefix if present
-    if (!path || path === '/') path = ''; // Normalize empty path
+    let path = req.url;
+    if (path.startsWith('/api/nutrition-plan')) {
+      path = path.replace('/api/nutrition-plan', '');
+    }
+    // Remove query string
+    path = path.split('?')[0];
+    // Ensure path starts with / if it's not empty
+    if (path && !path.startsWith('/')) {
+      path = '/' + path;
+    }
+    if (!path) {
+      path = '';
+    }
 
     console.log('🔍 Nutrition plan route - method:', req.method, 'req.url:', req.url, 'parsed path:', JSON.stringify(path));
 
     // Route: GET /api/nutrition-plan/progress/today (nutrition progress tracking)
     if (req.method === 'GET' && (path === '/progress/today' || path.includes('progress/today'))) {
       console.log('✅ Matched progress route, fetching active plan for userId:', userId);
-      const today = new Date().toISOString().split('T')[0];
+      const today = getEasternDate(); // YYYY-MM-DD format in Eastern Time
 
       // Get active nutrition plan
       const plansRef = getDb()
@@ -491,23 +520,105 @@ module.exports = async (req, res) => {
         totalFat: 0,
         saturatedFat: 0,
         totalCarbs: 0,
-        fiber: 0,
+        fiber: 0, // Note: stored as dietaryFiber in meals, mapped to fiber for progress
         sugars: 0,
         sodium: 0,
       };
 
-      meals.forEach(meal => {
-        if (meal.totals) {
-          consumed.calories += parseNutrient(meal.totals.calories);
+      // Calculate totals from meal items (handles both formats)
+      const calculateTotals = (items) => {
+        const totals = {
+          calories: 0,
+          protein: 0,
+          totalFat: 0,
+          saturatedFat: 0,
+          totalCarbs: 0,
+          dietaryFiber: 0,
+          sugars: 0,
+          sodium: 0,
+        };
+
+        if (!items || !Array.isArray(items)) {
+          return totals;
+        }
+
+        items.forEach(item => {
+          const qty = item.quantity || 1;
+          
+          // Check if nutrition is nested (old format) or direct (new format from posts)
+          if (item.nutrition) {
+            // Old format: nutrition nested in item.nutrition
+            totals.calories += parseNutrient(item.nutrition.calories || 0) * qty;
+            totals.protein += parseNutrient(item.nutrition.protein || 0) * qty;
+            totals.totalFat += parseNutrient(item.nutrition.totalFat || item.nutrition.fat || 0) * qty;
+            totals.saturatedFat += parseNutrient(item.nutrition.saturatedFat || 0) * qty;
+            totals.totalCarbs += parseNutrient(item.nutrition.totalCarbs || item.nutrition.totalCarb || item.nutrition.carbs || 0) * qty;
+            totals.dietaryFiber += parseNutrient(item.nutrition.dietaryFiber || 0) * qty;
+            totals.sugars += parseNutrient(item.nutrition.sugars || 0) * qty;
+            totals.sodium += parseNutrient(item.nutrition.sodium || 0) * qty;
+          } else {
+            // New format: nutrition values directly on item (from posts/meal plans)
+            totals.calories += parseNutrient(item.calories || 0) * qty;
+            totals.protein += parseNutrient(item.protein || 0) * qty;
+            totals.totalFat += parseNutrient(item.totalFat || item.fat || 0) * qty;
+            totals.saturatedFat += parseNutrient(item.saturatedFat || 0) * qty;
+            totals.totalCarbs += parseNutrient(item.totalCarbs || item.totalCarb || item.carbs || 0) * qty;
+            totals.dietaryFiber += parseNutrient(item.dietaryFiber || 0) * qty;
+            totals.sugars += parseNutrient(item.sugars || 0) * qty;
+            totals.sodium += parseNutrient(item.sodium || 0) * qty;
+          }
+        });
+
+        return totals;
+      };
+
+      console.log(`📊 Found ${meals.length} meal(s) for ${today}`);
+      meals.forEach((meal, index) => {
+        console.log(`  Meal ${index + 1}:`, {
+          hasTotals: !!meal.totals,
+          totalsCalories: meal.totals?.calories,
+          hasItems: !!meal.items,
+          itemsCount: meal.items?.length,
+          mealType: meal.mealType,
+          mealDate: meal.mealDate
+        });
+        
+        // Use calculateTotals helper which handles both formats
+        if (meal.items && Array.isArray(meal.items)) {
+          const mealTotals = calculateTotals(meal.items);
+          consumed.calories += mealTotals.calories;
+          consumed.protein += mealTotals.protein;
+          consumed.totalFat += mealTotals.totalFat;
+          consumed.saturatedFat += mealTotals.saturatedFat;
+          consumed.totalCarbs += mealTotals.totalCarbs || mealTotals.totalCarb || mealTotals.carbs || 0;
+          consumed.fiber += mealTotals.dietaryFiber;
+          consumed.sugars += mealTotals.sugars;
+          consumed.sodium += mealTotals.sodium;
+        } else if (meal.totals) {
+          // If meal has pre-calculated totals, use those
+          const mealCalories = parseNutrient(meal.totals.calories);
+          console.log(`    Adding ${mealCalories} calories from totals`);
+          consumed.calories += mealCalories;
           consumed.protein += parseNutrient(meal.totals.protein);
-          consumed.totalFat += parseNutrient(meal.totals.totalFat);
+          consumed.totalFat += parseNutrient(meal.totals.totalFat || meal.totals.fat);
           consumed.saturatedFat += parseNutrient(meal.totals.saturatedFat);
-          consumed.totalCarbs += parseNutrient(meal.totals.totalCarb);
+          consumed.totalCarbs += parseNutrient(meal.totals.totalCarbs || meal.totals.totalCarb || meal.totals.carbs);
           consumed.fiber += parseNutrient(meal.totals.dietaryFiber);
           consumed.sugars += parseNutrient(meal.totals.sugars);
           consumed.sodium += parseNutrient(meal.totals.sodium);
+        } else if (meal.nutrition) {
+          // Legacy format: nutrition directly on meal
+          consumed.calories += parseNutrient(meal.nutrition.calories || 0);
+          consumed.protein += parseNutrient(meal.nutrition.protein || 0);
+          consumed.totalFat += parseNutrient(meal.nutrition.totalFat || meal.nutrition.fat || 0);
+          consumed.saturatedFat += parseNutrient(meal.nutrition.saturatedFat || 0);
+          consumed.totalCarbs += parseNutrient(meal.nutrition.totalCarbs || meal.nutrition.totalCarb || meal.nutrition.carbs || 0);
+          consumed.fiber += parseNutrient(meal.nutrition.dietaryFiber || 0);
+          consumed.sugars += parseNutrient(meal.nutrition.sugars || 0);
+          consumed.sodium += parseNutrient(meal.nutrition.sodium || 0);
         }
       });
+      console.log(`📊 Total calories calculated: ${consumed.calories}`);
 
       // Calculate progress for each metric
       const metrics = planData.metrics || {};
@@ -672,7 +783,10 @@ module.exports = async (req, res) => {
         updatedAt: timestamp,
       };
 
+      // Use merge: true for other fields, but explicitly update metrics
+      // to ensure disabled metrics are removed (not just merged)
       await docRef.set(payload, { merge: true });
+      await docRef.update({ metrics: planData.metrics || {} });
 
       const updatedDoc = await docRef.get();
       const updatedPlan = {
@@ -687,20 +801,32 @@ module.exports = async (req, res) => {
     }
 
     // Route: DELETE /api/nutrition-plan/:planId (delete plan)
-    if (req.method === 'DELETE' && path && path !== '' && path !== '/') {
-      const planId = path.substring(1); // Remove leading /
-      
-      const docRef = getDb()
-        .collection(USERS_COLLECTION)
-        .doc(userId)
-        .collection(NUTRITION_PLANS_SUBCOLLECTION)
-        .doc(planId);
+    // Match paths like /G4EY6PDt9IZ0m8rTp4AP (single ID segment)
+    if (req.method === 'DELETE') {
+      // Check if path matches a single ID (not /progress/, /history/, /personalized, or empty)
+      const idMatch = path.match(/^\/([^/]+)$/);
+      if (idMatch && !path.startsWith('/progress') && !path.startsWith('/history') && !path.startsWith('/personalized')) {
+        const planId = idMatch[1];
+        
+        const docRef = getDb()
+          .collection(USERS_COLLECTION)
+          .doc(userId)
+          .collection(NUTRITION_PLANS_SUBCOLLECTION)
+          .doc(planId);
 
-      await docRef.delete();
+        const doc = await docRef.get();
+        
+        if (!doc.exists) {
+          return res.status(404).json(createErrorResponse('PLAN_NOT_FOUND', 'Nutrition plan not found.'));
+        }
 
-      return res.status(200).json({
-        message: 'Nutrition plan deleted successfully',
-      });
+        await docRef.delete();
+
+        return res.status(200).json({
+          message: 'Nutrition plan deleted successfully',
+          id: planId,
+        });
+      }
     }
 
     // Handle POST request - Create new nutrition plan

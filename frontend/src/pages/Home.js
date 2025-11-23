@@ -6,6 +6,7 @@ import { getTodayProgress } from '../services/nutritionProgressService';
 import { generateMealSuggestion } from '../services/mealSuggestionService';
 import MealLogger from '../components/MealLogger';
 import NutritionProgress from '../components/NutritionProgress';
+import CustomSelect from '../components/CustomSelect';
 import './Home.css';
 
 // Houses that share menus (11 houses, excluding Quincy)
@@ -332,12 +333,12 @@ const Home = () => {
   }, [suggestionLocation, expandedLocations, findLocationById, parseLocationId]);
 
   // Fetch nutrition progress
-  useEffect(() => {
-    const fetchProgress = async () => {
+  const fetchProgress = useCallback(async () => {
       if (!accessToken) return;
       
       try {
         setProgressLoading(true);
+        // Add a cache-busting parameter to ensure fresh data
         const progress = await getTodayProgress(accessToken);
         setProgressData(progress);
       } catch (err) {
@@ -346,10 +347,37 @@ const Home = () => {
       } finally {
         setProgressLoading(false);
       }
+  }, [accessToken]);
+
+  useEffect(() => {
+    fetchProgress();
+  }, [fetchProgress]);
+
+  // Listen for meal log updates (from post creation, etc.)
+  useEffect(() => {
+    const handleMealLogUpdate = () => {
+      fetchProgress();
     };
 
-    fetchProgress();
-  }, [accessToken]);
+    window.addEventListener('mealLogUpdated', handleMealLogUpdate);
+    return () => {
+      window.removeEventListener('mealLogUpdated', handleMealLogUpdate);
+    };
+  }, [fetchProgress]);
+
+  // Refresh progress when page becomes visible (user returns to tab/window)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden && accessToken) {
+        fetchProgress();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [fetchProgress, accessToken]);
 
   const openNutritionModal = (recipe) => {
     setSelectedRecipe(recipe);
@@ -798,7 +826,7 @@ const Home = () => {
           protein: evaluateFormula(expected.protein || 0),
           totalFat: evaluateFormula(expected.totalFat || 0),
           saturatedFat: evaluateFormula(expected.saturatedFat || 0),
-          totalCarb: evaluateFormula(expected.totalCarbs || expected.totalCarb || 0),
+          totalCarbs: evaluateFormula(expected.totalCarbs || expected.totalCarb || 0),
           dietaryFiber: evaluateFormula(expected.fiber || expected.dietaryFiber || 0),
           sugars: evaluateFormula(expected.sugars || 0),
           sodium: evaluateFormula(expected.sodium || 0),
@@ -868,7 +896,7 @@ const Home = () => {
       acc.protein += parseNutrient(meal.protein);
       acc.totalFat += parseNutrient(meal.totalFat);
       acc.saturatedFat += parseNutrient(meal.saturatedFat);
-      acc.totalCarbs += parseNutrient(meal.totalCarb);
+      acc.totalCarbs += parseNutrient(meal.totalCarbs || meal.totalCarb);
       acc.fiber += parseNutrient(meal.dietaryFiber);
       acc.sugars += parseNutrient(meal.sugars);
       acc.sodium += parseNutrient(meal.sodium);
@@ -974,7 +1002,9 @@ const Home = () => {
           {/* Nutrition Progress Card */}
           {!progressLoading && (
             <div className="progress-card-wrapper">
-              <NutritionProgress progressData={progressWithHypothetical || progressData} />
+              <NutritionProgress 
+                progressData={progressWithHypothetical || progressData} 
+              />
             </div>
           )}
 
@@ -997,24 +1027,23 @@ const Home = () => {
                   </svg>
                   Dining Hall
                 </label>
-                <select
-                  id="location-select"
-                  className="selector-input"
+                <CustomSelect
                   value={selectedLocation}
-                  onChange={(e) => setSelectedLocation(e.target.value)}
-                  disabled={locationsLoading}
-                >
-                  <option value="">Select a dining hall</option>
-                  {expandedLocations.map((loc, idx) => {
-                    // Create unique identifier for each location
+                  onChange={setSelectedLocation}
+                  options={[
+                    { value: '', label: 'Select a dining hall' },
+                    ...expandedLocations.map((loc, idx) => {
                     const uniqueId = `${loc.location_number}|${loc.location_name}`;
-                    return (
-                      <option key={`${loc.location_number}-${idx}`} value={uniqueId}>
-                        {loc.location_name}
-                      </option>
-                    );
-                  })}
-                </select>
+                      return {
+                        value: uniqueId,
+                        label: loc.location_name
+                      };
+                    })
+                  ]}
+                  placeholder="Select a dining hall"
+                  disabled={locationsLoading}
+                  className="selector-input-wrapper"
+                />
               </div>
 
               <div className="selector-group">
@@ -1025,20 +1054,20 @@ const Home = () => {
                   </svg>
                   Meal Time
                 </label>
-                <select
-                  id="meal-select"
-                  className="selector-input"
+                <CustomSelect
                   value={selectedMealType}
-                  onChange={(e) => setSelectedMealType(e.target.value)}
+                  onChange={setSelectedMealType}
+                  options={[
+                    { value: '', label: 'Select a meal' },
+                    ...getAvailableMealTypes().map(mealType => ({
+                      value: mealType,
+                      label: mealType
+                    }))
+                  ]}
+                  placeholder="Select a meal"
                   disabled={!selectedLocation || loading}
-                >
-                  <option value="">Select a meal</option>
-                  {getAvailableMealTypes().map(mealType => (
-                    <option key={mealType} value={mealType}>
-                      {mealType}
-                    </option>
-                  ))}
-                </select>
+                  className="selector-input-wrapper"
+                />
               </div>
 
               {!selectedLocation && (
@@ -1084,26 +1113,26 @@ const Home = () => {
                   </svg>
                   Dining Hall
                 </label>
-                <select
-                  id="suggestion-location-select"
-                  className="selector-input"
+                <CustomSelect
                   value={suggestionLocation}
-                  onChange={(e) => {
-                    setSuggestionLocation(e.target.value);
+                  onChange={(value) => {
+                    setSuggestionLocation(value);
                     setSuggestionMealType('');
                   }}
-                  disabled={locationsLoading}
-                >
-                  <option value="">Select a dining hall</option>
-                  {expandedLocations.map((loc, idx) => {
+                  options={[
+                    { value: '', label: 'Select a dining hall' },
+                    ...expandedLocations.map((loc, idx) => {
                     const uniqueId = `${loc.location_number}|${loc.location_name}`;
-                    return (
-                      <option key={`suggestion-${loc.location_number}-${idx}`} value={uniqueId}>
-                        {loc.location_name}
-                      </option>
-                    );
-                  })}
-                </select>
+                      return {
+                        value: uniqueId,
+                        label: loc.location_name
+                      };
+                    })
+                  ]}
+                  placeholder="Select a dining hall"
+                  disabled={locationsLoading}
+                  className="selector-input-wrapper"
+                />
               </div>
 
               <div className="selector-group">
@@ -1114,20 +1143,20 @@ const Home = () => {
                   </svg>
                   Meal Time
                 </label>
-                <select
-                  id="suggestion-meal-select"
-                  className="selector-input"
+                <CustomSelect
                   value={suggestionMealType}
-                  onChange={(e) => setSuggestionMealType(e.target.value)}
+                  onChange={setSuggestionMealType}
+                  options={[
+                    { value: '', label: 'Select a meal' },
+                    ...getSuggestionMealTypes().map(mealType => ({
+                      value: mealType,
+                      label: mealType
+                    }))
+                  ]}
+                  placeholder="Select a meal"
                   disabled={!suggestionLocation || suggestionMenuLoading}
-                >
-                  <option value="">Select a meal</option>
-                  {getSuggestionMealTypes().map(mealType => (
-                    <option key={mealType} value={mealType}>
-                      {mealType}
-                    </option>
-                  ))}
-                </select>
+                  className="selector-input-wrapper"
+                />
               </div>
 
               {hypotheticalMeals.length > 0 && (

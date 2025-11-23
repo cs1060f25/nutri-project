@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import './Insights.css';
 import { useAuth } from '../context/AuthContext';
 import { getRangeProgress } from '../services/insightsService';
@@ -8,16 +8,32 @@ import InsightsTrendSummary from '../components/InsightsTrendSummary';
 import InsightsMacroPie from '../components/InsightsMacroPie';
 import InsightsMealTable from '../components/InsightsMealTable';
 import { getMetricName } from '../utils/nutrition';
+import CustomSelect from '../components/CustomSelect';
 
-const formatDateInput = (date) => date.toISOString().split('T')[0];
+// Get date in Eastern Time format (YYYY-MM-DD)
+const getEasternDate = (date = new Date()) => {
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/New_York',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  });
+  
+  const parts = formatter.formatToParts(date);
+  const year = parts.find(p => p.type === 'year').value;
+  const month = parts.find(p => p.type === 'month').value;
+  const day = parts.find(p => p.type === 'day').value;
+  
+  return `${year}-${month}-${day}`;
+};
 
 const defaultRange = () => {
   const end = new Date();
   const start = new Date();
   start.setDate(end.getDate() - 6);
   return {
-    start: formatDateInput(start),
-    end: formatDateInput(end),
+    start: getEasternDate(start),
+    end: getEasternDate(end),
   };
 };
 
@@ -36,10 +52,9 @@ const Insights = () => {
     end: range.end,
   }), [range.start, range.end]);
 
-  useEffect(() => {
+  const fetchData = useCallback(async () => {
     if (!accessToken) return;
 
-    const fetchData = async () => {
       setLoading(true);
       setError('');
       try {
@@ -50,10 +65,37 @@ const Insights = () => {
       } finally {
         setLoading(false);
       }
+  }, [accessToken, activeRange]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  // Listen for meal log updates (from post creation, etc.)
+  useEffect(() => {
+    const handleMealLogUpdate = () => {
+      fetchData();
     };
 
-    fetchData();
-  }, [accessToken, activeRange]);
+    window.addEventListener('mealLogUpdated', handleMealLogUpdate);
+    return () => {
+      window.removeEventListener('mealLogUpdated', handleMealLogUpdate);
+    };
+  }, [fetchData]);
+
+  // Refresh data when page becomes visible (user returns to tab/window)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden && accessToken) {
+        fetchData();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [fetchData, accessToken]);
 
   const metricOptions = useMemo(() => {
     if (!data?.trend?.metrics) return [];
@@ -181,31 +223,31 @@ const Insights = () => {
               {trendView !== 'pie' && metricOptions.length > 0 && (
                 <label className="insights-metric-select">
                   Metric
-                  <select
+                  <CustomSelect
                     value={selectedMetric}
-                    onChange={(event) => setSelectedMetric(event.target.value)}
-                  >
-                    {metricOptions.map(option => (
-                      <option key={option} value={option}>
-                        {getMetricName(option)}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={setSelectedMetric}
+                    options={metricOptions.map(option => ({
+                      value: option,
+                      label: getMetricName(option)
+                    }))}
+                    placeholder="Select metric"
+                    className="insights-metric-select-wrapper"
+                  />
                 </label>
               )}
               {trendView === 'pie' && data?.days?.length > 0 && (
                 <label className="insights-metric-select">
                   Day
-                  <select
+                  <CustomSelect
                     value={selectedMacroDay}
-                    onChange={(event) => setSelectedMacroDay(event.target.value)}
-                  >
-                    {data.days.map(day => (
-                      <option key={day.date} value={day.date}>
-                        {day.date} ({day.mealCount} meals)
-                      </option>
-                    ))}
-                  </select>
+                    onChange={setSelectedMacroDay}
+                    options={data.days.map(day => ({
+                      value: day.date,
+                      label: `${day.date} (${day.mealCount} meals)`
+                    }))}
+                    placeholder="Select day"
+                    className="insights-metric-select-wrapper"
+                  />
                 </label>
               )}
               <div className="insights-view-toggle">

@@ -58,7 +58,22 @@ const generateSuggestion = async (req, res) => {
     // Get current progress
     // We'll reuse the logic from nutritionProgressController
     console.log('Fetching daily summary...');
-    const today = new Date().toISOString().split('T')[0];
+    // Get current date in Eastern Time
+    const getEasternDate = () => {
+      const now = new Date();
+      const formatter = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'America/New_York',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      });
+      const parts = formatter.formatToParts(now);
+      const year = parts.find(p => p.type === 'year').value;
+      const month = parts.find(p => p.type === 'month').value;
+      const day = parts.find(p => p.type === 'day').value;
+      return `${year}-${month}-${day}`;
+    };
+    const today = getEasternDate();
     const mealLogService = require('../services/mealLogService');
     const dailySummary = await mealLogService.getDailySummary(userId, today);
     console.log('Daily summary:', JSON.stringify(dailySummary, null, 2));
@@ -74,7 +89,7 @@ const generateSuggestion = async (req, res) => {
       protein: parseNutrient(dailySummary.dailyTotals.protein),
       totalFat: parseNutrient(dailySummary.dailyTotals.totalFat),
       saturatedFat: parseNutrient(dailySummary.dailyTotals.saturatedFat),
-      totalCarbs: parseNutrient(dailySummary.dailyTotals.totalCarb),
+      totalCarbs: parseNutrient(dailySummary.dailyTotals.totalCarbs),
       fiber: parseNutrient(dailySummary.dailyTotals.dietaryFiber),
       sugars: parseNutrient(dailySummary.dailyTotals.sugars),
       sodium: parseNutrient(dailySummary.dailyTotals.sodium),

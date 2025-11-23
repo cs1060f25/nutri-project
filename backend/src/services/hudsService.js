@@ -52,7 +52,9 @@ const getLocations = async () => {
 const getEvents = async (date = null, locationId = null) => {
   const params = {};
   if (date) {
-    params.date = formatDate(date);
+    // Handle both Date objects and date strings (YYYY-MM-DD format)
+    const dateObj = date instanceof Date ? date : new Date(date);
+    params.date = formatDate(dateObj);
   }
   if (locationId) {
     params.locationId = locationId;
@@ -66,7 +68,9 @@ const getEvents = async (date = null, locationId = null) => {
 const getRecipes = async (date = null, locationId = null) => {
   const params = {};
   if (date) {
-    params.date = formatDate(date);
+    // Handle both Date objects and date strings (YYYY-MM-DD format)
+    const dateObj = date instanceof Date ? date : new Date(date);
+    params.date = formatDate(dateObj);
   }
   if (locationId) {
     params.locationId = locationId;

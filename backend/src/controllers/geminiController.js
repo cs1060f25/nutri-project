@@ -61,10 +61,22 @@ const analyzeMealImage = async (req, res) => {
   } catch (error) {
     console.error('Error analyzing meal image:', error);
     
+    // Extract error message - handle both Error objects and other types
+    let errorMessage = 'Failed to analyze meal image';
+    if (error instanceof Error) {
+      errorMessage = error.message || errorMessage;
+    } else if (typeof error === 'string') {
+      errorMessage = error;
+    } else if (error?.message) {
+      errorMessage = error.message;
+    } else if (error?.error) {
+      errorMessage = typeof error.error === 'string' ? error.error : error.error?.message || errorMessage;
+    }
+    
     // Return appropriate error message
-    const statusCode = error.message.includes('API key') ? 500 : 400;
+    const statusCode = errorMessage.includes('API key') || errorMessage.includes('GEMINI_API_KEY') ? 500 : 400;
     res.status(statusCode).json({ 
-      error: error.message || 'Failed to analyze meal image',
+      error: errorMessage,
       success: false
     });
   }
