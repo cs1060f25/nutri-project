@@ -71,6 +71,14 @@
 }
 
 /* Styling for nutrition plan unit select */
+.unit-select-wrapper .custom-select-wrapper {
+  z-index: 1000;
+}
+
+.unit-select-wrapper .custom-select-dropdown {
+  z-index: 1001;
+}
+
 .unit-select-wrapper .custom-select-wrapper .custom-select-trigger {
   padding: 0.5rem 2.5rem 0.5rem 0.75rem;
   font-size: 0.75rem;
@@ -173,7 +181,7 @@
   box-shadow: 0 8px 24px rgba(26, 95, 63, 0.15);
   max-height: 320px;
   overflow-y: auto;
-  z-index: 100;
+  z-index: 10000;
   animation: slideDown 0.2s ease;
 }
 

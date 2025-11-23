@@ -11,7 +11,6 @@ import CreatePostModal from '../components/CreatePostModal';
 import './MealPlanning.css';
 
 const MEAL_TYPES = ['breakfast', 'lunch', 'dinner'];
-const DAYS_OF_WEEK = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
 
 // Color mapping for dining halls
 const DINING_HALL_COLORS = {
@@ -463,17 +462,6 @@ const MealPlanning = () => {
     }
   };
 
-  // Handle date selection in modal
-  const handleDateChange = async (e) => {
-    setSelectedDate(e.target.value);
-    setSelectedItems([]);
-    setMenuItems({});
-    
-    // If location and meal type are already selected, fetch menu items
-    if (e.target.value && selectedLocationId && selectedMealType) {
-      await fetchMenuItems(e.target.value, selectedLocationId);
-    }
-  };
 
   // Handle meal type change in modal
   const handleMealTypeChange = async (value) => {

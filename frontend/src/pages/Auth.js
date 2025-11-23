@@ -33,13 +33,11 @@ const Auth = () => {
   const [heightFeet, setHeightFeet] = useState('');
   const [heightInches, setHeightInches] = useState('');
   const [weight, setWeight] = useState('');
-  const [activityLevel, setActivityLevel] = useState('');
   const [dietaryPattern, setDietaryPattern] = useState('');
   const [isKosher, setIsKosher] = useState(false);
   const [isHalal, setIsHalal] = useState(false);
   const [allergies, setAllergies] = useState([]);
   const [healthConditions, setHealthConditions] = useState([]);
-  const [primaryGoal, setPrimaryGoal] = useState('');
   const [dataAgreementAccepted, setDataAgreementAccepted] = useState(false);
 
   // Harvard Houses and Dorms
@@ -406,13 +404,11 @@ const Auth = () => {
     setHeightFeet('');
     setHeightInches('');
     setWeight('');
-    setActivityLevel('');
     setDietaryPattern('');
     setIsKosher(false);
     setIsHalal(false);
     setAllergies([]);
     setHealthConditions([]);
-    setPrimaryGoal('');
     setDataAgreementAccepted(false);
   };
 
