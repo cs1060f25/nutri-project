@@ -2237,43 +2237,43 @@ const MealPlanning = () => {
               }}>×</button>
             </div>
 
-            <div style={{ padding: '1.5rem'}}>
-              <div className="">
-                <div className="form-group">
-                  <label>Meal Type</label>
-                  <CustomSelect
-                    value={selectedMealType}
-                    onChange={handleMealTypeChange}
-                    options={[
-                      { value: '', label: 'Select meal type' },
-                      { value: 'breakfast', label: 'Breakfast' },
-                      { value: 'lunch', label: 'Lunch' },
-                      { value: 'dinner', label: 'Dinner' }
-                    ]}
-                    placeholder="Select meal type"
-                    className="form-input-wrapper"
-                  />
-                </div>
+            <div className="modal-content">
+              <div className="meal-plan-selects-container">
+              <div className="form-group">
+                <label>Meal Type</label>
+                <CustomSelect
+                  value={selectedMealType}
+                  onChange={handleMealTypeChange}
+                  options={[
+                    { value: '', label: 'Select meal type' },
+                    { value: 'breakfast', label: 'Breakfast' },
+                    { value: 'lunch', label: 'Lunch' },
+                    { value: 'dinner', label: 'Dinner' }
+                  ]}
+                  placeholder="Select meal type"
+                  className="form-input-wrapper"
+                />
+              </div>
 
-                <div className="form-group">
-                  <label>Dining Hall</label>
-                  <CustomSelect
-                    value={selectedLocationId}
-                    onChange={handleLocationChange}
-                    options={locations.length > 0 
-                      ? [
-                          { value: '', label: 'Select dining hall' },
-                          ...locations.map((loc, index) => ({
-                            value: loc.location_number,
-                            label: loc.location_name
-                          }))
-                        ]
-                      : [{ value: '', label: 'Loading dining halls...' }]
-                    }
-                    placeholder="Select dining hall"
-                    disabled={locations.length === 0}
-                    className="form-input-wrapper"
-                  />
+              <div className="form-group">
+                <label>Dining Hall</label>
+                <CustomSelect
+                  value={selectedLocationId}
+                  onChange={handleLocationChange}
+                  options={locations.length > 0 
+                    ? [
+                        { value: '', label: 'Select dining hall' },
+                        ...locations.map((loc, index) => ({
+                          value: loc.location_number,
+                          label: loc.location_name
+                        }))
+                      ]
+                    : [{ value: '', label: 'Loading dining halls...' }]
+                  }
+                  placeholder="Select dining hall"
+                  disabled={locations.length === 0}
+                  className="form-input-wrapper"
+                />
                 </div>
               </div>
 
