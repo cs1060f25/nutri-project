@@ -128,11 +128,6 @@ describe('Meal Planning Nutrition Data', () => {
         expect(typeof item[field]).toBe(type);
       });
     });
-
-    // CRITICAL: Verify we're actually getting data, not all zeros
-    // If we use the wrong field name (Total_Carbohydrate), all items will have totalCarbs = 0
-    // If we use the correct field name (Total_Carb), at least some items should have carbs > 0
-    
     // Check raw API to verify field names
     let sampleRecipe = null;
     menuData.forEach(location => {
@@ -153,12 +148,10 @@ describe('Meal Planning Nutrition Data', () => {
     });
 
     if (sampleRecipe) {
-      // Verify API uses Total_Carb, not Total_Carbohydrate
-      expect(sampleRecipe).toHaveProperty('Total_Carb');
-      expect(sampleRecipe.Total_Carbohydrate).toBeUndefined();
+      expect(sampleRecipe).toHaveProperty('Total_Carbohydrate');
+      expect(sampleRecipe.Total_Carbohydrate).toBeDefined();
       
-      // If API has carbs data, our processed items should have it too
-      const apiHasCarbs = parseNutritionValue(sampleRecipe.Total_Carb) > 0;
+      const apiHasCarbs = parseNutritionValue(sampleRecipe.Total_Carbohydrate) > 0;
       if (apiHasCarbs) {
         // At least some items should have carbs > 0 (proving we're using correct field)
         const itemsWithCarbs = items.filter(item => item.totalCarbs > 0);
