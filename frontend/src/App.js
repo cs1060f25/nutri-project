@@ -42,7 +42,7 @@ function MainLayout() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   return (
-    <div className="app">
+    <div className={`app ${isSidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
       <Sidebar 
         isCollapsed={isSidebarCollapsed}
         onToggle={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
