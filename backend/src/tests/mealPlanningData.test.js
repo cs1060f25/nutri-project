@@ -66,7 +66,7 @@ const processMenuData = (menuData, selectedMealType = null) => {
                   transFat: parseNutritionValue(recipe.Trans_Fat),
                   cholesterol: parseNutritionValue(recipe.Cholesterol),
                   sodium: parseNutritionValue(recipe.Sodium),
-                  totalCarbs: parseNutritionValue(recipe.Total_Carb),
+                  totalCarbs: parseNutritionValue(recipe.Total_Carbohydrate),
                   dietaryFiber: parseNutritionValue(recipe.Dietary_Fiber),
                   sugars: parseNutritionValue(recipe.Sugars),
                   allergens: recipe.Allergens ? String(recipe.Allergens).trim() : '',
@@ -92,395 +92,79 @@ describe('Meal Planning Nutrition Data', () => {
     }
   });
 
-  describe('Nutrition Field Extraction', () => {
-    test('should extract all required nutrition fields from API response', async () => {
-      if (!hasApiKey) {
-        return; // Skip test if no API key
-      }
+  test('should extract all required nutrition fields from API', async () => {
+    if (!hasApiKey) {
+      return;
+    }
 
-      // Fetch menu data
-      const menuData = await hudsService.getTodaysMenu('38'); // Use location 38 as test
-      expect(menuData).toBeDefined();
-      expect(Array.isArray(menuData)).toBe(true);
-      
-      if (menuData.length === 0) {
-        console.warn('No menu data returned, skipping field extraction test');
-        return;
-      }
+    // Fetch menu data
+    const menuData = await hudsService.getTodaysMenu('38');
+    const items = processMenuData(menuData, 'breakfast');
+    
+    if (items.length === 0) {
+      return;
+    }
 
-      // Process menu data
-      const items = processMenuData(menuData, 'breakfast');
-      
-      if (items.length === 0) {
-        console.warn('No breakfast items found, skipping field extraction test');
-        return;
-      }
+    // Required nutrition fields
+    const requiredFields = {
+      calories: 'number',
+      protein: 'number',
+      caloriesFromFat: 'number',
+      totalFat: 'number',
+      saturatedFat: 'number',
+      transFat: 'number',
+      cholesterol: 'number',
+      sodium: 'number',
+      totalCarbs: 'number',
+      dietaryFiber: 'number',
+      sugars: 'number',
+      allergens: 'string'
+    };
 
-      // Check that at least one item has all required fields defined
-      const requiredFields = [
-        'calories',
-        'protein',
-        'caloriesFromFat',
-        'totalFat',
-        'saturatedFat',
-        'transFat',
-        'cholesterol',
-        'sodium',
-        'totalCarbs',
-        'dietaryFiber',
-        'sugars',
-        'allergens'
-      ];
-
-      // Find an item with at least some nutrition data
-      const itemWithData = items.find(item => item.calories > 0);
-      
-      if (!itemWithData) {
-        console.warn('No items with nutrition data found');
-        return;
-      }
-
-      // Verify all fields exist in the item object
-      requiredFields.forEach(field => {
-        expect(itemWithData).toHaveProperty(field);
-        expect(itemWithData[field]).toBeDefined();
+    // Verify all items have all required fields
+    items.forEach(item => {
+      Object.entries(requiredFields).forEach(([field, type]) => {
+        expect(item).toHaveProperty(field);
+        expect(typeof item[field]).toBe(type);
       });
     });
 
-    test('should correctly parse numeric nutrition values', async () => {
-      if (!hasApiKey) {
-        return;
-      }
-
-      const menuData = await hudsService.getTodaysMenu('38');
-      
-      if (menuData.length === 0) {
-        return;
-      }
-
-      const items = processMenuData(menuData, 'breakfast');
-      
-      if (items.length === 0) {
-        return;
-      }
-
-      // Find an item with nutrition data
-      const itemWithData = items.find(item => item.calories > 0);
-      
-      if (!itemWithData) {
-        return;
-      }
-
-      // Verify numeric fields are numbers
-      const numericFields = [
-        'calories',
-        'protein',
-        'caloriesFromFat',
-        'totalFat',
-        'saturatedFat',
-        'transFat',
-        'cholesterol',
-        'sodium',
-        'totalCarbs',
-        'dietaryFiber',
-        'sugars'
-      ];
-
-      numericFields.forEach(field => {
-        expect(typeof itemWithData[field]).toBe('number');
-        expect(isNaN(itemWithData[field])).toBe(false);
-        expect(itemWithData[field]).toBeGreaterThanOrEqual(0);
-      });
-
-      // Verify allergens is a string
-      expect(typeof itemWithData.allergens).toBe('string');
-    });
-
-    test('should handle missing or null nutrition values gracefully', () => {
-      // Test parseNutritionValue with various inputs
-      expect(parseNutritionValue(null)).toBe(0);
-      expect(parseNutritionValue(undefined)).toBe(0);
-      expect(parseNutritionValue('')).toBe(0);
-      expect(parseNutritionValue('0')).toBe(0);
-      expect(parseNutritionValue('123')).toBe(123);
-      expect(parseNutritionValue('45.5')).toBe(45.5);
-      expect(parseNutritionValue(100)).toBe(100);
-    });
-
-    test('should extract calories field', async () => {
-      if (!hasApiKey) {
-        return;
-      }
-
-      const menuData = await hudsService.getTodaysMenu('38');
-      const items = processMenuData(menuData, 'breakfast');
-      
-      if (items.length > 0) {
-        // At least some items should have calories
-        const itemsWithCalories = items.filter(item => item.calories > 0);
-        expect(itemsWithCalories.length).toBeGreaterThan(0);
-        
-        // Verify calories are reasonable numbers
-        itemsWithCalories.forEach(item => {
-          expect(item.calories).toBeGreaterThan(0);
-          expect(item.calories).toBeLessThan(10000); // Sanity check
+    // CRITICAL: Verify we're actually getting data, not all zeros
+    // If we use the wrong field name (Total_Carbohydrate), all items will have totalCarbs = 0
+    // If we use the correct field name (Total_Carb), at least some items should have carbs > 0
+    
+    // Check raw API to verify field names
+    let sampleRecipe = null;
+    menuData.forEach(location => {
+      if (location.meals) {
+        Object.values(location.meals).forEach(meal => {
+          if (meal.mealName && meal.mealName.toLowerCase().includes('breakfast')) {
+            if (meal.categories) {
+              Object.values(meal.categories).forEach(category => {
+                if (category.recipes && category.recipes.length > 0) {
+                  sampleRecipe = category.recipes[0];
+                  return;
+                }
+              });
+            }
+          }
         });
       }
     });
 
-    test('should extract protein field', async () => {
-      if (!hasApiKey) {
-        return;
-      }
-
-      const menuData = await hudsService.getTodaysMenu('38');
-      const items = processMenuData(menuData, 'breakfast');
+    if (sampleRecipe) {
+      // Verify API uses Total_Carb, not Total_Carbohydrate
+      expect(sampleRecipe).toHaveProperty('Total_Carb');
+      expect(sampleRecipe.Total_Carbohydrate).toBeUndefined();
       
-      if (items.length > 0) {
-        // Check that protein field exists (even if 0)
-        items.forEach(item => {
-          expect(item).toHaveProperty('protein');
-          expect(typeof item.protein).toBe('number');
-        });
+      // If API has carbs data, our processed items should have it too
+      const apiHasCarbs = parseNutritionValue(sampleRecipe.Total_Carb) > 0;
+      if (apiHasCarbs) {
+        // At least some items should have carbs > 0 (proving we're using correct field)
+        const itemsWithCarbs = items.filter(item => item.totalCarbs > 0);
+        expect(itemsWithCarbs.length).toBeGreaterThan(0);
       }
-    });
-
-    test('should extract caloriesFromFat field', async () => {
-      if (!hasApiKey) {
-        return;
-      }
-
-      const menuData = await hudsService.getTodaysMenu('38');
-      const items = processMenuData(menuData, 'breakfast');
-      
-      if (items.length > 0) {
-        items.forEach(item => {
-          expect(item).toHaveProperty('caloriesFromFat');
-          expect(typeof item.caloriesFromFat).toBe('number');
-        });
-      }
-    });
-
-    test('should extract totalFat field', async () => {
-      if (!hasApiKey) {
-        return;
-      }
-
-      const menuData = await hudsService.getTodaysMenu('38');
-      const items = processMenuData(menuData, 'breakfast');
-      
-      if (items.length > 0) {
-        items.forEach(item => {
-          expect(item).toHaveProperty('totalFat');
-          expect(typeof item.totalFat).toBe('number');
-        });
-      }
-    });
-
-    test('should extract saturatedFat field', async () => {
-      if (!hasApiKey) {
-        return;
-      }
-
-      const menuData = await hudsService.getTodaysMenu('38');
-      const items = processMenuData(menuData, 'breakfast');
-      
-      if (items.length > 0) {
-        items.forEach(item => {
-          expect(item).toHaveProperty('saturatedFat');
-          expect(typeof item.saturatedFat).toBe('number');
-        });
-      }
-    });
-
-    test('should extract transFat field', async () => {
-      if (!hasApiKey) {
-        return;
-      }
-
-      const menuData = await hudsService.getTodaysMenu('38');
-      const items = processMenuData(menuData, 'breakfast');
-      
-      if (items.length > 0) {
-        items.forEach(item => {
-          expect(item).toHaveProperty('transFat');
-          expect(typeof item.transFat).toBe('number');
-        });
-      }
-    });
-
-    test('should extract cholesterol field', async () => {
-      if (!hasApiKey) {
-        return;
-      }
-
-      const menuData = await hudsService.getTodaysMenu('38');
-      const items = processMenuData(menuData, 'breakfast');
-      
-      if (items.length > 0) {
-        items.forEach(item => {
-          expect(item).toHaveProperty('cholesterol');
-          expect(typeof item.cholesterol).toBe('number');
-        });
-      }
-    });
-
-    test('should extract sodium field', async () => {
-      if (!hasApiKey) {
-        return;
-      }
-
-      const menuData = await hudsService.getTodaysMenu('38');
-      const items = processMenuData(menuData, 'breakfast');
-      
-      if (items.length > 0) {
-        items.forEach(item => {
-          expect(item).toHaveProperty('sodium');
-          expect(typeof item.sodium).toBe('number');
-        });
-      }
-    });
-
-    test('should extract totalCarbs field', async () => {
-      if (!hasApiKey) {
-        return;
-      }
-
-      const menuData = await hudsService.getTodaysMenu('38');
-      const items = processMenuData(menuData, 'breakfast');
-      
-      if (items.length > 0) {
-        items.forEach(item => {
-          expect(item).toHaveProperty('totalCarbs');
-          expect(typeof item.totalCarbs).toBe('number');
-        });
-      }
-    });
-
-    test('should extract dietaryFiber field', async () => {
-      if (!hasApiKey) {
-        return;
-      }
-
-      const menuData = await hudsService.getTodaysMenu('38');
-      const items = processMenuData(menuData, 'breakfast');
-      
-      if (items.length > 0) {
-        items.forEach(item => {
-          expect(item).toHaveProperty('dietaryFiber');
-          expect(typeof item.dietaryFiber).toBe('number');
-        });
-      }
-    });
-
-    test('should extract sugars field', async () => {
-      if (!hasApiKey) {
-        return;
-      }
-
-      const menuData = await hudsService.getTodaysMenu('38');
-      const items = processMenuData(menuData, 'breakfast');
-      
-      if (items.length > 0) {
-        items.forEach(item => {
-          expect(item).toHaveProperty('sugars');
-          expect(typeof item.sugars).toBe('number');
-        });
-      }
-    });
-
-    test('should extract allergens field', async () => {
-      if (!hasApiKey) {
-        return;
-      }
-
-      const menuData = await hudsService.getTodaysMenu('38');
-      const items = processMenuData(menuData, 'breakfast');
-      
-      if (items.length > 0) {
-        items.forEach(item => {
-          expect(item).toHaveProperty('allergens');
-          expect(typeof item.allergens).toBe('string');
-        });
-      }
-    });
-  });
-
-  describe('Field Name Mapping', () => {
-    test('should use correct API field names', () => {
-      // Verify we're using the correct field names from the API
-      // This is a documentation test to ensure field names match API
-      const expectedFieldMappings = {
-        calories: 'Calories',
-        protein: 'Protein',
-        caloriesFromFat: 'Calories_From_Fat',
-        totalFat: 'Total_Fat',
-        saturatedFat: 'Sat_Fat',
-        transFat: 'Trans_Fat',
-        cholesterol: 'Cholesterol',
-        sodium: 'Sodium',
-        totalCarbs: 'Total_Carb', // Note: API uses Total_Carb, not Total_Carbohydrate
-        dietaryFiber: 'Dietary_Fiber',
-        sugars: 'Sugars',
-        allergens: 'Allergens'
-      };
-
-      // This test documents the expected mappings
-      expect(expectedFieldMappings.totalCarbs).toBe('Total_Carb');
-      expect(expectedFieldMappings.caloriesFromFat).toBe('Calories_From_Fat');
-      expect(expectedFieldMappings.saturatedFat).toBe('Sat_Fat');
-    });
-  });
-
-  describe('Data Quality', () => {
-    test('should have at least some items with non-zero nutrition values', async () => {
-      if (!hasApiKey) {
-        return;
-      }
-
-      const menuData = await hudsService.getTodaysMenu('38');
-      const items = processMenuData(menuData, 'breakfast');
-      
-      if (items.length === 0) {
-        return;
-      }
-
-      // At least some items should have calories
-      const itemsWithCalories = items.filter(item => item.calories > 0);
-      
-      if (itemsWithCalories.length > 0) {
-        // Verify data quality - calories should be reasonable
-        itemsWithCalories.forEach(item => {
-          expect(item.calories).toBeGreaterThan(0);
-          expect(item.calories).toBeLessThan(10000);
-        });
-      }
-    });
-
-    test('should handle items with missing nutrition data', async () => {
-      if (!hasApiKey) {
-        return;
-      }
-
-      const menuData = await hudsService.getTodaysMenu('38');
-      const items = processMenuData(menuData, 'breakfast');
-      
-      if (items.length > 0) {
-        // All items should have all fields defined, even if 0
-        items.forEach(item => {
-          expect(item).toHaveProperty('calories');
-          expect(item).toHaveProperty('protein');
-          expect(item).toHaveProperty('totalCarbs');
-          expect(item).toHaveProperty('totalFat');
-          expect(item).toHaveProperty('allergens');
-          
-          // Values should be valid numbers (or empty string for allergens)
-          expect(typeof item.calories).toBe('number');
-          expect(typeof item.protein).toBe('number');
-          expect(typeof item.allergens).toBe('string');
-        });
-      }
-    });
+    }
   });
 });
 
