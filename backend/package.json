@@ -13,12 +13,15 @@
     "test:unit:watch": "jest --watch",
     "test:unit:coverage": "jest --coverage",
     "test:huds": "jest --testPathPattern=huds",
+    "test:meal-planning": "jest --testPathPattern=mealPlanningData",
     "test:syntax": "node tests/test-syntax.js",
     "test:auth": "bash tests/test-full-auth.sh",
     "test:api": "bash tests/test-endpoints.sh",
     "list-users": "node scripts/listUsers.js",
     "set-role": "node scripts/setUserRole.js",
-    "delete-user": "node scripts/deleteUser.js"
+    "delete-user": "node scripts/deleteUser.js",
+    "get-breakfast-nutrition": "node scripts/getBreakfastNutrition.js",
+    "inspect-api-fields": "node scripts/inspectApiFields.js"
   },
   "keywords": [
     "auth",
