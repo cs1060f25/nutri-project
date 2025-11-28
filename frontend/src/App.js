@@ -14,6 +14,7 @@ import Social from './pages/Social';
 import MealPlanning from './pages/MealPlanning';
 import MealLogs from './pages/MealLogs';
 import ProtectedRoute from './components/ProtectedRoute';
+import NotificationBell from './components/NotificationBell';
 
 function App() {
   return (
@@ -48,6 +49,10 @@ function MainLayout() {
         onToggle={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
       />
       <div className={`main-content ${isSidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
+        <div className="top-bar">
+          <div className="top-bar-spacer" />
+          <NotificationBell />
+        </div>
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/nutrition-plan" element={<NutritionPlan />} />
