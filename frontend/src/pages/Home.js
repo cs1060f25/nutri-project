@@ -162,6 +162,8 @@ const Home = () => {
         
         if (!selectedLocationObj) {
           setMenuData([]);
+          setError('Location not found. Please select a different dining hall.');
+          setLoading(false);
           return;
         }
 
@@ -257,6 +259,7 @@ const Home = () => {
         
         if (!selectedLocationObj) {
           setSuggestionMenuData([]);
+          setSuggestionMenuLoading(false);
           return;
         }
 
