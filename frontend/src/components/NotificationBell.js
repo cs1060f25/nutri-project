@@ -24,9 +24,6 @@ const NotificationBell = () => {
   const unreadCount = useMemo(() => notifications.length, [notifications]);
 
   const toggleOpen = () => {
-    if (isOpen) {
-      setNotifications([]);
-    }
     setIsOpen(!isOpen);
   };
 
