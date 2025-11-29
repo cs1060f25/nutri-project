@@ -2,6 +2,8 @@
  * Service for meal log API
  */
 
+import { fetchWithErrorHandling } from '../utils/errorHandler';
+
 /**
  * Save a new meal log
  */
@@ -14,18 +16,15 @@ export const saveMealLog = async (mealData, accessToken) => {
     headers['Authorization'] = `Bearer ${accessToken}`;
   }
 
-  const response = await fetch('/api/meals', {
-    method: 'POST',
-    headers,
-    body: JSON.stringify(mealData),
-  });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'Failed to save meal log');
-  }
-
-  return response.json();
+  return fetchWithErrorHandling(
+    '/api/meals',
+    {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(mealData),
+    },
+    'save your meal log'
+  );
 };
 
 /**
@@ -41,74 +40,64 @@ export const getMealLogs = async (filters = {}, accessToken) => {
   const queryString = params.toString();
   const url = queryString ? `/api/meals?${queryString}` : '/api/meals';
 
-  const response = await fetch(url, {
-    method: 'GET',
-    headers: {
-      'Authorization': `Bearer ${accessToken}`,
+  return fetchWithErrorHandling(
+    url,
+    {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+      },
     },
-  });
-
-  if (!response.ok) {
-    throw new Error('Failed to fetch meal logs');
-  }
-
-  return response.json();
+    'load your meal logs'
+  );
 };
 
 /**
  * Get daily summary
  */
 export const getDailySummary = async (accessToken, date) => {
-  const response = await fetch(`/api/meals/summary/${date}`, {
-    headers: {
-      'Authorization': `Bearer ${accessToken}`,
+  return fetchWithErrorHandling(
+    `/api/meals/summary/${date}`,
+    {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+      },
     },
-  });
-
-  if (!response.ok) {
-    throw new Error('Failed to fetch daily summary');
-  }
-
-  return response.json();
+    'load your daily summary'
+  );
 };
 
 /**
  * Update a meal log
  */
 export const updateMealLog = async (mealId, updates, accessToken) => {
-  const response = await fetch(`/api/meals/${mealId}`, {
-    method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${accessToken}`,
+  return fetchWithErrorHandling(
+    `/api/meals/${mealId}`,
+    {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify(updates),
     },
-    body: JSON.stringify(updates),
-  });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'Failed to update meal log');
-  }
-
-  return response.json();
+    'update your meal log'
+  );
 };
 
 /**
  * Delete a meal log
  */
 export const deleteMealLog = async (mealId, accessToken) => {
-  const response = await fetch(`/api/meals/${mealId}`, {
-    method: 'DELETE',
-    headers: {
-      'Authorization': `Bearer ${accessToken}`,
+  return fetchWithErrorHandling(
+    `/api/meals/${mealId}`,
+    {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+      },
     },
-  });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'Failed to delete meal log');
-  }
-
-  return response.json();
+    'delete your meal log'
+  );
 };
 
