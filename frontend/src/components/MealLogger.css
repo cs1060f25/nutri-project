@@ -14,7 +14,7 @@
 }
 
 .meal-logger-modal {
-  background: white;
+  background: var(--card-bg);
   border-radius: 16px;
   max-width: 700px;
   width: 100%;
@@ -23,6 +23,7 @@
   flex-direction: column;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
   animation: slideUp 0.3s ease;
+  transition: background 0.3s ease;
 }
 
 .meal-logger-header {
@@ -30,12 +31,12 @@
   justify-content: space-between;
   align-items: center;
   padding: 1.5rem 2rem;
-  border-bottom: 2px solid #e8f5e9;
+  border-bottom: 2px solid var(--border-color);
 }
 
 .meal-logger-header h2 {
   margin: 0;
-  color: #1a5f3f;
+  color: var(--text-primary);
   font-size: 1.75rem;
   font-weight: 600;
 }
@@ -44,7 +45,7 @@
   background: none;
   border: none;
   font-size: 2rem;
-  color: #4a7c5f;
+  color: var(--text-secondary);
   cursor: pointer;
   width: 40px;
   height: 40px;
@@ -52,12 +53,12 @@
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
 }
 
 .close-button:hover {
-  background: #f8fcfa;
-  color: #1a5f3f;
+  background: var(--border-color);
+  color: var(--text-primary);
 }
 
 .meal-logger-error {
@@ -92,7 +93,7 @@
 
 .meal-logger-step h3 {
   margin: 0 0 1.5rem 0;
-  color: #2d6a4f;
+  color: var(--text-primary);
   font-size: 1.25rem;
   font-weight: 600;
 }
@@ -107,16 +108,16 @@
 .btn-back {
   background: none;
   border: none;
-  color: #2d6a4f;
+  color: var(--primary-color);
   font-size: 1rem;
   cursor: pointer;
   padding: 0.5rem;
   border-radius: 8px;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
 }
 
 .btn-back:hover {
-  background: #f8fcfa;
+  background: var(--border-color);
 }
 
 .form-group {
@@ -126,7 +127,7 @@
 .form-group label {
   display: block;
   margin-bottom: 0.5rem;
-  color: #2d6a4f;
+  color: var(--text-secondary);
   font-weight: 500;
   font-size: 0.95rem;
 }
@@ -135,19 +136,19 @@
 .form-group select {
   width: 100%;
   padding: 0.75rem 1rem;
-  border: 2px solid #d1e7dd;
+  border: 2px solid var(--input-border);
   border-radius: 8px;
   font-size: 1rem;
-  color: #2d6a4f;
-  background: white;
-  transition: all 0.2s ease;
+  color: var(--text-primary);
+  background: var(--input-bg);
+  transition: all 0.3s ease;
 }
 
 .form-group input:focus,
 .form-group select:focus {
   outline: none;
-  border-color: #2d6a4f;
-  box-shadow: 0 0 0 3px rgba(45, 106, 79, 0.1);
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px var(--shadow-color);
 }
 
 .search-box {
@@ -157,24 +158,28 @@
 .search-box input {
   width: 100%;
   padding: 0.75rem 1rem;
-  border: 2px solid #d1e7dd;
+  border: 2px solid var(--input-border);
   border-radius: 8px;
   font-size: 1rem;
-  color: #2d6a4f;
+  color: var(--text-primary);
+  background: var(--input-bg);
+  transition: all 0.3s ease;
 }
 
 .search-box input:focus {
   outline: none;
-  border-color: #2d6a4f;
-  box-shadow: 0 0 0 3px rgba(45, 106, 79, 0.1);
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px var(--shadow-color);
 }
 
 .recipes-list {
   max-height: 300px;
   overflow-y: auto;
-  border: 2px solid #e8f5e9;
+  border: 2px solid var(--border-color);
   border-radius: 8px;
   margin-bottom: 1rem;
+  background: var(--card-bg);
+  transition: all 0.3s ease;
 }
 
 .recipe-item {
@@ -182,9 +187,9 @@
   justify-content: space-between;
   align-items: center;
   padding: 1rem;
-  border-bottom: 1px solid #e8f5e9;
+  border-bottom: 1px solid var(--border-color);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
 }
 
 .recipe-item:last-child {
@@ -192,12 +197,12 @@
 }
 
 .recipe-item:hover {
-  background: #f8fcfa;
+  background: var(--card-hover-bg);
 }
 
 .recipe-item.selected {
-  background: #e8f5e9;
-  border-left: 4px solid #2d6a4f;
+  background: var(--border-color);
+  border-left: 4px solid var(--primary-color);
 }
 
 .recipe-item-info {
@@ -206,45 +211,46 @@
 
 .recipe-item-name {
   font-weight: 600;
-  color: #1a5f3f;
+  color: var(--text-primary);
   margin-bottom: 0.25rem;
 }
 
 .recipe-item-meta {
   font-size: 0.875rem;
-  color: #4a7c5f;
+  color: var(--text-secondary);
 }
 
 .recipe-item-check {
   width: 32px;
   height: 32px;
-  border: 2px solid #d1e7dd;
+  border: 2px solid var(--border-color);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #2d6a4f;
+  color: var(--primary-color);
   font-weight: bold;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
 }
 
 .recipe-item.selected .recipe-item-check {
-  background: #2d6a4f;
+  background: var(--primary-color);
   color: white;
-  border-color: #2d6a4f;
+  border-color: var(--primary-color);
 }
 
 .selected-items-panel {
-  background: #f8fcfa;
-  border: 2px solid #d1e7dd;
+  background: var(--card-bg-alt);
+  border: 2px solid var(--border-color);
   border-radius: 12px;
   padding: 1.5rem;
   margin-top: 1rem;
+  transition: all 0.3s ease;
 }
 
 .selected-items-panel h4 {
   margin: 0 0 1rem 0;
-  color: #2d6a4f;
+  color: var(--text-primary);
   font-size: 1.125rem;
   font-weight: 600;
 }
@@ -254,9 +260,10 @@
   justify-content: space-between;
   align-items: center;
   padding: 0.75rem;
-  background: white;
+  background: var(--card-bg);
   border-radius: 8px;
   margin-bottom: 0.75rem;
+  transition: all 0.3s ease;
 }
 
 .selected-item:last-child {
@@ -265,7 +272,7 @@
 
 .selected-item-name {
   flex: 1;
-  color: #1a5f3f;
+  color: var(--text-primary);
   font-weight: 500;
 }
 
@@ -277,34 +284,36 @@
 
 .selected-item-quantity label {
   font-size: 0.875rem;
-  color: #4a7c5f;
+  color: var(--text-secondary);
   font-weight: 500;
 }
 
 .selected-item-quantity input {
   width: 80px;
   padding: 0.375rem 0.5rem;
-  border: 2px solid #d1e7dd;
+  border: 2px solid var(--input-border);
   border-radius: 6px;
   font-size: 0.95rem;
-  color: #2d6a4f;
+  color: var(--text-primary);
+  background: var(--input-bg);
   text-align: center;
+  transition: all 0.3s ease;
 }
 
 .selected-item-quantity input:focus {
   outline: none;
-  border-color: #2d6a4f;
+  border-color: var(--primary-color);
 }
 
 .totals-summary {
   margin-top: 1.5rem;
   padding-top: 1.5rem;
-  border-top: 2px solid #d1e7dd;
+  border-top: 2px solid var(--border-color);
 }
 
 .totals-summary h5 {
   margin: 0 0 1rem 0;
-  color: #1a5f3f;
+  color: var(--text-primary);
   font-size: 1rem;
   font-weight: 600;
 }
@@ -317,11 +326,11 @@
 }
 
 .total-row span {
-  color: #4a7c5f;
+  color: var(--text-secondary);
 }
 
 .total-row strong {
-  color: #1a5f3f;
+  color: var(--text-primary);
   font-weight: 600;
 }
 
@@ -329,7 +338,7 @@
 .no-results {
   text-align: center;
   padding: 3rem 1rem;
-  color: #4a7c5f;
+  color: var(--text-secondary);
 }
 
 .meal-logger-actions {
@@ -337,7 +346,7 @@
   gap: 1rem;
   justify-content: flex-end;
   padding: 1.5rem 2rem;
-  border-top: 2px solid #e8f5e9;
+  border-top: 2px solid var(--border-color);
   margin-top: auto;
 }
 
@@ -353,14 +362,14 @@
 }
 
 .btn-primary {
-  background: #2d6a4f;
+  background: var(--primary-dark);
   color: white;
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: #1a5f3f;
+  background: var(--primary-darker);
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(45, 106, 79, 0.3);
+  box-shadow: 0 4px 12px var(--shadow-color);
 }
 
 .btn-primary:disabled {
@@ -370,14 +379,15 @@
 }
 
 .btn-secondary {
-  background: white;
-  color: #2d6a4f;
-  border: 2px solid #d1e7dd;
+  background: var(--card-bg);
+  color: var(--primary-color);
+  border: 2px solid var(--border-color);
+  transition: all 0.3s ease;
 }
 
 .btn-secondary:hover {
-  background: #f8fcfa;
-  border-color: #a8d5ba;
+  background: var(--card-hover-bg);
+  border-color: var(--border-color-hover);
 }
 
 @keyframes fadeIn {

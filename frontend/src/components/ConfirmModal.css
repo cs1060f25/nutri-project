@@ -23,12 +23,13 @@
 }
 
 .confirm-modal {
-  background: white;
+  background: var(--card-bg);
   border-radius: 16px;
   width: 100%;
   max-width: 480px;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
   animation: slideUp 0.3s ease;
+  transition: background 0.3s ease;
 }
 
 @keyframes slideUp {
@@ -47,14 +48,14 @@
   justify-content: space-between;
   align-items: center;
   padding: 1.5rem;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .confirm-modal-header h2 {
   margin: 0;
   font-size: 1.5rem;
   font-weight: 600;
-  color: #154c39;
+  color: var(--text-primary);
 }
 
 .confirm-modal-close {
@@ -65,12 +66,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #6b7280;
-  transition: color 0.2s;
+  color: var(--text-secondary);
+  transition: all 0.3s ease;
 }
 
 .confirm-modal-close:hover {
-  color: #154c39;
+  color: var(--text-primary);
 }
 
 .confirm-modal-body {
@@ -81,14 +82,14 @@
   margin: 0;
   font-size: 1rem;
   line-height: 1.6;
-  color: #4b5563;
+  color: var(--text-secondary);
 }
 
 .confirm-modal-footer {
   display: flex;
   gap: 0.75rem;
   padding: 1.5rem;
-  border-top: 1px solid #e5e7eb;
+  border-top: 1px solid var(--border-color);
   justify-content: flex-end;
 }
 
@@ -98,27 +99,28 @@
   font-weight: 600;
   font-size: 1rem;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
   border: none;
 }
 
 .confirm-modal-cancel {
-  background: #f3f4f6;
-  color: #374151;
+  background: var(--card-bg-alt);
+  color: var(--text-secondary);
+  border: 2px solid var(--border-color);
 }
 
 .confirm-modal-cancel:hover {
-  background: #e5e7eb;
+  background: var(--card-hover-bg);
 }
 
 .confirm-modal-confirm {
-  background: linear-gradient(135deg, #2d6a4f, #1a5f3f);
+  background: linear-gradient(135deg, var(--primary-dark), var(--primary-darker));
   color: white;
 }
 
 .confirm-modal-confirm:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(45, 106, 79, 0.3);
+  box-shadow: 0 4px 12px var(--shadow-color);
 }
 
 .confirm-modal-confirm.dangerous {
