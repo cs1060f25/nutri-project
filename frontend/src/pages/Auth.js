@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import CustomSelect from '../components/CustomSelect';
+import ThemeToggle from '../components/ThemeToggle';
 import './Auth.css';
 
 const Auth = () => {
@@ -424,6 +425,7 @@ const Auth = () => {
 
   return (
     <div className="auth-container">
+      <ThemeToggle />
       <div className="auth-background">
         <div className="auth-blob blob-1"></div>
         <div className="auth-blob blob-2"></div>
