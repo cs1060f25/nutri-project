@@ -2,6 +2,7 @@ import React from 'react';
 import { useTheme } from '../context/ThemeContext';
 import './ThemeToggle.css';
 
+// Theme toggle component with SSR-safe localStorage handling
 const ThemeToggle = () => {
   const { theme, toggleTheme } = useTheme();
 
@@ -11,6 +12,7 @@ const ThemeToggle = () => {
       onClick={toggleTheme}
       aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
       title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
+      data-testid="theme-toggle"
     >
       {theme === 'light' ? (
         // Moon icon for dark mode
