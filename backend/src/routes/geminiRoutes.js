@@ -12,4 +12,7 @@ const upload = multer({
 
 router.post('/analyze-meal', upload.single('image'), geminiController.analyzeMealImage);
 
+// Monitoring endpoint for API key usage statistics
+router.get('/key-stats', geminiController.getKeyStats);
+
 module.exports = router;
