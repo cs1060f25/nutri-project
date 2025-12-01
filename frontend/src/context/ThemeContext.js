@@ -12,16 +12,22 @@ export const useTheme = () => {
 
 export const ThemeProvider = ({ children }) => {
   // Check localStorage for saved theme preference, default to 'light'
+  // Safely access localStorage only in browser environment
   const [theme, setTheme] = useState(() => {
-    const savedTheme = localStorage.getItem('theme');
-    return savedTheme || 'light';
+    if (typeof window !== 'undefined' && window.localStorage) {
+      const savedTheme = localStorage.getItem('theme');
+      return savedTheme || 'light';
+    }
+    return 'light';
   });
 
   useEffect(() => {
     // Apply theme to document root
     document.documentElement.setAttribute('data-theme', theme);
-    // Save to localStorage
-    localStorage.setItem('theme', theme);
+    // Save to localStorage (only in browser environment)
+    if (typeof window !== 'undefined' && window.localStorage) {
+      localStorage.setItem('theme', theme);
+    }
   }, [theme]);
 
   const toggleTheme = () => {
