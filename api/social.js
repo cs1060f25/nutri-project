@@ -1569,6 +1569,19 @@ module.exports = async (req, res) => {
   try {
     // Handle both Vercel's url format and standard format
     let url = req.url || req.path || '';
+    
+    // If URL is a full URL (starts with http:// or https://), extract just the pathname
+    // This handles cases where Vercel sends full URLs like https://app.vercel.app/api/social/posts/popular
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      try {
+        const urlObj = new URL(url);
+        url = urlObj.pathname + (urlObj.search || '');
+      } catch (e) {
+        // If URL parsing fails, fall back to original logic
+        console.warn('Failed to parse URL:', url, e);
+      }
+    }
+    
     // Remove query string
     let pathWithoutQuery = url.split('?')[0];
     
@@ -1619,7 +1632,12 @@ module.exports = async (req, res) => {
     // Use the already processed path
     const path = pathWithoutQuery;
     
-    console.log('Social API - method:', req.method, 'path:', path, 'userId:', userId);
+    // Log path extraction for debugging (helpful for diagnosing Vercel routing issues)
+    if (process.env.NODE_ENV !== 'production' || process.env.DEBUG_PATHS === 'true') {
+      console.log('Social API - method:', req.method, 'original url:', req.url, 'extracted path:', path, 'userId:', userId);
+    } else {
+      console.log('Social API - method:', req.method, 'path:', path, 'userId:', userId);
+    }
 
     // Friend request routes
     if (req.method === 'POST' && path === '/friends/request') {
@@ -1849,8 +1867,25 @@ module.exports = async (req, res) => {
       return res.status(201).json({ comment: newComment, message: 'Comment added successfully' });
     }
 
-    // Get single post by ID
-    if (req.method === 'GET' && path.match(/^\/posts\/[^\/]+$/) && !path.includes('/user/') && !path.includes('/location')) {
+    // Popular posts endpoint (must come before single post handler to avoid matching /posts/popular as a post ID)
+    if (req.method === 'GET' && path === '/posts/popular') {
+      const limit = parseInt(req.query.limit || 50, 10);
+      const options = {};
+      if (req.query.timeWindowHours) {
+        options.timeWindowHours = parseInt(req.query.timeWindowHours, 10);
+      }
+      if (req.query.locationName) {
+        options.locationName = req.query.locationName;
+      }
+      if (req.query.mealType) {
+        options.mealType = req.query.mealType;
+      }
+      const posts = await getPopularPosts(limit, options);
+      return res.status(200).json({ posts, count: posts.length });
+    }
+
+    // Get single post by ID (must come after specific routes like /posts/popular)
+    if (req.method === 'GET' && path.match(/^\/posts\/[^\/]+$/) && !path.includes('/user/') && !path.includes('/location') && path !== '/posts/popular') {
       const postId = path.split('/posts/')[1];
       const post = await getPostById(userId, postId);
       if (!post) {
@@ -2180,22 +2215,6 @@ module.exports = async (req, res) => {
     if (req.method === 'GET' && path === '/posts/feed/dining-halls') {
       const limit = parseInt(req.query.limit || 50, 10);
       const posts = await getDiningHallFeedPosts(userId, limit);
-      return res.status(200).json({ posts, count: posts.length });
-    }
-
-    if (req.method === 'GET' && path === '/posts/popular') {
-      const limit = parseInt(req.query.limit || 50, 10);
-      const options = {};
-      if (req.query.timeWindowHours) {
-        options.timeWindowHours = parseInt(req.query.timeWindowHours, 10);
-      }
-      if (req.query.locationName) {
-        options.locationName = req.query.locationName;
-      }
-      if (req.query.mealType) {
-        options.mealType = req.query.mealType;
-      }
-      const posts = await getPopularPosts(limit, options);
       return res.status(200).json({ posts, count: posts.length });
     }
 
