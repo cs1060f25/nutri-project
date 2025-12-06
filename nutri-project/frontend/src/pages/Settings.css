@@ -1,0 +1,150 @@
+.settings-page {
+  padding: 24px;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.settings-title {
+  font-size: 28px;
+  font-weight: 600;
+  margin-bottom: 24px;
+}
+
+.settings-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.settings-section {
+  background-color: var(--card-bg, #121212);
+  border-radius: 8px;
+  padding: 16px 20px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+.settings-section-full {
+  /* For the Security section that has two cards side by side */
+}
+
+.settings-section-title {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.settings-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.settings-field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.settings-field-group-inline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.settings-label {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.settings-label-inline {
+  font-size: 14px;
+}
+
+.settings-input,
+.settings-textarea {
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  padding: 8px 10px;
+  background-color: transparent;
+  color: inherit;
+  font-size: 14px;
+}
+
+.settings-textarea {
+  min-height: 64px;
+  resize: vertical;
+}
+
+.settings-field-help {
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+.settings-button {
+  padding: 8px 12px;
+  border-radius: 4px;
+  border: none;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  align-self: flex-start;
+}
+
+.settings-button.primary {
+  background-color: #3b82f6;
+  color: #ffffff;
+}
+
+.settings-button.danger {
+  background-color: #dc2626;
+  color: #ffffff;
+}
+
+.settings-button:disabled {
+  opacity: 0.7;
+  cursor: default;
+}
+
+.settings-error {
+  color: #f97373;
+  font-size: 13px;
+}
+
+.settings-success {
+  color: #4ade80;
+  font-size: 13px;
+}
+
+.settings-security-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+.settings-security-card {
+  border-radius: 6px;
+  padding: 12px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.settings-security-card.danger {
+  border-color: rgba(220, 38, 38, 0.6);
+  background-color: rgba(220, 38, 38, 0.05);
+}
+
+.settings-security-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.settings-danger-text {
+  font-size: 13px;
+  margin-bottom: 8px;
+}
+
+@media (min-width: 800px) {
+  .settings-security-grid {
+    grid-template-columns: 1.2fr 1fr;
+  }
+}
