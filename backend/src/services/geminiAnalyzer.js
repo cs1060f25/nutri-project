@@ -5,8 +5,8 @@
 const axios = require('axios');
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-// Using stable model for better rate limits: 15 RPM, 200 RPD vs exp: 50 RPD
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
+// Gemini 2.5 Flash Lite
+const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent';
 
 /**
  * Convert menu data to formatted text for Gemini with full nutrition info
@@ -171,7 +171,7 @@ If no valid dishes are detected, return [] with no additional commentary.`;
     } else if (error.response?.status === 403) {
       throw new Error('API key is invalid or expired');
     } else if (error.response?.status === 429) {
-      throw new Error('⏰ Rate limit exceeded! Free tier: 15 requests/min. Wait 60 seconds and try again.');
+      throw new Error('⏰ Rate limit exceeded! Gemini 2.5 Flash Lite: 10 requests/min, 20 per day. Wait 60 seconds and try again.');
     } else if (error.response?.status === 500) {
       throw new Error('Gemini API server error - try again in a moment');
     }

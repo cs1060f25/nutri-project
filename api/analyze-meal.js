@@ -34,9 +34,8 @@ const getDb = () => {
   return admin.firestore();
 };
 
-// Import services (we'll need to inline or require them)
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
+const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent';
 const HUDS_API_BASE_URL = process.env.HUDS_API_BASE_URL || 'https://go.prod.apis.huit.harvard.edu/ats/dining/v3';
 const HUDS_API_KEY = process.env.HUDS_API_KEY;
 
@@ -283,7 +282,7 @@ If no valid dishes are detected, return [] with no additional commentary.`;
     } else if (error.response?.status === 403) {
       throw new Error('API key is invalid or expired');
     } else if (error.response?.status === 429) {
-      throw new Error('⏰ Rate limit exceeded! Free tier: 15 requests/min. Wait 60 seconds and try again.');
+      throw new Error('⏰ Rate limit exceeded! Gemini 2.5 Flash Lite: 10 requests/min, 20 per day. Wait 60 seconds and try again.');
     } else if (error.response?.status === 500) {
       throw new Error('Gemini API server error - try again in a moment');
     }
