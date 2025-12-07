@@ -6,7 +6,6 @@
 const axios = require('axios');
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-// Gemini 2.5 Flash Lite
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent';
 
 /**
@@ -71,8 +70,11 @@ const analyzeMealImage = async (imageBuffer, menuData) => {
 
 Inspect the food image carefully and identify which dishes from today's HUDS menu are clearly present. Follow these guardrails:
 - Only include dishes that are visibly present and match the menu above.
-- Estimate the actual portion size visible in the image (e.g., "about 6 oz of chicken" or "roughly 1 cup of rice"). Compare it directly to the HUDS serving size and state how many HUDS servings it represents (e.g., if the plate shows ~6 oz of chicken and the HUDS serving is 4 oz, report 1.5 servings of that chicken).
-- If you cannot reasonably judge the portion, default to 1 HUDS serving and note the uncertainty.
+- Estimate the portion relative to the HUDS serving size. Treat the HUDS serving as **1.0** and adjust up or down only when the photo clearly shows noticeably more or less food (e.g., half a serving ≈ 0.5, a heaping plate ≈ 1.25).
+- Round estimatedServings to the nearest 0.25 within the range 0.25–2.0 HUDS servings.
+- Only exceed 1.25 HUDS servings when multiple full portions are clearly visible; explicitly describe the visual evidence in portionDescription.
+- The portionDescription must always include both the estimated HUDS servings (e.g., "0.75 HUDS servings") and the actual HUDS serving size from the menu (e.g., "HUDS serving = 4 oz chicken"), plus a very short visual cue (keep the sentence under 20 words).
+- If you cannot confidently judge the portion, default to exactly 1 HUDS serving and note the uncertainty.
 - Do not list items that are out of frame, obscured, or uncertain.
 - If the plate does not contain recognizable HUDS dishes (or the image quality is too poor), return an empty array.
 

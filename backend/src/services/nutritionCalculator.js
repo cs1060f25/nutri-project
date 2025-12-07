@@ -76,7 +76,7 @@ const findMatchingRecipe = (dishName, menuData) => {
 const clampServings = (value) => {
   const num = parseFloat(value);
   if (isNaN(num) || !isFinite(num)) return 1;
-  return Math.min(3, Math.max(0.25, num));
+  return Math.min(1.5, Math.max(0.25, num));
 };
 
 const calculateMealMacros = (predictions, menuData) => {
