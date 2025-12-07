@@ -17,3 +17,13 @@
   margin-left: 0;
 }
 
+.top-bar {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  padding: 16px 20px 0;
+}
+
+.top-bar-spacer {
+  flex: 1;
+}
