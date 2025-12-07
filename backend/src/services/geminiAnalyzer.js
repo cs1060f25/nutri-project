@@ -5,110 +5,9 @@
 
 const axios = require('axios');
 
-// Gemini 2.5 Flash: 10 RPM per key
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
-const RPM_LIMIT = 10; // Requests per minute for Gemini 2.5 Flash
-const SAFETY_BUFFER = 0.9; // Use 90% of limit to be safe
-
-/**
- * API Key Rotation Manager
- * Tracks usage per key and automatically rotates to avoid rate limits
- */
-class ApiKeyManager {
-  constructor() {
-    // Load API keys from environment variables
-    this.keys = [
-      process.env.GEMINI_API_KEY,
-      process.env.GEMINI_API_KEY_2,
-      process.env.GEMINI_API_KEY_3,
-      process.env.GEMINI_API_KEY_4
-    ].filter(key => key && key.length > 0);
-
-    if (this.keys.length === 0) {
-      throw new Error('No Gemini API keys configured. Set GEMINI_API_KEY, GEMINI_API_KEY_2, GEMINI_API_KEY_3, and/or GEMINI_API_KEY_4');
-    }
-
-    // Track request timestamps per key (sliding window)
-    this.keyUsage = this.keys.map(() => []);
-    this.currentKeyIndex = 0;
-
-    console.log(`Initialized Gemini API with ${this.keys.length} key(s)`);
-  }
-
-  /**
-   * Get the next available API key that hasn't hit rate limits
-   * @returns {Object} { key: string, index: number }
-   */
-  getNextKey() {
-    const now = Date.now();
-    const oneMinuteAgo = now - 60 * 1000;
-
-    // Clean up old timestamps (older than 1 minute)
-    this.keyUsage.forEach(usage => {
-      while (usage.length > 0 && usage[0] < oneMinuteAgo) {
-        usage.shift();
-      }
-    });
-
-    // Try each key starting from current index
-    for (let i = 0; i < this.keys.length; i++) {
-      const index = (this.currentKeyIndex + i) % this.keys.length;
-      const recentRequests = this.keyUsage[index].length;
-
-      // Check if this key is under the rate limit
-      if (recentRequests < Math.floor(RPM_LIMIT * SAFETY_BUFFER)) {
-        this.currentKeyIndex = index;
-        return {
-          key: this.keys[index],
-          index: index
-        };
-      }
-    }
-
-    // All keys are at capacity - use the one with oldest request
-    const leastRecentIndex = this.keyUsage
-      .map((usage, idx) => ({ idx, oldestTime: usage[0] || 0 }))
-      .sort((a, b) => a.oldestTime - b.oldestTime)[0].idx;
-
-    this.currentKeyIndex = leastRecentIndex;
-    return {
-      key: this.keys[leastRecentIndex],
-      index: leastRecentIndex
-    };
-  }
-
-  /**
-   * Record a successful API request
-   * @param {number} keyIndex - Index of the key that was used
-   */
-  recordRequest(keyIndex) {
-    this.keyUsage[keyIndex].push(Date.now());
-  }
-
-  /**
-   * Get usage statistics for all keys
-   * @returns {Array} Usage stats per key
-   */
-  getStats() {
-    const now = Date.now();
-    const oneMinuteAgo = now - 60 * 1000;
-
-    return this.keys.map((key, idx) => {
-      const recentRequests = this.keyUsage[idx].filter(t => t > oneMinuteAgo).length;
-      const capacity = Math.floor(RPM_LIMIT * SAFETY_BUFFER);
-      return {
-        keyIndex: idx + 1,
-        keyPreview: `${key.substring(0, 8)}...${key.substring(key.length - 4)}`,
-        requestsLastMinute: recentRequests,
-        capacity: capacity,
-        available: capacity - recentRequests > 0
-      };
-    });
-  }
-}
-
-// Initialize global key manager
-const keyManager = new ApiKeyManager();
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+// Gemini 2.5 Flash Lite
+const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent';
 
 /**
  * Convert menu data to formatted text for Gemini with full nutrition info
@@ -280,11 +179,7 @@ If no valid dishes are detected, return [] with no additional commentary.`;
     } else if (error.response?.status === 403) {
       throw new Error('API key is invalid or expired');
     } else if (error.response?.status === 429) {
-      // Rate limit hit - log and suggest retry
-      const stats = keyManager.getStats();
-      const availableKeys = stats.filter(s => s.available).length;
-      console.error(`Rate limit hit on key ${keyIndex + 1}. Available keys: ${availableKeys}/${stats.length}`);
-      throw new Error(`Rate limit exceeded on all ${stats.length} API key(s). Wait 60 seconds and try again.`);
+      throw new Error('⏰ Rate limit exceeded! Gemini 2.5 Flash Lite: 10 requests/min, 20 per day. Wait 60 seconds and try again.');
     } else if (error.response?.status === 500) {
       throw new Error('Gemini API server error - try again in a moment');
     }
