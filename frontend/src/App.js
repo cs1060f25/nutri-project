@@ -2,7 +2,9 @@ import React, { useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import './App.css';
 import { AuthProvider } from './context/AuthContext';
+import { ThemeProvider } from './context/ThemeContext';
 import Sidebar from './components/Sidebar';
+import ThemeToggle from './components/ThemeToggle';
 import Home from './pages/Home';
 import NutritionPlan from './pages/NutritionPlan';
 import Auth from './pages/Auth';
@@ -19,22 +21,24 @@ import NotificationBell from './components/NotificationBell';
 function App() {
   return (
     <BrowserRouter>
-          <AuthProvider>
-            <Routes>
-              <Route path="/" element={<Auth />} />
-              <Route path="/reset-password" element={<ResetPassword />} />
-              <Route path="/__/auth/action" element={<FirebaseActionHandler />} />
-              <Route
-                path="/home/*"
-                element={
-                  <ProtectedRoute>
-                    <MainLayout />
-                  </ProtectedRoute>
-                }
-              />
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-          </AuthProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <Routes>
+            <Route path="/" element={<Auth />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/__/auth/action" element={<FirebaseActionHandler />} />
+            <Route
+              path="/home/*"
+              element={
+                <ProtectedRoute>
+                  <MainLayout />
+                </ProtectedRoute>
+              }
+            />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </AuthProvider>
+      </ThemeProvider>
     </BrowserRouter>
   );
 }
@@ -53,6 +57,7 @@ function MainLayout() {
           <div className="top-bar-spacer" />
           <NotificationBell />
         </div>
+        <ThemeToggle />
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/nutrition-plan" element={<NutritionPlan />} />
