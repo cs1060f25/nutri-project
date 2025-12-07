@@ -24,6 +24,10 @@ const NotificationBell = () => {
   const unreadCount = useMemo(() => notifications.length, [notifications]);
 
   const toggleOpen = () => {
+    // Clear notifications when closing the panel to mark them as read
+    if (isOpen) {
+      setNotifications([]);
+    }
     setIsOpen(!isOpen);
   };
 
