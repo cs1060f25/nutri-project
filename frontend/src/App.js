@@ -54,7 +54,6 @@ function MainLayout() {
       />
       <div className={`main-content ${isSidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
         <div className="top-bar">
-          <div className="top-bar-spacer" />
           <NotificationBell />
         </div>
         <ThemeToggle />
