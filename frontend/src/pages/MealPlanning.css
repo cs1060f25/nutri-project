@@ -4,6 +4,8 @@
   overflow-x: auto;
   position: relative;
   min-height: calc(100vh - 4rem);
+  background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-mid) 100%);
+  transition: background 0.3s ease;
 }
 
 .meal-planning-loading {
@@ -12,7 +14,7 @@
   align-items: center;
   height: 50vh;
   font-size: 1.2rem;
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .meal-planning-header {
@@ -26,11 +28,12 @@
 .meal-planning-header h1 {
   margin: 0;
   font-size: 28px;
+  color: var(--text-primary);
 }
 
 .meal-planning-header p {
   margin: 6px 0 0;
-  color: #475569;
+  color: var(--text-secondary);
 }
 
 .week-navigation-container {
@@ -48,7 +51,7 @@
 .week-navigation h2 {
   margin: 0;
   font-size: 1.5rem;
-  color: #1a5f3f;
+  color: var(--text-primary);
   min-width: 250px;
   text-align: center;
 }
@@ -132,16 +135,21 @@
   margin: 0 0 1.5rem 0;
   font-size: 1.5rem;
   font-weight: 700;
-  color: #1a5f3f;
+  color: var(--text-primary);
   text-align: center;
 }
 
 .calendar-grid {
   display: grid;
   grid-template-columns: 80px 1fr;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--border-color);
   table-layout: fixed;
   width: 100%;
+  background: var(--card-bg);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 8px 24px var(--shadow-color);
+  transition: all 0.3s ease;
 }
 
 .calendar-header {
@@ -151,9 +159,10 @@
 .calendar-day-header {
   padding: 1rem;
   text-align: center;
-  background: #f8f9fa;
-  border-right: 1px solid #e0e0e0;
-  border-bottom: 1px solid #e0e0e0;
+  background: var(--card-bg-alt);
+  border-right: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-color);
+  color: var(--text-primary);
 }
 
 .calendar-day-header:last-child {
@@ -162,27 +171,27 @@
 
 .day-name {
   font-size: 0.875rem;
-  color: #666;
+  color: var(--text-secondary);
   font-weight: 500;
   margin-bottom: 0.25rem;
 }
 
 .day-number {
   font-size: 1.25rem;
-  color: #1a5f3f;
+  color: var(--text-primary);
   font-weight: 600;
 }
 
 .calendar-time-column {
   padding: 0.5rem;
-  background: #f8f9fa;
-  border-right: 1px solid #e0e0e0;
-  border-bottom: 1px solid #e0e0e0;
+  background: var(--card-bg-alt);
+  border-right: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-color);
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 600;
-  color: #1a5f3f;
+  color: var(--text-primary);
   font-size: 0.875rem;
 }
 
@@ -193,10 +202,10 @@
 .calendar-cell {
   min-height: 140px;
   padding: 0.5rem;
-  border-right: 1px solid #e0e0e0;
-  border-bottom: 1px solid #e0e0e0;
+  border-right: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-color);
   position: relative;
-  background: white;
+  background: var(--card-bg);
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
@@ -207,7 +216,7 @@
 }
 
 .calendar-cell:hover {
-  background-color: #f5f5f5;
+  background-color: var(--card-hover-bg);
 }
 
 .calendar-cell:last-child {
@@ -312,7 +321,7 @@
 
 .meal-plan-item-name {
   font-size: 0.75rem;
-  color: #333;
+  color: var(--text-primary);
   overflow: hidden;
   word-wrap: break-word;
   word-break: break-word;
@@ -326,7 +335,7 @@
 
 .meal-plan-item-more {
   font-size: 0.7rem;
-  color: #666;
+  color: var(--text-secondary);
   font-style: italic;
 }
 
@@ -338,22 +347,22 @@
   width: 56px;
   height: 56px;
   border-radius: 50%;
-  background: #1a5f3f;
+  background: var(--primary-dark);
   color: white;
   border: none;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 12px rgba(26, 95, 63, 0.4);
+  box-shadow: 0 4px 12px var(--shadow-color);
   transition: all 0.3s;
   z-index: 1000;
 }
 
 .meal-planning-add-btn:hover {
-  background: #2d6a4f;
+  background: var(--primary-darker);
   transform: scale(1.1);
-  box-shadow: 0 6px 16px rgba(26, 95, 63, 0.5);
+  box-shadow: 0 6px 16px var(--shadow-hover-color);
 }
 
 .meal-planning-add-btn:active {
@@ -376,15 +385,16 @@
 }
 
 .meal-planning-modal {
-  background: white;
+  background: var(--card-bg);
   border-radius: 20px;
   width: 100%;
   max-width: 800px;
   max-height: 90vh;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 8px 32px var(--shadow-color);
   overflow: hidden;
+  transition: all 0.3s ease;
 }
 
 .modal-header {
@@ -392,12 +402,12 @@
   justify-content: space-between;
   align-items: center;
   padding: 1.5rem;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .modal-header h2 {
   margin: 0;
-  color: #1a5f3f;
+  color: var(--text-primary);
   font-size: 1.5rem;
 }
 
@@ -405,7 +415,7 @@
   background: transparent;
   border: none;
   font-size: 2rem;
-  color: #666;
+  color: var(--text-secondary);
   cursor: pointer;
   width: 32px;
   height: 32px;
@@ -413,12 +423,12 @@
   align-items: center;
   justify-content: center;
   border-radius: 4px;
-  transition: all 0.2s;
+  transition: all 0.3s;
 }
 
 .modal-close:hover {
-  background: #f0f0f0;
-  color: #333;
+  background: var(--card-hover-bg);
+  color: var(--text-primary);
 }
 
 /* Center modal content */
@@ -439,7 +449,7 @@
   .modal-footer,
   .modal-content,
   .menu-items-list {
-    background: #ffffff !important;
+    background: var(--card-bg) !important;
   }
   
 
@@ -483,23 +493,25 @@
   display: block;
   margin-bottom: 0.5rem;
   font-weight: 500;
-  color: #333;
+  color: var(--text-secondary);
 }
 
 .form-input {
   width: 100%;
   padding: 0.75rem;
-  border: 1px solid #ddd;
-  border-radius: 0;
+  border: 1px solid var(--input-border);
+  border-radius: 6px;
   font-size: 1rem;
-  transition: border-color 0.2s;
+  transition: border-color 0.3s;
   box-sizing: border-box;
+  background: var(--input-bg);
+  color: var(--text-primary);
 }
 
 .form-input:focus {
   outline: none;
-  border-color: #1a5f3f;
-  box-shadow: 0 0 0 3px rgba(26, 95, 63, 0.1);
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px var(--shadow-color);
 }
 
 .form-input-wrapper {
@@ -509,13 +521,13 @@
 .menu-loading {
   text-align: center;
   padding: 2rem 2rem;
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .no-menu-items {
   text-align: center;
   padding: 2rem 2rem;
-  color: #999;
+  color: var(--text-secondary);
   font-style: italic;
 }
 
@@ -539,10 +551,10 @@
 .menu-category-title {
   font-size: 1rem;
   font-weight: 600;
-  color: #1a5f3f;
+  color: var(--text-primary);
   margin: 0 0 1rem 0;
   padding-bottom: 0.5rem;
-  border-bottom: 2px solid #e0e0e0;
+  border-bottom: 2px solid var(--border-color);
 }
 
 .menu-items-list {
@@ -554,23 +566,23 @@
 }
 
 .menu-item-card {
-  background: white;
-  border: 2px solid #e0e0e0;
+  background: var(--card-bg);
+  border: 2px solid var(--border-color);
   border-radius: 8px;
   padding: 0.75rem;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.3s;
   position: relative;
 }
 
 .menu-item-card:hover {
-  border-color: #1a5f3f;
-  box-shadow: 0 2px 8px rgba(26, 95, 63, 0.2);
+  border-color: var(--primary-color);
+  box-shadow: 0 2px 8px var(--shadow-color);
 }
 
 .menu-item-card.selected {
-  border-color: #1a5f3f;
-  background: #e8f5e9;
+  border-color: var(--primary-color);
+  background: var(--border-color);
 }
 
 .menu-item-name-container {
@@ -582,7 +594,7 @@
 
 .menu-item-name {
   font-weight: 500;
-  color: #333;
+  color: var(--text-primary);
   font-size: 0.9rem;
   flex: 1;
 }
@@ -607,7 +619,7 @@
   display: flex;
   gap: 0.75rem;
   font-size: 0.75rem;
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .modal-footer {
@@ -615,7 +627,7 @@
   justify-content: flex-end;
   gap: 1rem;
   padding: 1.5rem;
-  border-top: 1px solid #e0e0e0;
+  border-top: 1px solid var(--border-color);
 }
 
 /* Responsive */
@@ -689,21 +701,22 @@
 .meal-plan-side-panel {
   width: 450px;
   max-width: 90vw;
-  background: white;
-  box-shadow: -2px 0 10px rgba(0, 0, 0, 0.1);
+  background: var(--card-bg);
+  box-shadow: -2px 0 10px var(--shadow-color);
   display: flex;
   flex-direction: column;
   height: 100%;
   overflow-y: auto;
+  transition: all 0.3s ease;
 }
 
 .side-panel-header {
   padding: 1.5rem;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid var(--border-color);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: #f8f9fa;
+  background: var(--card-bg-alt);
   position: sticky;
   top: 0;
   z-index: 10;
@@ -712,7 +725,7 @@
 .side-panel-header h2 {
   margin: 0;
   font-size: 1.5rem;
-  color: #1a5f3f;
+  color: var(--text-primary);
 }
 
 .side-panel-header-actions {
@@ -726,18 +739,18 @@
   height: 32px;
   border: none;
   background: transparent;
-  color: #1a5f3f;
+  color: var(--primary-color);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: 4px;
-  transition: background 0.2s;
+  transition: background 0.3s;
   padding: 0;
 }
 
 .side-panel-save-btn:hover {
-  background: #e0e0e0;
+  background: var(--card-hover-bg);
 }
 
 .side-panel-save-btn svg {
@@ -749,7 +762,7 @@
   background: none;
   border: none;
   font-size: 2rem;
-  color: #666;
+  color: var(--text-secondary);
   cursor: pointer;
   padding: 0;
   width: 32px;
@@ -758,11 +771,11 @@
   align-items: center;
   justify-content: center;
   border-radius: 4px;
-  transition: background 0.2s;
+  transition: background 0.3s;
 }
 
 .side-panel-close:hover {
-  background: #e0e0e0;
+  background: var(--card-hover-bg);
 }
 
 .side-panel-content {
@@ -773,12 +786,12 @@
 
 .side-panel-footer {
   padding: 1.5rem;
-  border-top: 1px solid #e0e0e0;
+  border-top: 1px solid var(--border-color);
   display: flex;
   gap: 1rem;
   justify-content: space-between;
   align-items: center;
-  background: #f8f9fa;
+  background: var(--card-bg-alt);
 }
 
 .side-panel-footer-right {
@@ -796,20 +809,20 @@
 }
 
 .side-panel-footer .btn-primary {
-  background-color: #1a5f3f;
+  background-color: var(--primary-dark);
   color: white;
   border: none;
   padding: 0.75rem 1.5rem;
   border-radius: 8px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.3s;
 }
 
 .side-panel-footer .btn-primary:hover:not(:disabled) {
-  background-color: #2d6a4f;
+  background-color: var(--primary-darker);
   transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(26, 95, 63, 0.3);
+  box-shadow: 0 4px 8px var(--shadow-color);
 }
 
 .side-panel-footer .btn-primary:disabled,
@@ -857,7 +870,7 @@
 .goals-progress-section h3 {
   margin: 0 0 1rem 0;
   font-size: 1.2rem;
-  color: #1a5f3f;
+  color: var(--text-primary);
   font-weight: 600;
 }
 
@@ -865,7 +878,7 @@
   display: flex;
   justify-content: space-between;
   padding: 0.75rem 0;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .info-row:last-child {
@@ -874,11 +887,11 @@
 
 .info-label {
   font-weight: 500;
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .info-value {
-  color: #1a5f3f;
+  color: var(--text-primary);
   font-weight: 600;
 }
 
@@ -893,18 +906,18 @@
   justify-content: space-between;
   align-items: center;
   padding: 0.75rem;
-  background: #f8f9fa;
+  background: var(--card-bg-alt);
   border-radius: 6px;
 }
 
 .item-name {
   flex: 1;
-  color: #333;
+  color: var(--text-primary);
   font-weight: 500;
 }
 
 .item-nutrition {
-  color: #666;
+  color: var(--text-secondary);
   font-size: 0.9rem;
 }
 
@@ -1023,10 +1036,11 @@
 
 .no-goals-message {
   padding: 1.5rem;
-  background: #f8f9fa;
+  background: var(--card-bg-alt);
   border-radius: 8px;
   text-align: center;
-  color: #666;
+  color: var(--text-secondary);
+  border: 1px dashed var(--border-color);
 }
 
 .no-goals-message p {
@@ -1038,9 +1052,11 @@
 .saved-meal-plans-section {
   margin-top: 2rem;
   padding: 2rem;
-  background: white;
+  background: var(--card-bg);
   border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 8px var(--shadow-color);
+  border: 1px solid var(--border-color);
+  transition: all 0.3s ease;
 }
 
 .saved-meal-plans-header {
@@ -1053,7 +1069,7 @@
 .saved-meal-plans-header h2 {
   margin: 0;
   font-size: 1.5rem;
-  color: #1a5f3f;
+  color: var(--text-primary);
 }
 
 .saved-meal-plans-header-actions {
@@ -1066,20 +1082,20 @@
   position: relative;
   width: 40px;
   height: 40px;
-  border: 1px solid #d1d5db;
-  background: white;
+  border: 1px solid var(--border-color);
+  background: var(--card-bg);
   border-radius: 8px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s;
-  color: #1a5f3f;
+  transition: all 0.3s;
+  color: var(--primary-color);
 }
 
 .filter-toggle-btn:hover {
-  background: #f8fcfa;
-  border-color: #1a5f3f;
+  background: var(--card-hover-bg);
+  border-color: var(--primary-color);
 }
 
 .filter-badge {
@@ -1101,9 +1117,9 @@
 .saved-meal-plans-filters {
   margin-bottom: 1.5rem;
   padding: 1rem;
-  background: #f8f9fa;
+  background: var(--card-bg-alt);
   border-radius: 8px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--border-color);
 }
 
 .saved-meal-plans-filters .filters-grid {
@@ -1122,7 +1138,7 @@
 .saved-meal-plans-filters .filter-group label {
   font-size: 0.875rem;
   font-weight: 500;
-  color: #333;
+  color: var(--text-secondary);
 }
 
 .saved-meal-plans-grid {
@@ -1132,23 +1148,24 @@
 }
 
 .saved-meal-plan-card {
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--border-color);
   border-radius: 8px;
   overflow: hidden;
-  background: white;
+  background: var(--card-bg);
   transition: transform 0.2s, box-shadow 0.2s;
+  box-shadow: 0 2px 8px var(--shadow-color);
 }
 
 .saved-meal-plan-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 4px 12px var(--shadow-hover-color);
 }
 
 .saved-meal-plan-image {
   width: 100%;
   height: 200px;
   overflow: hidden;
-  background: #f0f0f0;
+  background: var(--card-bg-alt);
 }
 
 .saved-meal-plan-image img {
@@ -1173,7 +1190,7 @@
   margin: 0;
   font-size: 1.1rem;
   font-weight: 600;
-  color: #333;
+  color: var(--text-primary);
   flex: 1;
 }
 
@@ -1184,7 +1201,7 @@
 }
 
 .saved-meal-plan-stars .star {
-  color: #ddd;
+  color: var(--border-color);
   font-size: 1rem;
   line-height: 1;
   transition: color 0.2s, transform 0.1s;
@@ -1205,33 +1222,33 @@
   gap: 0.25rem;
   margin-bottom: 0.75rem;
   font-size: 0.875rem;
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .saved-meal-plan-meal-type {
   font-weight: 500;
-  color: #1a5f3f;
+  color: var(--primary-color);
 }
 
 .saved-meal-plan-location {
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .saved-meal-plan-count {
-  color: #999;
+  color: var(--text-secondary);
   font-style: italic;
 }
 
 .saved-meal-plan-items {
   margin-top: 0.75rem;
   padding-top: 0.75rem;
-  border-top: 1px solid #e0e0e0;
+  border-top: 1px solid var(--border-color);
 }
 
 .saved-meal-plan-items-label {
   font-size: 0.75rem;
   font-weight: 600;
-  color: #666;
+  color: var(--text-secondary);
   margin-bottom: 0.5rem;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -1246,18 +1263,18 @@
 .saved-meal-plan-item-chip {
   display: inline-block;
   padding: 0.25rem 0.75rem;
-  background: #f0f9f4;
-  border: 1px solid #d1e7dd;
+  background: var(--card-bg-alt);
+  border: 1px solid var(--border-color);
   border-radius: 12px;
   font-size: 0.75rem;
-  color: #1a5f3f;
+  color: var(--text-primary);
   font-weight: 500;
 }
 
 .saved-meal-plan-item-chip.saved-meal-plan-item-more {
-  background: #e9ecef;
-  border-color: #dee2e6;
-  color: #6c757d;
+  background: var(--card-bg);
+  border-color: var(--border-color);
+  color: var(--text-secondary);
   font-style: italic;
 }
 
@@ -1271,13 +1288,13 @@
 }
 
 .saved-meal-plan-availability.available {
-  background: #d4edda;
-  color: #155724;
+  background: rgba(82, 183, 136, 0.15);
+  color: var(--primary-color);
 }
 
 .saved-meal-plan-availability.unavailable {
-  background: #f8d7da;
-  color: #721c24;
+  background: rgba(220, 53, 69, 0.15);
+  color: #ff6b81;
 }
 
 .saved-meal-plan-actions {
@@ -1294,7 +1311,7 @@
   grid-column: 1 / -1;
   text-align: center;
   padding: 3rem 1rem;
-  color: #999;
+  color: var(--text-secondary);
 }
 
 .no-saved-plans p {
@@ -1315,7 +1332,7 @@
   overflow: hidden;
   border-radius: 8px;
   margin-bottom: 1.5rem;
-  background: #f0f0f0;
+  background: var(--card-bg-alt);
 }
 
 .saved-meal-plan-modal-image img {
@@ -1333,7 +1350,7 @@
   display: block;
   margin-bottom: 0.5rem;
   font-weight: 500;
-  color: #333;
+  color: var(--text-secondary);
 }
 
 .saved-meal-plan-modal-info {
@@ -1344,7 +1361,7 @@
   display: flex;
   justify-content: space-between;
   padding: 0.75rem 0;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .saved-meal-plan-modal-info .info-row:last-child {
@@ -1353,11 +1370,11 @@
 
 .saved-meal-plan-modal-info .info-label {
   font-weight: 500;
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .saved-meal-plan-modal-info .info-value {
-  color: #1a5f3f;
+  color: var(--text-primary);
   font-weight: 600;
 }
 
@@ -1368,7 +1385,7 @@
 .saved-meal-plan-modal-items-section h3 {
   margin: 0 0 1rem 0;
   font-size: 1.1rem;
-  color: #1a5f3f;
+  color: var(--text-primary);
 }
 
 .saved-meal-plan-modal-items-list {
@@ -1384,19 +1401,19 @@
   justify-content: space-between;
   align-items: center;
   padding: 0.75rem;
-  background: #f8f9fa;
+  background: var(--card-bg-alt);
   border-radius: 6px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--border-color);
 }
 
 .saved-meal-plan-modal-item .item-name {
   flex: 1;
   font-weight: 500;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .saved-meal-plan-modal-item .item-calories {
-  color: #666;
+  color: var(--text-secondary);
   font-size: 0.875rem;
 }
 
@@ -1407,7 +1424,7 @@
 .saved-meal-plan-modal-nutrition h3 {
   margin: 0 0 1rem 0;
   font-size: 1.1rem;
-  color: #1a5f3f;
+  color: var(--text-primary);
 }
 
 /* Name Input Modal */
@@ -1418,17 +1435,19 @@
 .name-input-modal .form-input {
   width: 100%;
   padding: 0.75rem;
-  border: 1px solid #ddd;
+  border: 1px solid var(--input-border);
   border-radius: 4px;
   font-size: 1rem;
   transition: border-color 0.2s;
   box-sizing: border-box;
+  background: var(--input-bg);
+  color: var(--text-primary);
 }
 
 .name-input-modal .form-input:focus {
   outline: none;
-  border-color: #1a5f3f;
-  box-shadow: 0 0 0 3px rgba(26, 95, 63, 0.1);
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px var(--shadow-color);
 }
 
 /* Confirmation Modal */
@@ -1441,19 +1460,21 @@
   text-align: center;
   font-size: 1rem;
   line-height: 1.5;
+  background: var(--card-bg-alt);
+  color: var(--text-primary);
 }
 
 .confirmation-message.success {
-  color: #155724;
-  background: #d4edda;
-  border: 1px solid #c3e6cb;
+  color: var(--primary-color);
+  background: rgba(82, 183, 136, 0.15);
+  border: 1px solid var(--border-color);
   border-radius: 4px;
 }
 
 .confirmation-message.error {
-  color: #721c24;
-  background: #f8d7da;
-  border: 1px solid #f5c6cb;
+  color: #ff6b6b;
+  background: rgba(220, 53, 69, 0.15);
+  border: 1px solid rgba(220, 53, 69, 0.3);
   border-radius: 4px;
 }
 
