@@ -364,6 +364,13 @@ const calculateMealMacros = (predictions, menuData) => {
   let totalProtein = 0;
   let totalCarbs = 0;
   let totalFat = 0;
+  let saturatedFat = 0;
+  let transFat = 0;
+  let cholesterol = 0;
+  let sodium = 0;
+  let fiber = 0;
+  let sugars = 0;
+  let caloriesFromFat = 0;
 
   predictions.forEach(pred => {
     const recipe = findMatchingRecipe(pred.dish, menuData);
@@ -374,11 +381,25 @@ const calculateMealMacros = (predictions, menuData) => {
       const protein = parseNutrient(recipe.Protein) * servings;
       const carbs = parseNutrient(recipe.Total_Carb) * servings;
       const fat = parseNutrient(recipe.Total_Fat) * servings;
+      const satFat = parseNutrient(recipe.Sat_Fat) * servings;
+      const trFat = parseNutrient(recipe.Trans_Fat) * servings;
+      const chol = parseNutrient(recipe.Cholesterol) * servings;
+      const sod = parseNutrient(recipe.Sodium) * servings;
+      const fib = parseNutrient(recipe.Dietary_Fiber) * servings;
+      const sug = parseNutrient(recipe.Sugars) * servings;
+      const calFromFat = parseNutrient(recipe.Calories_From_Fat) * servings;
 
       totalCalories += calories;
       totalProtein += protein;
       totalCarbs += carbs;
       totalFat += fat;
+      saturatedFat += satFat;
+      transFat += trFat;
+      cholesterol += chol;
+      sodium += sod;
+      fiber += fib;
+      sugars += sug;
+      caloriesFromFat += calFromFat;
 
       matchedItems.push({
         predictedName: pred.dish,
@@ -389,6 +410,13 @@ const calculateMealMacros = (predictions, menuData) => {
         protein: protein.toFixed(1),
         carbs: carbs.toFixed(1),
         fat: fat.toFixed(1),
+        saturatedFat: satFat.toFixed(1),
+        transFat: trFat.toFixed(1),
+        cholesterol: chol.toFixed(1),
+        sodium: sod.toFixed(1),
+        fiber: fib.toFixed(1),
+        sugars: sug.toFixed(1),
+        caloriesFromFat: calFromFat.toFixed(1),
         recipe: recipe,
       });
     } else {
@@ -406,6 +434,13 @@ const calculateMealMacros = (predictions, menuData) => {
       totalProtein: totalProtein.toFixed(1),
       totalCarbs: totalCarbs.toFixed(1),
       totalFat: totalFat.toFixed(1),
+      saturatedFat: saturatedFat.toFixed(1),
+      transFat: transFat.toFixed(1),
+      cholesterol: cholesterol.toFixed(1),
+      sodium: sodium.toFixed(1),
+      fiber: fiber.toFixed(1),
+      sugars: sugars.toFixed(1),
+      caloriesFromFat: Math.round(caloriesFromFat),
       // Also include non-prefixed versions for backward compatibility
       calories: Math.round(totalCalories),
       protein: totalProtein.toFixed(1),
