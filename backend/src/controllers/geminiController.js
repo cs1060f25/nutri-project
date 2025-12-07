@@ -92,13 +92,16 @@ const getKeyStats = async (req, res) => {
     res.json({
       success: true,
       timestamp: new Date().toISOString(),
-      rpmLimit: 10, // Gemini 2.5 Flash limit
+      rpmLimit: 10, // Gemini 2.5 Flash per-minute limit
+      rpdLimit: 20, // Gemini 2.5 Flash per-day limit
       keys: stats,
       summary: {
         totalKeys: stats.length,
         availableKeys: stats.filter(s => s.available).length,
-        totalRequests: stats.reduce((sum, s) => sum + s.requestsLastMinute, 0),
-        totalCapacity: stats.reduce((sum, s) => sum + s.capacity, 0)
+        totalMinuteRequests: stats.reduce((sum, s) => sum + s.requestsLastMinute, 0),
+        totalMinuteCapacity: stats.reduce((sum, s) => sum + s.capacity, 0),
+        totalDailyRequests: stats.reduce((sum, s) => sum + s.requestsToday, 0),
+        totalDailyCapacity: stats.reduce((sum, s) => sum + s.dailyCapacity, 0)
       }
     });
   } catch (error) {
