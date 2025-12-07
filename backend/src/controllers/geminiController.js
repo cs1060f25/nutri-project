@@ -82,7 +82,36 @@ const analyzeMealImage = async (req, res) => {
   }
 };
 
+/**
+ * Get API key usage statistics (monitoring endpoint)
+ */
+const getKeyStats = async (req, res) => {
+  try {
+    const stats = geminiAnalyzer.getKeyStats();
+    
+    res.json({
+      success: true,
+      timestamp: new Date().toISOString(),
+      rpmLimit: 10, // Gemini 2.5 Flash limit
+      keys: stats,
+      summary: {
+        totalKeys: stats.length,
+        availableKeys: stats.filter(s => s.available).length,
+        totalRequests: stats.reduce((sum, s) => sum + s.requestsLastMinute, 0),
+        totalCapacity: stats.reduce((sum, s) => sum + s.capacity, 0)
+      }
+    });
+  } catch (error) {
+    console.error('Error getting key stats:', error);
+    res.status(500).json({ 
+      error: 'Failed to retrieve key statistics',
+      success: false
+    });
+  }
+};
+
 module.exports = {
-  analyzeMealImage
+  analyzeMealImage,
+  getKeyStats
 };
 

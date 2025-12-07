@@ -1,5 +1,6 @@
 /**
  * Service for analyzing meal images using Google Gemini API
+ * Implements API key rotation to maximize throughput while respecting rate limits
  */
 
 const axios = require('axios');
@@ -56,9 +57,8 @@ const formatMenuText = (menuData) => {
  * @returns {Object} Parsed predictions with dish names and confidence scores
  */
 const analyzeMealImage = async (imageBuffer, menuData) => {
-  if (!GEMINI_API_KEY) {
-    throw new Error('GEMINI_API_KEY is not configured');
-  }
+  // Get next available API key
+  const { key: apiKey, index: keyIndex } = keyManager.getNextKey();
 
   // Convert image to base64
   const base64Image = imageBuffer.toString('base64');
@@ -87,7 +87,7 @@ If no valid dishes are detected, return [] with no additional commentary.`;
 
   try {
     const response = await axios.post(
-      `${GEMINI_API_URL}?key=${GEMINI_API_KEY}`,
+      `${GEMINI_API_URL}?key=${apiKey}`,
       {
         contents: [
           {
@@ -116,6 +116,9 @@ If no valid dishes are detected, return [] with no additional commentary.`;
       }
     );
 
+    // Record successful request
+    keyManager.recordRequest(keyIndex);
+
     // Extract text from Gemini response
     const candidate = response.data?.candidates?.[0];
     const content = candidate?.content?.parts?.[0]?.text;
@@ -123,6 +126,11 @@ If no valid dishes are detected, return [] with no additional commentary.`;
     if (!content) {
       throw new Error('No content returned from Gemini API');
     }
+
+    // Log key rotation stats (for monitoring)
+    const stats = keyManager.getStats();
+    const activeKey = stats[keyIndex];
+    console.log(`Gemini request succeeded [Key ${activeKey.keyIndex}: ${activeKey.requestsLastMinute}/${activeKey.capacity} RPM]`);
 
     // Parse JSON from response (Gemini sometimes wraps in markdown or adds prose)
     let jsonText = content.trim();
@@ -180,8 +188,17 @@ If no valid dishes are detected, return [] with no additional commentary.`;
   }
 };
 
+/**
+ * Get API key usage statistics (for monitoring/debugging)
+ * @returns {Array} Usage stats for all configured keys
+ */
+const getKeyStats = () => {
+  return keyManager.getStats();
+};
+
 module.exports = {
   analyzeMealImage,
-  formatMenuText
+  formatMenuText,
+  getKeyStats
 };
 

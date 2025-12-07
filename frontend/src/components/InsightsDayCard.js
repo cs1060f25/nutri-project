@@ -12,8 +12,9 @@ const InsightsDayCard = ({ day }) => {
   const renderRing = (metric) => {
     const radius = 32;
     const circumference = 2 * Math.PI * radius;
-    const percentage = Math.max(0, Math.min(metric.percentage, 200));
-    const dashOffset = circumference - (percentage / 100) * circumference;
+    const rawPercentage = Number.isFinite(metric.percentage) ? metric.percentage : 0;
+    const ringPercentage = Math.max(0, Math.min(rawPercentage, 100)); // cap the stroke at a full circle
+    const dashOffset = circumference - (ringPercentage / 100) * circumference;
 
     return (
       <svg className="insights-ring" viewBox="0 0 80 80">
@@ -32,7 +33,7 @@ const InsightsDayCard = ({ day }) => {
           strokeDashoffset={dashOffset}
         />
         <text x="50%" y="52%" dominantBaseline="middle" textAnchor="middle">
-          {Math.round(percentage)}%
+          {Math.round(rawPercentage)}%
         </text>
       </svg>
     );
