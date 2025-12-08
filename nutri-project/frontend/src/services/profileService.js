@@ -41,3 +41,60 @@ export const updateProfile = async (profileData, accessToken) => {
 
   return response.json();
 };
+
+/**
+ * Change user password
+ */
+export const changePassword = async (currentPassword, newPassword, accessToken) => {
+  const response = await fetch('/api/account/change-password', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify({
+      currentPassword,
+      newPassword,
+    }),
+  });
+
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(
+      data.error ||
+      data.message ||
+      'Failed to change password'
+    );
+  }
+
+  return data;
+};
+
+/**
+ * Delete user account
+ */
+export const deleteAccount = async (password, accessToken) => {
+  const response = await fetch('/api/account/delete-account', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify({
+      password,
+    }),
+  });
+
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(
+      data.error ||
+      data.message ||
+      'Failed to delete account'
+    );
+  }
+
+  return data;
+};
