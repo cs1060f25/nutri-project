@@ -1,3 +1,4 @@
+// src/pages/Settings.js
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -9,8 +10,8 @@ import {
 } from '../services/profileService';
 import './Settings.css';
 
-function Settings() {
-  const { user, logout } = useAuth();
+const Settings = () => {
+  const { logout } = useAuth();
   const navigate = useNavigate();
 
   const [profile, setProfile] = useState(null);
@@ -39,9 +40,9 @@ function Settings() {
     setProfile(updatedProfile);
   };
 
-  const handleAccountDeleted = () => {
-    // After successful account deletion: logout and redirect
-    logout();
+  const handleAccountDeleted = async () => {
+    // After successful account deletion: log out and redirect to landing/auth
+    await logout();
     navigate('/');
   };
 
@@ -49,7 +50,7 @@ function Settings() {
     return (
       <div className="settings-page">
         <h1 className="settings-title">Settings</h1>
-        <p>Loading your settings...</p>
+        <p>Loading your settings…</p>
       </div>
     );
   }
@@ -77,20 +78,19 @@ function Settings() {
         <BodyMetricsSection profile={profile} onProfileUpdated={handleProfileUpdated} />
         <SecuritySection
           email={profile.email}
-          onPasswordChanged={() => {}}
           onAccountDeleted={handleAccountDeleted}
         />
       </div>
     </div>
   );
-}
+};
 
 /**
  * PROFILE SECTION
- * - First name, last name (editable)
- * - Email (read-only)
+ * - First/last name editable
+ * - Email read-only
  */
-function ProfileSection({ profile, onProfileUpdated }) {
+const ProfileSection = ({ profile, onProfileUpdated }) => {
   const [firstName, setFirstName] = useState(profile.firstName || '');
   const [lastName, setLastName] = useState(profile.lastName || '');
   const [saving, setSaving] = useState(false);
@@ -173,14 +173,14 @@ function ProfileSection({ profile, onProfileUpdated }) {
       </form>
     </section>
   );
-}
+};
 
 /**
  * ACADEMIC & RESIDENCE
  * - House / residence
  * - Class year
  */
-function AcademicSection({ profile, onProfileUpdated }) {
+const AcademicSection = ({ profile, onProfileUpdated }) => {
   const [residence, setResidence] = useState(profile.residence || '');
   const [classYear, setClassYear] = useState(profile.classYear || '');
   const [saving, setSaving] = useState(false);
@@ -250,7 +250,7 @@ function AcademicSection({ profile, onProfileUpdated }) {
       </form>
     </section>
   );
-}
+};
 
 /**
  * DIET & HEALTH
@@ -258,16 +258,20 @@ function AcademicSection({ profile, onProfileUpdated }) {
  * - Dietary requirements
  * - Allergies
  * - Health conditions
- * For multi-value fields we use comma-separated text for simplicity.
+ * For multi-value fields we use comma-separated text.
  */
-function DietHealthSection({ profile, onProfileUpdated }) {
+const DietHealthSection = ({ profile, onProfileUpdated }) => {
   const [dietaryPattern, setDietaryPattern] = useState(profile.dietaryPattern || '');
   const [dietaryRequirements, setDietaryRequirements] = useState(
-    (profile.dietaryRequirements || []).join(', ')
+    profile.dietaryRequirements || ''
   );
-  const [allergies, setAllergies] = useState((profile.allergies || []).join(', '));
+  const [allergies, setAllergies] = useState(
+    Array.isArray(profile.allergies) ? profile.allergies.join(', ') : (profile.allergies || '')
+  );
   const [healthConditions, setHealthConditions] = useState(
-    (profile.healthConditions || []).join(', ')
+    Array.isArray(profile.healthConditions)
+      ? profile.healthConditions.join(', ')
+      : (profile.healthConditions || '')
   );
 
   const [saving, setSaving] = useState(false);
@@ -276,9 +280,15 @@ function DietHealthSection({ profile, onProfileUpdated }) {
 
   useEffect(() => {
     setDietaryPattern(profile.dietaryPattern || '');
-    setDietaryRequirements((profile.dietaryRequirements || []).join(', '));
-    setAllergies((profile.allergies || []).join(', '));
-    setHealthConditions((profile.healthConditions || []).join(', '));
+    setDietaryRequirements(profile.dietaryRequirements || '');
+    setAllergies(
+      Array.isArray(profile.allergies) ? profile.allergies.join(', ') : (profile.allergies || '')
+    );
+    setHealthConditions(
+      Array.isArray(profile.healthConditions)
+        ? profile.healthConditions.join(', ')
+        : (profile.healthConditions || '')
+    );
   }, [profile]);
 
   const toList = (value) =>
@@ -296,7 +306,7 @@ function DietHealthSection({ profile, onProfileUpdated }) {
     try {
       const updatedProfile = await updateUserProfile({
         dietaryPattern,
-        dietaryRequirements: toList(dietaryRequirements),
+        dietaryRequirements, // stored as free text; backend can evolve later
         allergies: toList(allergies),
         healthConditions: toList(healthConditions),
       });
@@ -329,7 +339,7 @@ function DietHealthSection({ profile, onProfileUpdated }) {
           <label className="settings-label">Dietary requirements</label>
           <textarea
             className="settings-textarea"
-            placeholder="Comma-separated (e.g. halal, kosher, gluten-free)"
+            placeholder="e.g. halal, kosher, gluten-free"
             value={dietaryRequirements}
             onChange={(e) => setDietaryRequirements(e.target.value)}
           />
@@ -368,23 +378,31 @@ function DietHealthSection({ profile, onProfileUpdated }) {
       </form>
     </section>
   );
-}
+};
 
 /**
  * BODY METRICS
  * - Height
  * - Weight
  */
-function BodyMetricsSection({ profile, onProfileUpdated }) {
-  const [height, setHeight] = useState(profile.height || '');
-  const [weight, setWeight] = useState(profile.weight || '');
+const BodyMetricsSection = ({ profile, onProfileUpdated }) => {
+  const [height, setHeight] = useState(
+    profile.height !== undefined && profile.height !== null ? String(profile.height) : ''
+  );
+  const [weight, setWeight] = useState(
+    profile.weight !== undefined && profile.weight !== null ? String(profile.weight) : ''
+  );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
   useEffect(() => {
-    setHeight(profile.height || '');
-    setWeight(profile.weight || '');
+    setHeight(
+      profile.height !== undefined && profile.height !== null ? String(profile.height) : ''
+    );
+    setWeight(
+      profile.weight !== undefined && profile.weight !== null ? String(profile.weight) : ''
+    );
   }, [profile]);
 
   const handleSubmit = async (e) => {
@@ -393,12 +411,17 @@ function BodyMetricsSection({ profile, onProfileUpdated }) {
     setSuccess('');
     setSaving(true);
 
-    // Basic numeric validation
-    const parsedHeight = height === '' ? null : Number(height);
-    const parsedWeight = weight === '' ? null : Number(weight);
+    const parseOrNull = (val) => {
+      const trimmed = String(val).trim();
+      if (trimmed === '') return null;
+      const num = Number(trimmed);
+      return Number.isNaN(num) ? NaN : num;
+    };
 
-    if ((parsedHeight !== null && Number.isNaN(parsedHeight)) ||
-        (parsedWeight !== null && Number.isNaN(parsedWeight))) {
+    const parsedHeight = parseOrNull(height);
+    const parsedWeight = parseOrNull(weight);
+
+    if (Number.isNaN(parsedHeight) || Number.isNaN(parsedWeight)) {
       setError('Height and weight must be numbers.');
       setSaving(false);
       return;
@@ -458,26 +481,26 @@ function BodyMetricsSection({ profile, onProfileUpdated }) {
       </form>
     </section>
   );
-}
+};
 
 /**
- * SECURITY
- * - Change password (requires current)
- * - Delete account (requires password confirmation)
+ * SECURITY SECTION
+ * - Change password
+ * - Delete account
  */
-function SecuritySection({ email, onAccountDeleted }) {
+const SecuritySection = ({ email, onAccountDeleted }) => {
   return (
     <section className="settings-section settings-section-full">
       <h2 className="settings-section-title">Security</h2>
       <div className="settings-security-grid">
-        <ChangePasswordForm email={email} />
+        <ChangePasswordForm />
         <DeleteAccountPanel email={email} onAccountDeleted={onAccountDeleted} />
       </div>
     </section>
   );
-}
+};
 
-function ChangePasswordForm() {
+const ChangePasswordForm = () => {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -562,9 +585,9 @@ function ChangePasswordForm() {
       </form>
     </div>
   );
-}
+};
 
-function DeleteAccountPanel({ onAccountDeleted }) {
+const DeleteAccountPanel = ({ email, onAccountDeleted }) => {
   const [password, setPassword] = useState('');
   const [confirmChecked, setConfirmChecked] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -586,16 +609,16 @@ function DeleteAccountPanel({ onAccountDeleted }) {
       return;
     }
 
-    if (!window.confirm('Are you sure you want to permanently delete your account?')) {
-      return;
-    }
+    const confirmed = window.confirm(
+      `Are you sure you want to permanently delete your account${email ? ` (${email})` : ''}?`
+    );
+    if (!confirmed) return;
 
     setDeleting(true);
     try {
       await deleteAccount({ password });
       setSuccess('Account deleted successfully.');
-      // Notify parent so it can log out + redirect
-      onAccountDeleted();
+      await onAccountDeleted();
     } catch (err) {
       console.error('Failed to delete account', err);
       setError(err.message || 'Failed to delete account.');
@@ -648,6 +671,6 @@ function DeleteAccountPanel({ onAccountDeleted }) {
       </form>
     </div>
   );
-}
+};
 
 export default Settings;

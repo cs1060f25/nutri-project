@@ -7,7 +7,7 @@ const {
 } = require('../controllers/accountController');
 const { verifyToken } = require('../middleware/authMiddleware');
 
-// All routes here require authentication
+// All account routes require a valid Firebase ID token
 router.use(verifyToken);
 
 router.post('/change-password', changePasswordController);

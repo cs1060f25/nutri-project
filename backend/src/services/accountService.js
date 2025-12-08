@@ -1,10 +1,13 @@
 const { admin } = require('../config/firebase');
+
+const USERS_COLLECTION = 'users';
+const getDb = () => admin.firestore();
+
 const { FIREBASE_API_KEY } = process.env;
 
 /**
- * Helper to get a fetch implementation.
- * If you're on Node 18+, global fetch exists.
- * If not, install node-fetch and swap implementation.
+ * Helper to call fetch; Node 18+ has global fetch.
+ * If you're on Node < 18, install node-fetch and swap in that implementation.
  */
 async function doFetch(url, options) {
   if (typeof fetch !== 'undefined') {
@@ -22,7 +25,7 @@ async function doFetch(url, options) {
 
 /**
  * Verify the user's current password using Firebase Auth REST API.
- * This prevents changing/deleting an account without the correct password.
+ * This is required before allowing password change or account deletion.
  */
 async function verifyCurrentPassword(email, currentPassword) {
   if (!FIREBASE_API_KEY) {
@@ -57,12 +60,12 @@ async function verifyCurrentPassword(email, currentPassword) {
     throw err;
   }
 
-  // If we get here, password is correct.
+  // If we get here, the password is correct.
   return true;
 }
 
 /**
- * Change user password (after verifying current password).
+ * Change user password after verifying current password.
  */
 async function changePassword(userId, currentPassword, newPassword) {
   if (!userId) {
@@ -76,20 +79,20 @@ async function changePassword(userId, currentPassword, newPassword) {
     throw new Error('User does not have an email associated.');
   }
 
+  // Verify the current password
   await verifyCurrentPassword(email, currentPassword);
 
+  // Update password in Firebase Auth
   await admin.auth().updateUser(userId, {
     password: newPassword,
   });
 
-  // Optional: revoke refresh tokens so old sessions are logged out
+  // Optional but recommended: revoke existing refresh tokens so old sessions are invalid
   await admin.auth().revokeRefreshTokens(userId);
 }
 
 /**
  * Delete the user account and related data after verifying password.
- * NOTE: the Firestore deletion below only removes the main user document.
- * You should extend this to delete posts, meal logs, etc.
  */
 async function deleteAccount(userId, password) {
   if (!userId) {
@@ -103,19 +106,20 @@ async function deleteAccount(userId, password) {
     throw new Error('User does not have an email associated.');
   }
 
+  // Verify the password before deletion
   await verifyCurrentPassword(email, password);
 
-  const db = admin.firestore();
+  const db = getDb();
 
   // Delete the user profile document
-  const userDocRef = db.collection('users').doc(userId);
+  const userDocRef = db.collection(USERS_COLLECTION).doc(userId);
   await userDocRef.delete();
 
-  // TODO: delete related user data here (posts, meal logs, etc.)
-  // Example (if you have mealLogs collection keyed by userId):
-  // const logsSnapshot = await db.collection('mealLogs').where('userId', '==', userId).get();
+  // TODO: delete related user data here (meal logs, posts, plans, etc.)
+  // Example structure if you had a "meals" collection:
+  // const mealsSnapshot = await db.collection('meals').where('userId', '==', userId).get();
   // const batch = db.batch();
-  // logsSnapshot.forEach((doc) => batch.delete(doc.ref));
+  // mealsSnapshot.forEach((doc) => batch.delete(doc.ref));
   // await batch.commit();
 
   // Finally, delete the auth user
