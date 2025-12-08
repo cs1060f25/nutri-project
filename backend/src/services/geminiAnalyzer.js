@@ -4,10 +4,9 @@
  */
 
 const axios = require('axios');
-
-// Gemini 2.5 Flash: 10 RPM per key
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
 const RPM_LIMIT = 10; // Requests per minute for Gemini 2.5 Flash
+const RPD_LIMIT = 20; // Requests per day for Gemini 2.5 Flash
 const SAFETY_BUFFER = 0.9; // Use 90% of limit to be safe
 
 /**
@@ -18,14 +17,14 @@ class ApiKeyManager {
   constructor() {
     // Load API keys from environment variables
     this.keys = [
-      process.env.GEMINI_API_KEY,
+      process.env.GEMINI_API_KEY_1,
       process.env.GEMINI_API_KEY_2,
       process.env.GEMINI_API_KEY_3,
       process.env.GEMINI_API_KEY_4
     ].filter(key => key && key.length > 0);
 
     if (this.keys.length === 0) {
-      throw new Error('No Gemini API keys configured. Set GEMINI_API_KEY, GEMINI_API_KEY_2, GEMINI_API_KEY_3, and/or GEMINI_API_KEY_4');
+      throw new Error('No Gemini API keys configured. Set GEMINI_API_KEY_1, GEMINI_API_KEY_2, GEMINI_API_KEY_3, and/or GEMINI_API_KEY_4');
     }
 
     // Track request timestamps per key (sliding window)
@@ -42,10 +41,11 @@ class ApiKeyManager {
   getNextKey() {
     const now = Date.now();
     const oneMinuteAgo = now - 60 * 1000;
+    const oneDayAgo = now - 24 * 60 * 60 * 1000;
 
-    // Clean up old timestamps (older than 1 minute)
+    // Clean up old timestamps (older than 1 day)
     this.keyUsage.forEach(usage => {
-      while (usage.length > 0 && usage[0] < oneMinuteAgo) {
+      while (usage.length > 0 && usage[0] < oneDayAgo) {
         usage.shift();
       }
     });
@@ -53,10 +53,12 @@ class ApiKeyManager {
     // Try each key starting from current index
     for (let i = 0; i < this.keys.length; i++) {
       const index = (this.currentKeyIndex + i) % this.keys.length;
-      const recentRequests = this.keyUsage[index].length;
+      const recentMinuteRequests = this.keyUsage[index].filter(t => t > oneMinuteAgo).length;
+      const recentDayRequests = this.keyUsage[index].length;
 
-      // Check if this key is under the rate limit
-      if (recentRequests < Math.floor(RPM_LIMIT * SAFETY_BUFFER)) {
+      // Check if this key is under both rate limits (RPM and RPD)
+      if (recentMinuteRequests < Math.floor(RPM_LIMIT * SAFETY_BUFFER) && 
+          recentDayRequests < Math.floor(RPD_LIMIT * SAFETY_BUFFER)) {
         this.currentKeyIndex = index;
         return {
           key: this.keys[index],
@@ -94,14 +96,18 @@ class ApiKeyManager {
     const oneMinuteAgo = now - 60 * 1000;
 
     return this.keys.map((key, idx) => {
-      const recentRequests = this.keyUsage[idx].filter(t => t > oneMinuteAgo).length;
-      const capacity = Math.floor(RPM_LIMIT * SAFETY_BUFFER);
+      const requestsLastMinute = this.keyUsage[idx].filter(t => t > oneMinuteAgo).length;
+      const requestsToday = this.keyUsage[idx].length;
+      const rpmCapacity = Math.floor(RPM_LIMIT * SAFETY_BUFFER);
+      const rpdCapacity = Math.floor(RPD_LIMIT * SAFETY_BUFFER);
       return {
         keyIndex: idx + 1,
         keyPreview: `${key.substring(0, 8)}...${key.substring(key.length - 4)}`,
-        requestsLastMinute: recentRequests,
-        capacity: capacity,
-        available: capacity - recentRequests > 0
+        requestsLastMinute: requestsLastMinute,
+        requestsToday: requestsToday,
+        capacity: rpmCapacity,
+        dailyCapacity: rpdCapacity,
+        available: (requestsLastMinute < rpmCapacity) && (requestsToday < rpdCapacity)
       };
     });
   }
@@ -231,7 +237,7 @@ If no valid dishes are detected, return [] with no additional commentary.`;
     // Log key rotation stats (for monitoring)
     const stats = keyManager.getStats();
     const activeKey = stats[keyIndex];
-    console.log(`Gemini request succeeded [Key ${activeKey.keyIndex}: ${activeKey.requestsLastMinute}/${activeKey.capacity} RPM]`);
+    console.log(`Gemini request succeeded [Key ${activeKey.keyIndex}: ${activeKey.requestsLastMinute}/${activeKey.capacity} RPM, ${activeKey.requestsToday}/${activeKey.dailyCapacity} RPD]`);
 
     // Parse JSON from response (Gemini sometimes wraps in markdown or adds prose)
     let jsonText = content.trim();

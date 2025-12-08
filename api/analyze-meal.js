@@ -34,9 +34,26 @@ const getDb = () => {
   return admin.firestore();
 };
 
-// Import services (we'll need to inline or require them)
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
+// Gemini API key rotation to avoid rate limits
+const GEMINI_KEYS = [
+  process.env.GEMINI_API_KEY_1,
+  process.env.GEMINI_API_KEY_2,
+  process.env.GEMINI_API_KEY_3,
+  process.env.GEMINI_API_KEY_4,
+].filter(Boolean);
+
+let keyIndex = 0;
+const getNextGeminiKey = () => {
+  if (!GEMINI_KEYS.length) {
+    throw new Error('No Gemini API keys configured. Set GEMINI_API_KEY_1, GEMINI_API_KEY_2, etc. in Vercel env vars');
+  }
+  const key = GEMINI_KEYS[keyIndex];
+  keyIndex = (keyIndex + 1) % GEMINI_KEYS.length;
+  console.log(`Using Gemini API key ${keyIndex + 1}/${GEMINI_KEYS.length}`);
+  return key;
+};
+
+const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent';
 const HUDS_API_BASE_URL = process.env.HUDS_API_BASE_URL || 'https://go.prod.apis.huit.harvard.edu/ats/dining/v3';
 const HUDS_API_KEY = process.env.HUDS_API_KEY;
 
@@ -195,9 +212,8 @@ const formatMenuText = (menuData) => {
  * Analyze meal image with Gemini
  */
 const analyzeMealImage = async (imageBuffer, menuData) => {
-  if (!GEMINI_API_KEY) {
-    throw new Error('GEMINI_API_KEY is not configured');
-  }
+  // Get next available API key from rotation
+  const apiKey = getNextGeminiKey();
 
   const base64Image = imageBuffer.toString('base64');
   const menuText = formatMenuText(menuData);
@@ -222,7 +238,7 @@ If no valid dishes are detected, return [] with no additional commentary.`;
 
   try {
     const response = await axios.post(
-      `${GEMINI_API_URL}?key=${GEMINI_API_KEY}`,
+      `${GEMINI_API_URL}?key=${apiKey}`,
       {
         contents: [{
           parts: [
@@ -283,7 +299,7 @@ If no valid dishes are detected, return [] with no additional commentary.`;
     } else if (error.response?.status === 403) {
       throw new Error('API key is invalid or expired');
     } else if (error.response?.status === 429) {
-      throw new Error('⏰ Rate limit exceeded! Free tier: 15 requests/min. Wait 60 seconds and try again.');
+      throw new Error('⏰ Rate limit exceeded! Gemini 2.5 Flash Lite: 10 requests/min, 20 per day. Wait 60 seconds and try again.');
     } else if (error.response?.status === 500) {
       throw new Error('Gemini API server error - try again in a moment');
     }
