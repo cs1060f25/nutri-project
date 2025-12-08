@@ -323,6 +323,12 @@
   transition: all 0.3s ease;
 }
 
+.meal-log-nutrition.micro {
+  margin-top: -0.5rem;
+  background: var(--surface-muted, var(--card-bg));
+  border: 1px dashed var(--border-color);
+}
+
 .nutrition-stat {
   display: flex;
   flex-direction: column;

@@ -57,6 +57,17 @@
   --warning-border: #fde68a;
   --warning-text: #f59e0b;
 
+  /* Surface + typography helpers */
+  --surface-soft: #f7fbf8;
+  --surface-elevated: #ffffff;
+  --surface-contrast: #fdfefc;
+  --surface-muted: #f0f8f4;
+  --surface-accent: #f4fbf7;
+  --text-muted: #5b7d6a;
+  --border-soft: #e0efe6;
+  --border-muted: #cfe4d7;
+  --pill-bg: #f6fbf8;
+
   /* Selection colors */
   --selection-bg: rgba(82, 183, 136, 0.25);
   --selection-text: #0f172a;
@@ -114,6 +125,17 @@
   --warning-bg: #4a3800;
   --warning-border: #6b5300;
   --warning-text: #fbbf24;
+
+  /* Surface + typography helpers */
+  --surface-soft: #1f2623;
+  --surface-elevated: #232927;
+  --surface-contrast: #1a1f1d;
+  --surface-muted: #1d2320;
+  --surface-accent: #1f2a25;
+  --text-muted: #9fb7a8;
+  --border-soft: #2d3732;
+  --border-muted: #2a332e;
+  --pill-bg: #1c2421;
 
   /* Selection colors */
   --selection-bg: rgba(82, 183, 136, 0.45);
