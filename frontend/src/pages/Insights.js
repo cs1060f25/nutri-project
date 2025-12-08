@@ -48,6 +48,7 @@ const Insights = () => {
   const [aiSummary, setAiSummary] = useState('');
   const [aiError, setAiError] = useState('');
   const [aiLoading, setAiLoading] = useState(false);
+  const [autoRequested, setAutoRequested] = useState(false);
 
   const activeRange = useMemo(() => ({
     start: range.start,
@@ -90,6 +91,20 @@ const Insights = () => {
       setAiLoading(false);
     }
   }, [accessToken, data?.range]);
+
+  // Auto-generate summary on first load when user has data/plan
+  useEffect(() => {
+    if (
+      !autoRequested &&
+      !aiLoading &&
+      !aiSummary &&
+      data?.hasActivePlan &&
+      data?.days?.length > 0
+    ) {
+      setAutoRequested(true);
+      handleRefreshSummary();
+    }
+  }, [autoRequested, aiLoading, aiSummary, data?.hasActivePlan, data?.days?.length, handleRefreshSummary]);
 
   useEffect(() => {
     fetchData();
