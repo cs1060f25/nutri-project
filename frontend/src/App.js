@@ -12,6 +12,7 @@ import ResetPassword from './pages/ResetPassword';
 import FirebaseActionHandler from './pages/FirebaseActionHandler';
 import Insights from './pages/Insights';
 import Scanner from './pages/Scanner';
+import Settings from './pages/Settings';
 import Social from './pages/Social';
 import MealPlanning from './pages/MealPlanning';
 import MealLogs from './pages/MealLogs';
@@ -66,6 +67,7 @@ function MainLayout() {
           <Route path="/insights" element={<Insights />} />
           <Route path="/meal-planning" element={<MealPlanning />} />
           <Route path="/social/*" element={<Social />} />
+          <Route path="/settings" element={<Settings />} />
         </Routes>
       </div>
     </div>
