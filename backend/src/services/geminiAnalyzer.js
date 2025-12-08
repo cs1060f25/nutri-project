@@ -4,7 +4,7 @@
  */
 
 const axios = require('axios');
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
+const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent';
 const RPM_LIMIT = 10; // Requests per minute for Gemini 2.5 Flash
 const RPD_LIMIT = 20; // Requests per day for Gemini 2.5 Flash
 const SAFETY_BUFFER = 0.9; // Use 90% of limit to be safe
@@ -15,7 +15,6 @@ const SAFETY_BUFFER = 0.9; // Use 90% of limit to be safe
  */
 class ApiKeyManager {
   constructor() {
-    // Load API keys from environment variables
     this.keys = [
       process.env.GEMINI_API_KEY_1,
       process.env.GEMINI_API_KEY_2,
@@ -27,7 +26,6 @@ class ApiKeyManager {
       throw new Error('No Gemini API keys configured. Set GEMINI_API_KEY_1, GEMINI_API_KEY_2, GEMINI_API_KEY_3, and/or GEMINI_API_KEY_4');
     }
 
-    // Track request timestamps per key (sliding window)
     this.keyUsage = this.keys.map(() => []);
     this.currentKeyIndex = 0;
 
@@ -43,7 +41,6 @@ class ApiKeyManager {
     const oneMinuteAgo = now - 60 * 1000;
     const oneDayAgo = now - 24 * 60 * 60 * 1000;
 
-    // Clean up old timestamps (older than 1 day)
     this.keyUsage.forEach(usage => {
       while (usage.length > 0 && usage[0] < oneDayAgo) {
         usage.shift();

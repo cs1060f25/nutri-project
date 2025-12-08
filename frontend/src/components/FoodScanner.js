@@ -12,6 +12,24 @@ const formatNumber = (value) => {
   return Math.round(Number(value)).toString();
 };
 
+const formatDecimal = (value, digits = 1) => {
+  if (value === undefined || value === null || Number.isNaN(Number(value))) {
+    return (0).toFixed(digits);
+  }
+  return Number(value).toFixed(digits);
+};
+
+const formatMeasurement = (value, unit = 'g', digits = 1) => {
+  if (value === undefined || value === null || Number.isNaN(Number(value))) {
+    return `0 ${unit}`;
+  }
+  const numericValue = Number(value);
+  if (unit === 'mg') {
+    return `${Math.round(numericValue).toLocaleString()} ${unit}`;
+  }
+  return `${formatDecimal(numericValue, digits)} ${unit}`;
+};
+
 const FoodScanner = () => {
   const navigate = useNavigate();
   const [selectedFile, setSelectedFile] = useState(null);
@@ -69,9 +87,17 @@ const FoodScanner = () => {
         carbs: totals.totalCarbs,
         fat: totals.totalFat,
         calories: totals.totalCalories,
+        saturatedFat: totals.saturatedFat,
+        transFat: totals.transFat,
+        cholesterol: totals.cholesterol,
+        sodium: totals.sodium,
+        fiber: totals.fiber,
+        sugars: totals.sugars,
+        caloriesFromFat: totals.caloriesFromFat,
         matchedItems: data.matchedItems || [],
         unmatchedDishes: data.unmatchedDishes || [],
         timestamp: data.timestamp || new Date().toISOString(),
+        nutritionTotals: totals,
       });
     } catch (err) {
       console.error('Scan error:', err);
@@ -226,6 +252,25 @@ const FoodScanner = () => {
                     <p className="scanner-macro-value">{card.value}</p>
                   </div>
                 ))}
+              </div>
+
+              <div className="scanner-micro-section">
+                <p className="scanner-micro-heading">Detailed nutrients</p>
+                <div className="scanner-micro-grid">
+                  {[
+                    { label: 'Saturated Fat', value: formatMeasurement(results.saturatedFat, 'g') },
+                    { label: 'Trans Fat', value: formatMeasurement(results.transFat, 'g') },
+                    { label: 'Cholesterol', value: formatMeasurement(results.cholesterol, 'mg', 0) },
+                    { label: 'Sodium', value: formatMeasurement(results.sodium, 'mg', 0) },
+                    { label: 'Fiber', value: formatMeasurement(results.fiber, 'g') },
+                    { label: 'Sugars', value: formatMeasurement(results.sugars, 'g') },
+                  ].map((card) => (
+                    <div key={card.label} className="scanner-micro-card">
+                      <p className="scanner-micro-label">{card.label}</p>
+                      <p className="scanner-micro-value">{card.value}</p>
+                    </div>
+                  ))}
+                </div>
               </div>
 
               <div className="scanner-dishes-panel">
