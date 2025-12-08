@@ -2237,7 +2237,7 @@ const MealPlanning = () => {
               }}>×</button>
             </div>
 
-            <div style={{ padding: '1.5rem'}}>
+            <div className="modal-body">
               <div className="">
                 <div className="form-group">
                   <label>Meal Type</label>
