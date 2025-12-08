@@ -1,12 +1,11 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import './Insights.css';
 import { useAuth } from '../context/AuthContext';
-import { getRangeProgress } from '../services/insightsService';
+import { getRangeProgress, getAiSummary } from '../services/insightsService';
 import InsightsDayCard from '../components/InsightsDayCard';
 import InsightsTrendChart from '../components/InsightsTrendChart';
 import InsightsTrendSummary from '../components/InsightsTrendSummary';
 import InsightsMacroPie from '../components/InsightsMacroPie';
-import InsightsMealTable from '../components/InsightsMealTable';
 import { getMetricName } from '../utils/nutrition';
 import CustomSelect from '../components/CustomSelect';
 
@@ -46,6 +45,9 @@ const Insights = () => {
   const [selectedMetric, setSelectedMetric] = useState('');
   const [trendView, setTrendView] = useState('line');
   const [selectedMacroDay, setSelectedMacroDay] = useState('');
+  const [aiSummary, setAiSummary] = useState('');
+  const [aiError, setAiError] = useState('');
+  const [aiLoading, setAiLoading] = useState(false);
 
   const activeRange = useMemo(() => ({
     start: range.start,
@@ -60,12 +62,34 @@ const Insights = () => {
       try {
         const result = await getRangeProgress(activeRange, accessToken);
         setData(result);
+        setSelectedMacroDay((prev) => {
+          if (result?.days?.some(day => day.date === prev)) return prev;
+          return result?.days?.[result.days.length - 1]?.date || '';
+        });
       } catch (err) {
         setError(err.message || 'Failed to load insights');
       } finally {
         setLoading(false);
       }
   }, [accessToken, activeRange]);
+
+  const handleRefreshSummary = useCallback(async () => {
+    if (!data?.range || !accessToken) return;
+    setAiLoading(true);
+    setAiError('');
+    try {
+      const res = await getAiSummary(
+        { start: data.range.start, end: data.range.end },
+        accessToken
+      );
+      setAiSummary(res.summary);
+    } catch (err) {
+      setAiError(err.message || 'Failed to load AI summary');
+      setAiSummary('');
+    } finally {
+      setAiLoading(false);
+    }
+  }, [accessToken, data?.range]);
 
   useEffect(() => {
     fetchData();
@@ -102,6 +126,17 @@ const Insights = () => {
     return Object.keys(data.trend.metrics);
   }, [data]);
 
+  const dayOptions = useMemo(() => {
+    if (!data?.days?.length) return [];
+    return data.days.map((day) => ({
+      value: day.date,
+      label: new Date(day.date).toLocaleDateString(undefined, {
+        month: 'short',
+        day: 'numeric',
+      }),
+    }));
+  }, [data?.days]);
+
   useEffect(() => {
     if (!metricOptions.length) {
       setSelectedMetric('');
@@ -124,6 +159,7 @@ const Insights = () => {
     }
   }, [data?.days]);
 
+  // Track range changes
   const handleRangeChange = (event) => {
     const { name, value } = event.target;
     setRange(prev => ({
@@ -138,6 +174,8 @@ const Insights = () => {
 
     setLoading(true);
     setError('');
+    setAiSummary('');
+    setAiError('');
     try {
       const result = await getRangeProgress(activeRange, accessToken);
       setData(result);
@@ -156,9 +194,20 @@ const Insights = () => {
         <div>
           <h1>Insights</h1>
           <p>Compare your nutrition progress across a custom date range.</p>
-          {data?.planName && (
-            <div className="insights-plan-pill">
-              Active plan: <strong>{data.planName}</strong>
+          {(data?.planName || data?.streak !== undefined) && (
+            <div className="insights-plan-meta">
+              {data?.planName && (
+                <div className="insights-plan-pill">
+                  Active plan: <strong>{data.planName}</strong>
+                </div>
+              )}
+              {data?.streak !== undefined && (
+                <div className="insights-streak-pill">
+                  {data.streak > 0
+                    ? `Streak: ${data.streak} day${data.streak === 1 ? '' : 's'} 🔥`
+                    : 'No streak yet'}
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -193,16 +242,67 @@ const Insights = () => {
       </header>
 
       {error && <div className="insights-error">{error}</div>}
+      {aiError && <div className="insights-error">{aiError}</div>}
 
       {loading && !data && (
         <div className="insights-loading">Loading progress...</div>
       )}
 
-      {!loading && data?.streak !== undefined && (
-        <div className="insights-streak-card">
-          {data.streak > 0
-            ? <>You logged meals {data.streak} day{data.streak === 1 ? '' : 's'} in a row 🔥</>
-            : <>No streak yet. Log today’s meals to start one!</>}
+      {hasData && (
+        <div className="insights-ai-card">
+          <div className="insights-ai-card-header">
+            <div>
+              <h3>Daily Insight</h3>
+              <p>Personalized by Llama</p>
+            </div>
+            <button type="button" onClick={handleRefreshSummary} disabled={aiLoading}>
+              {aiLoading ? 'Refreshing...' : 'Refresh'}
+            </button>
+          </div>
+          <div className="insights-ai-card-body">
+            {aiLoading && <span>Generating summary...</span>}
+            {!aiLoading && aiSummary && (
+              <div className="insights-ai-summary">
+                {(() => {
+                  const parts = aiSummary
+                    .split(/(?<=\.)\s+/)
+                    .map((p) => p.trim())
+                    .filter(Boolean);
+                  const [lead = '', ...rest] = parts;
+                  const [second = '', ...remaining] = rest;
+                  const summary = lead || aiSummary;
+                  const interpretation = second || '';
+                  const actions = remaining.filter(Boolean).slice(0, 4);
+
+                  return (
+                    <>
+                      <div className="insights-ai-block">
+                        <h4>Highlights</h4>
+                        <p>{summary}</p>
+                      </div>
+                      {interpretation && (
+                        <div className="insights-ai-block">
+                          <h4>What it means</h4>
+                          <p>{interpretation}</p>
+                        </div>
+                      )}
+                      {actions.length > 0 && (
+                        <div className="insights-ai-block">
+                          <h4>Next steps</h4>
+                          <ul className="insights-ai-summary-list">
+                            {actions.map((line, idx) => (
+                              <li key={idx}>{line}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </>
+                  );
+                })()}
+              </div>
+            )}
+            {!aiLoading && !aiSummary && <span>No summary available yet.</span>}
+          </div>
         </div>
       )}
 
@@ -276,9 +376,21 @@ const Insights = () => {
             </div>
           </div>
           {trendView === 'pie' ? (
-            <InsightsMacroPie
-              day={data?.days?.find(day => day.date === selectedMacroDay)}
-            />
+            <>
+              <InsightsMacroPie
+                day={data?.days?.find(day => day.date === selectedMacroDay)}
+              />
+              <div className="insights-trend-summary">
+                <div className="insights-trend-stat">
+                  <span className="insights-trend-label">Macro balance</span>
+                  <strong>{selectedMacroDay ? `For ${selectedMacroDay}` : 'Select a day'}</strong>
+                </div>
+                <div className="insights-trend-stat">
+                  <span className="insights-trend-label">Tip</span>
+                  <strong>Protein, carbs, and fat shown for this day.</strong>
+                </div>
+              </div>
+            </>
           ) : (
             <>
               <InsightsTrendChart
@@ -314,15 +426,6 @@ const Insights = () => {
         </div>
       )}
 
-      {data?.meals && data.meals.length > 0 && (
-        <section className="insights-table-section">
-          <div className="insights-table-header">
-            <h2>Meal History</h2>
-            <p>Review every meal you logged in this range with full nutrition details.</p>
-          </div>
-          <InsightsMealTable meals={data.meals} />
-        </section>
-      )}
     </div>
   );
 };

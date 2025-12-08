@@ -2,16 +2,18 @@ import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import NotificationBell from '../components/NotificationBell';
-import { getFriendRequests } from '../services/socialService';
+import { getFriendRequests, getNotifications } from '../services/socialService';
 
 jest.mock('../services/socialService', () => ({
   getFriendRequests: jest.fn(),
+  getNotifications: jest.fn(),
 }));
 
 jest.mock('../context/AuthContext', () => ({
   useAuth: () => ({
     accessToken: 'test-token',
     isAuthenticated: true,
+    user: { uid: 'user-123' },
   }),
 }));
 
@@ -34,6 +36,9 @@ describe('NotificationBell', () => {
           toUserId: 'user-123',
         },
       ],
+    });
+    getNotifications.mockResolvedValue({
+      notifications: [],
     });
   });
 

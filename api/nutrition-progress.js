@@ -20,6 +20,8 @@ const getDb = () => admin.firestore();
 const USERS_COLLECTION = 'users';
 const MEALS_SUBCOLLECTION = 'meals';
 const NUTRITION_PLANS_SUBCOLLECTION = 'nutritionPlans';
+const HF_CHAT_URL = 'https://router.huggingface.co/v1/chat/completions';
+const HF_MODEL = process.env.HF_MODEL || 'meta-llama/Llama-3.2-3B-Instruct';
 
 const createErrorResponse = (errorCode, message) => {
   return { error: { code: errorCode, message: message } };
@@ -257,6 +259,113 @@ const buildCallToAction = (day, metrics) => {
     message,
     macros: macroNames,
   };
+};
+
+const buildRangeProgressPayload = async (userId, start, end) => {
+  const activePlan = await getActiveNutritionPlan(userId);
+
+  if (!activePlan) {
+    return {
+      hasActivePlan: false,
+      message: 'No active nutrition plan found',
+    };
+  }
+
+  const { dailySummaries, meals } = await getMealLogsInRange(userId, start, end);
+
+  const metrics = activePlan.metrics || {};
+
+  const metricMetadata = {};
+  Object.entries(metrics).forEach(([key, metric]) => {
+    metricMetadata[key] = {
+      unit: metric.unit,
+      target: metric.target,
+      displayName: getMetricDisplayName(key),
+    };
+  });
+
+  const days = dailySummaries.map(summary => {
+    const consumed = {
+      calories: parseNutrient(summary.totals.calories),
+      protein: parseNutrient(summary.totals.protein),
+      totalFat: parseNutrient(summary.totals.totalFat || summary.totals.fat),
+      saturatedFat: parseNutrient(summary.totals.saturatedFat),
+      totalCarbs: parseNutrient(summary.totals.totalCarbs || summary.totals.totalCarb || summary.totals.carbs),
+      fiber: parseNutrient(summary.totals.dietaryFiber),
+      sugars: parseNutrient(summary.totals.sugars),
+      sodium: parseNutrient(summary.totals.sodium),
+    };
+
+    const progress = buildProgress(consumed, metrics);
+
+    return {
+      date: summary.date,
+      mealCount: summary.mealCount,
+      totalsFormatted: summary.totals,
+      totalsNumeric: consumed,
+      progress,
+      callToAction: buildCallToAction(
+        { mealCount: summary.mealCount, progress },
+        metricMetadata
+      ),
+    };
+  });
+
+  const trend = computeTrendData(days, metrics);
+  const streak = computeStreak(dailySummaries, start, end);
+
+  return {
+    hasActivePlan: true,
+    planName: activePlan.presetName || 'Custom Plan',
+    planId: activePlan.id,
+    range: {
+      start,
+      end,
+    },
+    days,
+    meals,
+    trend,
+    streak,
+  };
+};
+
+const buildAiSummaryPrompt = (progress) => {
+  if (!progress?.hasActivePlan) {
+    return 'No active nutrition plan.';
+  }
+
+  const { planName, range, trend, streak, days } = progress;
+  const mealCount = days?.reduce((sum, d) => sum + (d.mealCount || 0), 0) || 0;
+  const avgMealsPerDay = days?.length ? (mealCount / days.length).toFixed(1) : '0';
+
+  const parts = [];
+  parts.push(`You are a supportive nutrition coach. Using the structured data below, write a ~100 word summary covering:`);
+  parts.push(`1) Key Wins - strongest metric or positive consistency pattern.`);
+  parts.push(`2) Meaningful Trends - only trends with clear direction; highlight the most important 1–2 changes (improved or slipped in the last half).`);
+  parts.push(`3) Eating Patterns - useful patterns from meal frequency or recent meal counts.`);
+  parts.push(`4) Actionable Advice - one realistic suggestion that matches the user's habits.`);
+  parts.push(`Avoid repeating raw numbers. Be encouraging, matter-of-fact, and concise.`);
+  parts.push(`Plan: ${planName}. Date range: ${range.start} to ${range.end}. Streak: ${streak} day(s).`);
+  parts.push(`Meal count: ${mealCount} total, avg ${avgMealsPerDay} per day.`);
+
+  if (trend?.metrics) {
+    const lines = Object.entries(trend.metrics).map(([key, metric]) => {
+      return `${key}: avg/day ${metric.averagePerDay.toFixed(1)}, avg/meal ${metric.averagePerMeal.toFixed(1)}, change_per_meal ${metric.changePerMealPercent.toFixed(1)}% (${metric.direction}).`;
+    });
+    parts.push(`Metrics: ${lines.join(' ')}`);
+  }
+
+  if (trend?.narratives?.length) {
+    parts.push(`Insights: ${trend.narratives.map(n => `${n.metric}: ${n.message}`).join(' | ')}`);
+  }
+
+  const recentMeals = days?.slice(-3).map(d => `${d.date}: ${d.mealCount} meals`).join(' | ');
+  if (recentMeals) {
+    parts.push(`Recent meal counts: ${recentMeals}`);
+  }
+
+  parts.push(`Give a concise summary plus 1–2 actionable suggestions. Avoid emojis, keep tone supportive.`);
+  return parts.join('\n');
 };
 
 // Get active nutrition plan
@@ -549,70 +658,64 @@ module.exports = async (req, res) => {
         return res.status(400).json(createErrorResponse('INVALID_REQUEST', 'start date must be on or before end date'));
       }
 
-      const activePlan = await getActiveNutritionPlan(userId);
+      const payload = await buildRangeProgressPayload(userId, start, end);
+      return res.json(payload);
+    }
 
-      if (!activePlan) {
+    // Route: GET /api/nutrition-progress/range/ai-summary
+    if (req.method === 'GET' && path === '/range/ai-summary') {
+      const { start, end } = req.query;
+
+      if (!start || !end) {
+        return res.status(400).json(createErrorResponse('INVALID_REQUEST', 'start and end query parameters are required'));
+      }
+
+      if (start > end) {
+        return res.status(400).json(createErrorResponse('INVALID_REQUEST', 'start date must be on or before end date'));
+      }
+
+      if (!process.env.HF_TOKEN) {
+        return res.status(503).json(createErrorResponse('UNAVAILABLE', 'AI summary is not configured'));
+      }
+
+      const progress = await buildRangeProgressPayload(userId, start, end);
+
+      if (!progress.hasActivePlan) {
         return res.json({
           hasActivePlan: false,
           message: 'No active nutrition plan found',
         });
       }
 
-      const { dailySummaries, meals } = await getMealLogsInRange(userId, start, end);
+      const prompt = buildAiSummaryPrompt(progress);
 
-      const metrics = activePlan.metrics || {};
-
-      const metricMetadata = {};
-      Object.entries(metrics).forEach(([key, metric]) => {
-        metricMetadata[key] = {
-          unit: metric.unit,
-          target: metric.target,
-          displayName: getMetricDisplayName(key),
-        };
+      const hfResponse = await fetch(HF_CHAT_URL, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${process.env.HF_TOKEN}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: HF_MODEL,
+          messages: [{ role: 'user', content: prompt }],
+          stream: false,
+          max_tokens: 240,
+          temperature: 0.4,
+        }),
       });
 
-      const days = dailySummaries.map(summary => {
-        const consumed = {
-          calories: parseNutrient(summary.totals.calories),
-          protein: parseNutrient(summary.totals.protein),
-          totalFat: parseNutrient(summary.totals.totalFat || summary.totals.fat),
-          saturatedFat: parseNutrient(summary.totals.saturatedFat),
-          totalCarbs: parseNutrient(summary.totals.totalCarbs || summary.totals.totalCarb || summary.totals.carbs),
-          fiber: parseNutrient(summary.totals.dietaryFiber),
-          sugars: parseNutrient(summary.totals.sugars),
-          sodium: parseNutrient(summary.totals.sodium),
-        };
+      if (!hfResponse.ok) {
+        const errText = await hfResponse.text();
+        console.error('HF API error:', hfResponse.status, errText);
+        return res.status(502).json(createErrorResponse('UPSTREAM', 'Failed to generate AI summary'));
+      }
 
-        const progress = buildProgress(consumed, metrics);
-
-        return {
-          date: summary.date,
-          mealCount: summary.mealCount,
-          totalsFormatted: summary.totals,
-          totalsNumeric: consumed,
-          progress,
-          callToAction: buildCallToAction(
-            { mealCount: summary.mealCount, progress },
-            metricMetadata
-          ),
-        };
-      });
-
-      const trend = computeTrendData(days, metrics);
-      const streak = computeStreak(dailySummaries, start, end);
+      const hfData = await hfResponse.json();
+      const aiContent = hfData?.choices?.[0]?.message?.content?.trim();
 
       return res.json({
-        hasActivePlan: true,
-        planName: activePlan.presetName || 'Custom Plan',
-        planId: activePlan.id,
-        range: {
-          start,
-          end,
-        },
-        days,
-        meals,
-        trend,
-        streak,
+        summary: aiContent || 'No summary available.',
+        model: HF_MODEL,
       });
     }
 
@@ -628,4 +731,3 @@ module.exports = async (req, res) => {
     return res.status(500).json(createErrorResponse('ERROR', error.message || 'Failed to process request.'));
   }
 };
-

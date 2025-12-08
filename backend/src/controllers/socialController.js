@@ -895,6 +895,23 @@ const addComment = async (req, res) => {
   }
 };
 
+/**
+ * GET /api/social/notifications
+ * Get notifications for current user
+ */
+const getNotifications = async (req, res) => {
+  try {
+    const userId = req.user.uid;
+    const notifications = await friendService.getNotifications(userId);
+    return res.status(200).json({ notifications });
+  } catch (error) {
+    console.error('Get notifications error:', error);
+    return res.status(500).json(
+      createErrorResponse('INTERNAL', 'Failed to get notifications')
+    );
+  }
+};
+
 module.exports = {
   sendFriendRequest,
   acceptFriendRequest,
@@ -922,5 +939,5 @@ module.exports = {
   getFollowedDiningHalls,
   searchUsers,
   searchLocations,
+  getNotifications,
 };
-
