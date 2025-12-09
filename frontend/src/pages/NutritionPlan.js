@@ -472,6 +472,21 @@ const NutritionPlan = () => {
     }));
   };
 
+  // Maximum allowed values for nutrition metrics (reasonable upper bounds)
+  const maxAllowedValues = {
+    calories: 10000,
+    caloriesFromFat: 5000,
+    protein: 500,
+    totalCarbs: 1000,
+    totalFat: 300,
+    saturatedFat: 100,
+    transFat: 20,
+    fiber: 100,
+    sugars: 500,
+    cholesterol: 1000,
+    sodium: 10000,
+  };
+
   const handleMetricChange = (metricId, field, value) => {
     // For number inputs, handle empty string and preserve "0"
     let processedValue = value;
@@ -479,6 +494,13 @@ const NutritionPlan = () => {
       processedValue = ''; // Allow empty string
     } else if (field === 'target' && value === '0') {
       processedValue = '0'; // Preserve "0" as string
+    } else if (field === 'target') {
+      // Clamp to maximum allowed value if defined
+      const numValue = parseFloat(value);
+      const maxValue = maxAllowedValues[metricId];
+      if (!isNaN(numValue) && maxValue && numValue > maxValue) {
+        processedValue = maxValue.toString();
+      }
     }
     
     setMetrics(prev => ({
