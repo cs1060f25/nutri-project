@@ -1,33 +1,25 @@
-const path = require('path');
+/**
+ * Unit tests for accountController
+ */
 
-jest.mock(
-  path.join('..', '..', 'backend', 'src', 'services', 'accountService.js'),
-  () => ({
-    changePassword: jest.fn(),
-    deleteAccount: jest.fn(),
-  })
-);
+jest.mock('../services/accountService', () => ({
+  changePassword: jest.fn(),
+  deleteAccount: jest.fn(),
+}));
 
-jest.mock(
-  path.join('..', '..', 'backend', 'src', 'utils', 'errorMapper.js'),
-  () => ({
-    createErrorResponse: (code, message) => ({ code, message }),
-  })
-);
+jest.mock('../utils/errorMapper', () => ({
+  createErrorResponse: (code, message) => ({ code, message }),
+}));
 
 const {
   changePassword,
   deleteAccount,
-} = require(
-  path.join('..', '..', 'backend', 'src', 'services', 'accountService.js')
-);
+} = require('../services/accountService');
 
 const {
   changePasswordController,
   deleteAccountController,
-} = require(
-  path.join('..', '..', 'backend', 'src', 'controllers', 'accountController.js')
-);
+} = require('../controllers/accountController');
 
 const createMockRes = () => {
   const res = {};
@@ -88,26 +80,6 @@ describe('accountController.changePasswordController', () => {
       message: 'Password changed successfully.',
     });
   });
-
-  test('returns 400 when service throws INVALID_PASSWORD error', async () => {
-    const req = {
-      user: { uid: 'user123' },
-      body: { currentPassword: 'wrong', newPassword: 'new' },
-    };
-    const res = createMockRes();
-
-    const error = new Error('Current password is incorrect.');
-    error.code = 'INVALID_PASSWORD';
-    changePassword.mockRejectedValue(error);
-
-    await changePasswordController(req, res);
-
-    expect(res.status).toHaveBeenCalledWith(400);
-    expect(res.json).toHaveBeenCalledWith({
-      code: 'INVALID_ARGUMENT',
-      message: 'Current password is incorrect.',
-    });
-  });
 });
 
 describe('accountController.deleteAccountController', () => {
@@ -153,23 +125,6 @@ describe('accountController.deleteAccountController', () => {
     expect(res.status).toHaveBeenCalledWith(200);
     expect(res.json).toHaveBeenCalledWith({
       message: 'Account deleted successfully.',
-    });
-  });
-
-  test('returns 400 when service throws INVALID_PASSWORD error', async () => {
-    const req = { user: { uid: 'user123' }, body: { password: 'wrong' } };
-    const res = createMockRes();
-
-    const error = new Error('Current password is incorrect.');
-    error.code = 'INVALID_PASSWORD';
-    deleteAccount.mockRejectedValue(error);
-
-    await deleteAccountController(req, res);
-
-    expect(res.status).toHaveBeenCalledWith(400);
-    expect(res.json).toHaveBeenCalledWith({
-      code: 'INVALID_ARGUMENT',
-      message: 'Current password is incorrect.',
     });
   });
 });

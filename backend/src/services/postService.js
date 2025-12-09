@@ -10,6 +10,82 @@ const USERS_COLLECTION = 'users';
 const getDb = () => admin.firestore();
 
 /**
+ * Utility functions for post operations
+ * These are pure functions that can be tested independently
+ */
+
+/**
+ * Normalize house name (adds "House" suffix if missing)
+ * @param {string} houseName - The house name to normalize
+ * @returns {string} - Normalized house name
+ */
+const normalizeHouseName = (houseName) => {
+  if (!houseName || typeof houseName !== 'string') {
+    return houseName;
+  }
+  const trimmed = houseName.trim();
+  if (!trimmed) return trimmed;
+  
+  const baseName = trimmed.replace(/\s+House\s*$/i, '').trim();
+  const ALL_HOUSES = [
+    'Pforzheimer', 'Cabot', 'Currier', 'Kirkland', 'Leverett', 'Lowell',
+    'Eliot', 'Adams', 'Mather', 'Dunster', 'Winthrop', 'Quincy'
+  ];
+  const isHouse = ALL_HOUSES.some(base => 
+    base.toLowerCase() === baseName.toLowerCase()
+  );
+  if (isHouse && !trimmed.endsWith('House')) {
+    return `${trimmed} House`;
+  }
+  return trimmed;
+};
+
+/**
+ * Calculate upvote count from upvotes array
+ * @param {Array} upvotes - Array of user IDs who upvoted
+ * @returns {number} - Count of upvotes
+ */
+const calculateUpvoteCount = (upvotes) => {
+  if (!upvotes) return 0;
+  return Array.isArray(upvotes) ? upvotes.length : 0;
+};
+
+/**
+ * Sort posts by upvotes (descending), then by date (descending)
+ * @param {Array} posts - Array of post objects
+ * @returns {Array} - Sorted array (does not mutate original)
+ */
+const sortPostsByPopularity = (posts) => {
+  return [...posts].sort((a, b) => {
+    const aUpvotes = calculateUpvoteCount(a.upvotes);
+    const bUpvotes = calculateUpvoteCount(b.upvotes);
+    
+    if (aUpvotes !== bUpvotes) {
+      return bUpvotes - aUpvotes; // More upvotes first
+    }
+    
+    // Tiebreaker: most recent first
+    const aTime = a.createdAt || a.timestamp || new Date(0);
+    const bTime = b.createdAt || b.timestamp || new Date(0);
+    return bTime - aTime;
+  });
+};
+
+/**
+ * Filter posts by meal type (case-insensitive)
+ * @param {Array} posts - Array of post objects
+ * @param {string} mealType - Meal type to filter by
+ * @returns {Array} - Filtered array
+ */
+const filterPostsByMealType = (posts, mealType) => {
+  if (!mealType) return posts;
+  return posts.filter(post => {
+    if (!post.mealType) return false;
+    return post.mealType.toLowerCase() === mealType.toLowerCase();
+  });
+};
+
+/**
  * Create a post from a meal
  */
 const createPost = async (userId, mealId, mealData, isPublic = true, displayOptions = null) => {
@@ -494,22 +570,7 @@ const getFeedPosts = async (userId, limit = 50) => {
 const getDiningHallFeedPosts = async (userId, limit = 50) => {
   const db = getDb();
 
-  // Normalize location name helper (same as getPostsByLocationName)
-  const normalizeHouseName = (houseName) => {
-    const trimmed = houseName.trim();
-    const baseName = trimmed.replace(/\s+House\s*$/i, '').trim();
-    const ALL_HOUSES = [
-      'Pforzheimer', 'Cabot', 'Currier', 'Kirkland', 'Leverett', 'Lowell',
-      'Eliot', 'Adams', 'Mather', 'Dunster', 'Winthrop', 'Quincy'
-    ];
-    const isHouse = ALL_HOUSES.some(base => 
-      base.toLowerCase() === baseName.toLowerCase()
-    );
-    if (isHouse && !trimmed.endsWith('House')) {
-      return `${trimmed} House`;
-    }
-    return trimmed;
-  };
+  // Use the exported normalizeHouseName function
 
   // Get user's followed dining halls
   const { getFollowedDiningHalls } = require('./diningHallFollowService');
@@ -629,8 +690,7 @@ const getPopularPosts = async (limit = 50, options = {}) => {
       return; // Skip this post
     }
     
-    const upvotes = postData.upvotes || [];
-    const upvoteCount = Array.isArray(upvotes) ? upvotes.length : 0;
+    const upvoteCount = calculateUpvoteCount(postData.upvotes);
     
     posts.push({
       id: doc.id,
@@ -644,19 +704,7 @@ const getPopularPosts = async (limit = 50, options = {}) => {
   });
 
   // Sort by upvote count (descending), then by creation date (descending) as tiebreaker
-  posts.sort((a, b) => {
-    const aUpvotes = a.upvoteCount || 0;
-    const bUpvotes = b.upvoteCount || 0;
-    
-    if (aUpvotes !== bUpvotes) {
-      return bUpvotes - aUpvotes; // More upvotes first
-    }
-    
-    // Tiebreaker: most recent first
-    const aTime = a.createdAt || a.timestamp || new Date(0);
-    const bTime = b.createdAt || b.timestamp || new Date(0);
-    return bTime - aTime;
-  });
+  posts = sortPostsByPopularity(posts);
 
   // Return limited results
   return posts.slice(0, limit);
@@ -1130,5 +1178,10 @@ module.exports = {
   toggleDownvote,
   getComments,
   addComment,
+  // Export utility functions for testing
+  normalizeHouseName,
+  calculateUpvoteCount,
+  sortPostsByPopularity,
+  filterPostsByMealType,
 };
 

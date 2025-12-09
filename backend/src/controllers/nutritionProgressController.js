@@ -378,4 +378,8 @@ const getRangeProgress = async (req, res) => {
 module.exports = {
   getTodayProgress,
   getRangeProgress,
+  // Export utility functions for testing
+  buildProgress,
+  computeStreak,
+  parseNutrient,
 };

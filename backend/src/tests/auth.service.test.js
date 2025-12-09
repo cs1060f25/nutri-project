@@ -23,22 +23,57 @@ jest.mock('axios');
 const mockCreateUser = jest.fn();
 const mockSetCustomUserClaims = jest.fn();
 const mockGetUser = jest.fn();
+const mockGetUserByEmail = jest.fn();
 const mockVerifyIdToken = jest.fn();
 const mockRevokeRefreshTokens = jest.fn();
 const mockGeneratePasswordResetLink = jest.fn();
 
-jest.mock('../config/firebase', () => ({
-  admin: {
-    auth: () => ({
-      createUser: mockCreateUser,
-      setCustomUserClaims: mockSetCustomUserClaims,
-      getUser: mockGetUser,
-      verifyIdToken: mockVerifyIdToken,
-      revokeRefreshTokens: mockRevokeRefreshTokens,
-      generatePasswordResetLink: mockGeneratePasswordResetLink,
-    }),
-  },
-  FIREBASE_WEB_API_KEY: 'test-api-key',
+jest.mock('../config/firebase', () => {
+  // Create Firestore mocks inside the factory to avoid hoisting issues
+  const mockCollectionFn = jest.fn();
+  const mockDocFn = jest.fn();
+  const mockDocSetFn = jest.fn();
+  
+  // Setup the chain: collection().doc().set()
+  mockDocFn.mockReturnValue({ set: mockDocSetFn });
+  mockCollectionFn.mockReturnValue({ doc: mockDocFn });
+  mockDocSetFn.mockResolvedValue();
+  
+  const mockFirestoreInstance = {
+    collection: mockCollectionFn,
+  };
+  
+  // Create firestore function that also has FieldValue property
+  const mockFirestoreFn = () => mockFirestoreInstance;
+  mockFirestoreFn.FieldValue = {
+    serverTimestamp: () => ({ _methodName: 'serverTimestamp' }),
+  };
+  
+  return {
+    admin: {
+      auth: () => ({
+        createUser: mockCreateUser,
+        setCustomUserClaims: mockSetCustomUserClaims,
+        getUser: mockGetUser,
+        getUserByEmail: mockGetUserByEmail,
+        verifyIdToken: mockVerifyIdToken,
+        revokeRefreshTokens: mockRevokeRefreshTokens,
+        generatePasswordResetLink: mockGeneratePasswordResetLink,
+      }),
+      firestore: mockFirestoreFn,
+    },
+    FIREBASE_WEB_API_KEY: 'test-api-key',
+  };
+});
+
+const mockSendPasswordResetEmail = jest.fn();
+jest.mock('../services/emailService', () => ({
+  sendPasswordResetEmail: (...args) => mockSendPasswordResetEmail(...args),
+}));
+
+const mockCreateUserProfile = jest.fn();
+jest.mock('../services/userProfileService', () => ({
+  createUserProfile: (...args) => mockCreateUserProfile(...args),
 }));
 
 const { admin } = require('../config/firebase');
@@ -204,7 +239,7 @@ describe('Auth Controller', () => {
   describe('register', () => {
     it('should successfully register a new user', async () => {
       mockReq.body = {
-        email: 'newuser@example.com',
+        email: 'newuser@college.harvard.edu',
         password: 'password123',
         firstName: 'John',
         lastName: 'Doe',
@@ -213,12 +248,13 @@ describe('Auth Controller', () => {
 
       const mockUserRecord = {
         uid: 'test-uid',
-        email: 'newuser@example.com',
+        email: 'newuser@college.harvard.edu',
         displayName: 'John Doe',
       };
 
       mockCreateUser.mockResolvedValue(mockUserRecord);
       mockSetCustomUserClaims.mockResolvedValue();
+      mockCreateUserProfile.mockResolvedValue();
 
       await register(mockReq, mockRes);
 
@@ -226,7 +262,7 @@ describe('Auth Controller', () => {
       expect(mockRes.json).toHaveBeenCalledWith({
         user: expect.objectContaining({
           id: 'test-uid',
-          email: 'newuser@example.com',
+          email: 'newuser@college.harvard.edu',
           firstName: 'John',
           lastName: 'Doe',
         }),
@@ -254,7 +290,7 @@ describe('Auth Controller', () => {
 
     it('should return 409 when email already exists', async () => {
       mockReq.body = {
-        email: 'existing@example.com',
+        email: 'existing@college.harvard.edu',
         password: 'password123',
         firstName: 'John',
         lastName: 'Doe',
@@ -280,7 +316,7 @@ describe('Auth Controller', () => {
   describe('login', () => {
     it('should successfully login with valid credentials', async () => {
       mockReq.body = {
-        email: 'test@example.com',
+        email: 'test@college.harvard.edu',
         password: 'password123',
       };
 
@@ -292,7 +328,7 @@ describe('Auth Controller', () => {
 
       const mockUserRecord = {
         uid: 'test-uid',
-        email: 'test@example.com',
+        email: 'test@college.harvard.edu',
         displayName: 'Test User',
         customClaims: {
           firstName: 'Test',
@@ -312,7 +348,7 @@ describe('Auth Controller', () => {
         accessToken: 'test-id-token',
         refreshToken: 'test-refresh-token',
         user: expect.objectContaining({
-          email: 'test@example.com',
+          email: 'test@college.harvard.edu',
           firstName: 'Test',
         }),
       });
@@ -320,7 +356,7 @@ describe('Auth Controller', () => {
 
     it('should return 401 for invalid credentials', async () => {
       mockReq.body = {
-        email: 'test@example.com',
+        email: 'test@college.harvard.edu',
         password: 'wrongpassword',
       };
 
@@ -400,7 +436,7 @@ describe('Auth Controller', () => {
 
       const mockUserRecord = {
         uid: 'test-uid',
-        email: 'test@example.com',
+        email: 'test@college.harvard.edu',
         displayName: 'Test User',
         customClaims: {
           firstName: 'Test',
@@ -417,7 +453,7 @@ describe('Auth Controller', () => {
       expect(mockRes.status).toHaveBeenCalledWith(200);
       expect(mockRes.json).toHaveBeenCalledWith(
         expect.objectContaining({
-          email: 'test@example.com',
+          email: 'test@college.harvard.edu',
           firstName: 'Test',
         })
       );
@@ -425,17 +461,25 @@ describe('Auth Controller', () => {
   });
 
   describe('resetPassword', () => {
+    beforeEach(() => {
+      jest.clearAllMocks();
+      mockSendPasswordResetEmail.mockResolvedValue({ sent: true });
+      mockGetUserByEmail.mockResolvedValue({
+        uid: 'test-uid',
+        email: 'test@college.harvard.edu',
+      });
+    });
+
     it('should successfully generate password reset link', async () => {
       mockReq.body = {
-        email: 'test@example.com',
+        email: 'test@college.harvard.edu',
       };
-
-      const mockResetLink = 'https://example.com/reset?token=abc123';
-      mockGeneratePasswordResetLink.mockResolvedValue(mockResetLink);
 
       await resetPassword(mockReq, mockRes);
 
-      expect(mockGeneratePasswordResetLink).toHaveBeenCalledWith('test@example.com');
+      expect(mockGetUserByEmail).toHaveBeenCalledWith('test@college.harvard.edu');
+      // The Firestore mocks are set up inside jest.mock, so we just verify the email was sent
+      expect(mockSendPasswordResetEmail).toHaveBeenCalled();
       expect(mockRes.status).toHaveBeenCalledWith(200);
     });
 

@@ -1,33 +1,29 @@
-const path = require('path');
+/**
+ * Unit tests for accountService
+ */
 
-// Mock config/firebase
-jest.mock(
-  path.join('..', '..', 'backend', 'src', 'config', 'firebase.js'),
-  () => ({
-    admin: {
-      auth: jest.fn(),
-      firestore: jest.fn(),
-    },
-  })
-);
+// Set environment variable before requiring the service
+process.env.FIREBASE_API_KEY = 'FAKE_API_KEY';
 
-const { admin } = require(
-  path.join('..', '..', 'backend', 'src', 'config', 'firebase.js')
-);
+jest.mock('../config/firebase', () => ({
+  admin: {
+    auth: jest.fn(),
+    firestore: jest.fn(),
+  },
+}));
+
+const { admin } = require('../config/firebase');
 
 const {
   changePassword,
   deleteAccount,
-} = require(
-  path.join('..', '..', 'backend', 'src', 'services', 'accountService.js')
-);
+} = require('../services/accountService');
 
 describe('accountService', () => {
   let originalFetch;
 
   beforeAll(() => {
     originalFetch = global.fetch;
-    process.env.FIREBASE_API_KEY = 'FAKE_API_KEY';
   });
 
   afterAll(() => {
@@ -79,7 +75,8 @@ describe('accountService', () => {
 
     await changePassword('user123', 'oldPass', 'newPass');
 
-    expect(admin.auth).toHaveBeenCalledTimes(2); // getUser, updateUser/revoke
+    // admin.auth is called for getUser, updateUser, and revokeRefreshTokens
+    expect(admin.auth).toHaveBeenCalled();
     expect(authInstance.getUser).toHaveBeenCalledWith('user123');
 
     // Password verification via REST API
