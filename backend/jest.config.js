@@ -8,4 +8,5 @@ module.exports = {
     '!src/tests/**',
   ],
   verbose: true,
+  setupFilesAfterEnv: ['<rootDir>/src/tests/setup.js'],
 };

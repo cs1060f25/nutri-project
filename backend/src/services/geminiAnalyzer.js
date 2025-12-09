@@ -1,12 +1,117 @@
 /**
  * Service for analyzing meal images using Google Gemini API
+ * Implements API key rotation to maximize throughput while respecting rate limits
  */
 
 const axios = require('axios');
+const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent';
+const RPM_LIMIT = 10; // Requests per minute for Gemini 2.5 Flash
+const RPD_LIMIT = 20; // Requests per day for Gemini 2.5 Flash
+const SAFETY_BUFFER = 0.9; // Use 90% of limit to be safe
 
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-// Using stable model for better rate limits: 15 RPM, 200 RPD vs exp: 50 RPD
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
+/**
+ * API Key Rotation Manager
+ * Tracks usage per key and automatically rotates to avoid rate limits
+ */
+class ApiKeyManager {
+  constructor() {
+    this.keys = [
+      process.env.GEMINI_API_KEY_1,
+      process.env.GEMINI_API_KEY_2,
+      process.env.GEMINI_API_KEY_3,
+      process.env.GEMINI_API_KEY_4
+    ].filter(key => key && key.length > 0);
+
+    if (this.keys.length === 0) {
+      throw new Error('No Gemini API keys configured. Set GEMINI_API_KEY_1, GEMINI_API_KEY_2, GEMINI_API_KEY_3, and/or GEMINI_API_KEY_4');
+    }
+
+    this.keyUsage = this.keys.map(() => []);
+    this.currentKeyIndex = 0;
+
+    console.log(`Initialized Gemini API with ${this.keys.length} key(s)`);
+  }
+
+  /**
+   * Get the next available API key that hasn't hit rate limits
+   * @returns {Object} { key: string, index: number }
+   */
+  getNextKey() {
+    const now = Date.now();
+    const oneMinuteAgo = now - 60 * 1000;
+    const oneDayAgo = now - 24 * 60 * 60 * 1000;
+
+    this.keyUsage.forEach(usage => {
+      while (usage.length > 0 && usage[0] < oneDayAgo) {
+        usage.shift();
+      }
+    });
+
+    // Try each key starting from current index
+    for (let i = 0; i < this.keys.length; i++) {
+      const index = (this.currentKeyIndex + i) % this.keys.length;
+      const recentMinuteRequests = this.keyUsage[index].filter(t => t > oneMinuteAgo).length;
+      const recentDayRequests = this.keyUsage[index].length;
+
+      // Check if this key is under both rate limits (RPM and RPD)
+      if (recentMinuteRequests < Math.floor(RPM_LIMIT * SAFETY_BUFFER) && 
+          recentDayRequests < Math.floor(RPD_LIMIT * SAFETY_BUFFER)) {
+        this.currentKeyIndex = index;
+        return {
+          key: this.keys[index],
+          index: index
+        };
+      }
+    }
+
+    // All keys are at capacity - use the one with oldest request
+    const leastRecentIndex = this.keyUsage
+      .map((usage, idx) => ({ idx, oldestTime: usage[0] || 0 }))
+      .sort((a, b) => a.oldestTime - b.oldestTime)[0].idx;
+
+    this.currentKeyIndex = leastRecentIndex;
+    return {
+      key: this.keys[leastRecentIndex],
+      index: leastRecentIndex
+    };
+  }
+
+  /**
+   * Record a successful API request
+   * @param {number} keyIndex - Index of the key that was used
+   */
+  recordRequest(keyIndex) {
+    this.keyUsage[keyIndex].push(Date.now());
+  }
+
+  /**
+   * Get usage statistics for all keys
+   * @returns {Array} Usage stats per key
+   */
+  getStats() {
+    const now = Date.now();
+    const oneMinuteAgo = now - 60 * 1000;
+
+    return this.keys.map((key, idx) => {
+      const requestsLastMinute = this.keyUsage[idx].filter(t => t > oneMinuteAgo).length;
+      const requestsToday = this.keyUsage[idx].length;
+      const rpmCapacity = Math.floor(RPM_LIMIT * SAFETY_BUFFER);
+      const rpdCapacity = Math.floor(RPD_LIMIT * SAFETY_BUFFER);
+      return {
+        keyIndex: idx + 1,
+        keyPreview: `${key.substring(0, 8)}...${key.substring(key.length - 4)}`,
+        requestsLastMinute: requestsLastMinute,
+        requestsToday: requestsToday,
+        capacity: rpmCapacity,
+        dailyCapacity: rpdCapacity,
+        available: (requestsLastMinute < rpmCapacity) && (requestsToday < rpdCapacity)
+      };
+    });
+  }
+}
+
+// Initialize global key manager
+const keyManager = new ApiKeyManager();
 
 /**
  * Convert menu data to formatted text for Gemini with full nutrition info
@@ -56,9 +161,8 @@ const formatMenuText = (menuData) => {
  * @returns {Object} Parsed predictions with dish names and confidence scores
  */
 const analyzeMealImage = async (imageBuffer, menuData) => {
-  if (!GEMINI_API_KEY) {
-    throw new Error('GEMINI_API_KEY is not configured');
-  }
+  // Get next available API key
+  const { key: apiKey, index: keyIndex } = keyManager.getNextKey();
 
   // Convert image to base64
   const base64Image = imageBuffer.toString('base64');
@@ -87,7 +191,7 @@ If no valid dishes are detected, return [] with no additional commentary.`;
 
   try {
     const response = await axios.post(
-      `${GEMINI_API_URL}?key=${GEMINI_API_KEY}`,
+      `${GEMINI_API_URL}?key=${apiKey}`,
       {
         contents: [
           {
@@ -116,6 +220,9 @@ If no valid dishes are detected, return [] with no additional commentary.`;
       }
     );
 
+    // Record successful request
+    keyManager.recordRequest(keyIndex);
+
     // Extract text from Gemini response
     const candidate = response.data?.candidates?.[0];
     const content = candidate?.content?.parts?.[0]?.text;
@@ -123,6 +230,11 @@ If no valid dishes are detected, return [] with no additional commentary.`;
     if (!content) {
       throw new Error('No content returned from Gemini API');
     }
+
+    // Log key rotation stats (for monitoring)
+    const stats = keyManager.getStats();
+    const activeKey = stats[keyIndex];
+    console.log(`Gemini request succeeded [Key ${activeKey.keyIndex}: ${activeKey.requestsLastMinute}/${activeKey.capacity} RPM, ${activeKey.requestsToday}/${activeKey.dailyCapacity} RPD]`);
 
     // Parse JSON from response (Gemini sometimes wraps in markdown or adds prose)
     let jsonText = content.trim();
@@ -171,7 +283,11 @@ If no valid dishes are detected, return [] with no additional commentary.`;
     } else if (error.response?.status === 403) {
       throw new Error('API key is invalid or expired');
     } else if (error.response?.status === 429) {
-      throw new Error('⏰ Rate limit exceeded! Free tier: 15 requests/min. Wait 60 seconds and try again.');
+      // Rate limit hit - log and suggest retry
+      const stats = keyManager.getStats();
+      const availableKeys = stats.filter(s => s.available).length;
+      console.error(`Rate limit hit on key ${keyIndex + 1}. Available keys: ${availableKeys}/${stats.length}`);
+      throw new Error(`Rate limit exceeded on all ${stats.length} API key(s). Wait 60 seconds and try again.`);
     } else if (error.response?.status === 500) {
       throw new Error('Gemini API server error - try again in a moment');
     }
@@ -180,8 +296,17 @@ If no valid dishes are detected, return [] with no additional commentary.`;
   }
 };
 
+/**
+ * Get API key usage statistics (for monitoring/debugging)
+ * @returns {Array} Usage stats for all configured keys
+ */
+const getKeyStats = () => {
+  return keyManager.getStats();
+};
+
 module.exports = {
   analyzeMealImage,
-  formatMenuText
+  formatMenuText,
+  getKeyStats
 };
 

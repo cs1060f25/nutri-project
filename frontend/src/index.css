@@ -4,16 +4,204 @@
   box-sizing: border-box;
 }
 
+/* Light theme variables (default) */
+:root {
+  /* Primary colors */
+  --primary-color: #52b788;
+  --primary-hover: #40916c;
+  --primary-dark: #2d6a4f;
+  --primary-darker: #1b4332;
+  
+  /* Background colors */
+  --bg-gradient-start: #f1f8f4;
+  --bg-gradient-mid: #ffffff;
+  --bg-gradient-end: #f8fdf9;
+  --body-bg: #ffffff;
+  
+  /* Card colors */
+  --card-bg: #ffffff;
+  --card-bg-alt: #f8fdf9;
+  --card-hover-bg: #f1f8f4;
+  
+  /* Text colors */
+  --text-primary: #1b4332;
+  --text-secondary: #2d6a4f;
+  --text-tertiary: #52b788;
+  
+  /* Border colors */
+  --border-color: #e8f5e9;
+  --border-color-alt: #d8f3dc;
+  --border-color-hover: #95d5b2;
+  
+  /* Sidebar colors */
+  --sidebar-bg: #f0f9f4;
+  --sidebar-text: #1a5f3f;
+  --sidebar-border: #d1e7dd;
+  --sidebar-hover: #d8f0e3;
+  --sidebar-active: #c8e6d4;
+  
+  /* Shadow colors */
+  --shadow-color: rgba(40, 167, 69, 0.08);
+  --shadow-hover-color: rgba(40, 167, 69, 0.12);
+  
+  /* Input colors */
+  --input-bg: #f8fdf9;
+  --input-border: #d8f3dc;
+  
+  /* Badge colors */
+  --badge-bg: #d8f3dc;
+  --badge-text: #2d6a4f;
+  
+  /* Warning/Alert colors */
+  --warning-bg: #fef3c7;
+  --warning-border: #fde68a;
+  --warning-text: #f59e0b;
+
+  /* Surface + typography helpers */
+  --surface-soft: #f7fbf8;
+  --surface-elevated: #ffffff;
+  --surface-contrast: #fdfefc;
+  --surface-muted: #f0f8f4;
+  --surface-accent: #f4fbf7;
+  --text-muted: #5b7d6a;
+  --border-soft: #e0efe6;
+  --border-muted: #cfe4d7;
+  --pill-bg: #f6fbf8;
+
+  /* Selection colors */
+  --selection-bg: rgba(82, 183, 136, 0.25);
+  --selection-text: #0f172a;
+
+  /* Motion + depth */
+  --transition-fast: 150ms;
+  --transition-medium: 220ms;
+  --transition-slow: 400ms;
+  --easing-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --easing-emphasized: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --shadow-float: 0 15px 35px rgba(13, 61, 38, 0.18);
+}
+
+/* Dark theme variables */
+[data-theme="dark"] {
+  /* Primary colors */
+  --primary-color: #52b788;
+  --primary-hover: #6fcf97;
+  --primary-dark: #40916c;
+  --primary-darker: #2d6a4f;
+  
+  /* Background colors */
+  --bg-gradient-start: #1a1a1a;
+  --bg-gradient-mid: #242424;
+  --bg-gradient-end: #1e1e1e;
+  --body-bg: #1a1a1a;
+  
+  /* Card colors */
+  --card-bg: #242424;
+  --card-bg-alt: #2a2a2a;
+  --card-hover-bg: #2e2e2e;
+  
+  /* Text colors */
+  --text-primary: #e8f5e9;
+  --text-secondary: #b8d4be;
+  --text-tertiary: #52b788;
+  
+  /* Border colors */
+  --border-color: #3a3a3a;
+  --border-color-alt: #404040;
+  --border-color-hover: #52b788;
+  
+  /* Sidebar colors */
+  --sidebar-bg: #1e1e1e;
+  --sidebar-text: #b8d4be;
+  --sidebar-border: #3a3a3a;
+  --sidebar-hover: #2a2a2a;
+  --sidebar-active: #2d6a4f;
+  
+  /* Shadow colors */
+  --shadow-color: rgba(0, 0, 0, 0.3);
+  --shadow-hover-color: rgba(0, 0, 0, 0.5);
+  
+  /* Input colors */
+  --input-bg: #2a2a2a;
+  --input-border: #404040;
+  
+  /* Badge colors */
+  --badge-bg: #2d6a4f;
+  --badge-text: #b8d4be;
+  
+  /* Warning/Alert colors */
+  --warning-bg: #4a3800;
+  --warning-border: #6b5300;
+  --warning-text: #fbbf24;
+
+  /* Surface + typography helpers */
+  --surface-soft: #1f2623;
+  --surface-elevated: #232927;
+  --surface-contrast: #1a1f1d;
+  --surface-muted: #1d2320;
+  --surface-accent: #1f2a25;
+  --text-muted: #9fb7a8;
+  --border-soft: #2d3732;
+  --border-muted: #2a332e;
+  --pill-bg: #1c2421;
+
+  /* Selection colors */
+  --selection-bg: rgba(82, 183, 136, 0.45);
+  --selection-text: #f8fdf9;
+
+  /* Motion + depth */
+  --shadow-float: 0 18px 42px rgba(0, 0, 0, 0.45);
+}
+
+*::selection {
+  background: var(--selection-bg);
+  color: var(--selection-text);
+}
+
+*::-moz-selection {
+  background: var(--selection-bg);
+  color: var(--selection-text);
+}
+
+input::selection,
+textarea::selection,
+select::selection,
+.custom-select-trigger::selection {
+  background: var(--selection-bg);
+  color: var(--selection-text);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
     'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background-color: var(--body-bg);
+  color: var(--text-primary);
+  transition: background-color var(--transition-medium) var(--easing-standard),
+    color var(--transition-medium) var(--easing-standard);
 }
 
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
