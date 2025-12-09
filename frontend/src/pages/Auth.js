@@ -434,7 +434,7 @@ const Auth = () => {
       
       <div className="auth-card">
         <div className="auth-header">
-          <h1 className="auth-logo">HUDS Nutrition Analyzer</h1>
+          <h1 className="auth-logo">Harvard Eats</h1>
           <h2 className="auth-title">
             {isForgotPassword ? 'Reset Password' : isLogin ? 'Welcome Back' : registrationStep === 1 ? 'Welome to our app!' : 'Create Account'}
           </h2>
