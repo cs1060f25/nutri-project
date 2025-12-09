@@ -57,6 +57,7 @@ const metricDisplayNames = {
   fiber: 'Fiber',
   sugars: 'Sugars',
   sodium: 'Sodium',
+  cholesterol: 'Cholesterol',
 };
 
 const getMetricDisplayName = (key) => metricDisplayNames[key] || key;
@@ -633,6 +634,7 @@ module.exports = async (req, res) => {
         fiber: parseNutrient(dailySummary.dailyTotals.dietaryFiber),
         sugars: parseNutrient(dailySummary.dailyTotals.sugars),
         sodium: parseNutrient(dailySummary.dailyTotals.sodium),
+        cholesterol: parseNutrient(dailySummary.dailyTotals.cholesterol),
       };
 
       const progress = buildProgress(consumed, activePlan.metrics || {});

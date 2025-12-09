@@ -10,6 +10,117 @@ const MEAL_PLANS_COLLECTION = 'mealPlans';
 const getDb = () => admin.firestore();
 
 /**
+ * Utility functions for meal plan operations
+ * These are pure functions that can be tested independently
+ */
+
+/**
+ * Validate meal type
+ * @param {string} mealType - The meal type to validate
+ * @returns {boolean} - True if valid, false otherwise
+ */
+const validateMealType = (mealType) => {
+  const validMealTypes = ['breakfast', 'lunch', 'dinner'];
+  if (!mealType) return false;
+  return validMealTypes.includes(mealType.toLowerCase());
+};
+
+/**
+ * Sort meal plans by date first, then by meal type
+ * @param {Array} mealPlans - Array of meal plan objects
+ * @returns {Array} - Sorted array (does not mutate original)
+ */
+const sortMealPlans = (mealPlans) => {
+  return [...mealPlans].sort((a, b) => {
+    // Sort by date first
+    if (a.date !== b.date) {
+      return a.date.localeCompare(b.date);
+    }
+    // If dates are equal, sort by mealType
+    const mealTypeOrder = { breakfast: 1, lunch: 2, dinner: 3 };
+    const aOrder = mealTypeOrder[a.mealType] || 99;
+    const bOrder = mealTypeOrder[b.mealType] || 99;
+    return aOrder - bOrder;
+  });
+};
+
+/**
+ * Filter meal plans by date range
+ * @param {Array} mealPlans - Array of meal plan objects
+ * @param {string} startDate - Start date (YYYY-MM-DD)
+ * @param {string} endDate - End date (YYYY-MM-DD)
+ * @returns {Array} - Filtered array
+ */
+const filterMealPlansByDateRange = (mealPlans, startDate, endDate) => {
+  return mealPlans.filter(plan => {
+    const planDate = plan.date;
+    return planDate >= startDate && planDate <= endDate;
+  });
+};
+
+/**
+ * Validate meal plan data structure
+ * @param {Object} mealPlanData - The meal plan data to validate
+ * @returns {Object} - { isValid: boolean, errors: string[] }
+ */
+const validateMealPlanData = (mealPlanData) => {
+  const errors = [];
+  
+  if (!mealPlanData.date) {
+    errors.push('date is required');
+  }
+  
+  if (!mealPlanData.mealType) {
+    errors.push('mealType is required');
+  } else if (!validateMealType(mealPlanData.mealType)) {
+    errors.push('mealType must be breakfast, lunch, or dinner');
+  }
+  
+  if (!mealPlanData.locationId) {
+    errors.push('locationId is required');
+  }
+  
+  if (!mealPlanData.locationName) {
+    errors.push('locationName is required');
+  }
+  
+  if (!mealPlanData.selectedItems) {
+    errors.push('selectedItems is required');
+  } else if (!Array.isArray(mealPlanData.selectedItems)) {
+    errors.push('selectedItems must be an array');
+  }
+  
+  return {
+    isValid: errors.length === 0,
+    errors
+  };
+};
+
+/**
+ * Group meal plans by date
+ * @param {Array} mealPlans - Array of meal plan objects
+ * @returns {Object} - Object with dates as keys and arrays of plans as values
+ */
+const groupMealPlansByDate = (mealPlans) => {
+  const grouped = {};
+  
+  mealPlans.forEach(plan => {
+    const date = plan.date;
+    if (!grouped[date]) {
+      grouped[date] = [];
+    }
+    grouped[date].push(plan);
+  });
+  
+  // Sort each date's plans by meal type
+  Object.keys(grouped).forEach(date => {
+    grouped[date] = sortMealPlans(grouped[date]);
+  });
+  
+  return grouped;
+};
+
+/**
  * Create a new meal plan
  */
 const createMealPlan = async (userId, mealPlanData) => {
@@ -20,8 +131,7 @@ const createMealPlan = async (userId, mealPlanData) => {
   }
 
   // Validate mealType
-  const validMealTypes = ['breakfast', 'lunch', 'dinner'];
-  if (!validMealTypes.includes(mealType.toLowerCase())) {
+  if (!validateMealType(mealType)) {
     throw new Error('Invalid mealType. Must be breakfast, lunch, or dinner');
   }
 
@@ -83,22 +193,10 @@ const getMealPlans = async (userId, startDate, endDate) => {
     }));
     
     // Filter by date range in memory
-    mealPlans = mealPlans.filter(plan => {
-      const planDate = plan.date;
-      return planDate >= startDate && planDate <= endDate;
-    });
+    mealPlans = filterMealPlansByDateRange(mealPlans, startDate, endDate);
     
     // Sort by date first, then by mealType
-    mealPlans.sort((a, b) => {
-      if (a.date !== b.date) {
-        return a.date.localeCompare(b.date);
-      }
-      // If dates are equal, sort by mealType
-      const mealTypeOrder = { breakfast: 1, lunch: 2, dinner: 3 };
-      const aOrder = mealTypeOrder[a.mealType] || 99;
-      const bOrder = mealTypeOrder[b.mealType] || 99;
-      return aOrder - bOrder;
-    });
+    mealPlans = sortMealPlans(mealPlans);
     
     return mealPlans;
   } catch (error) {
@@ -180,5 +278,11 @@ module.exports = {
   getMealPlanById,
   updateMealPlan,
   deleteMealPlan,
+  // Export utility functions for testing
+  validateMealType,
+  sortMealPlans,
+  filterMealPlansByDateRange,
+  validateMealPlanData,
+  groupMealPlansByDate,
 };
 

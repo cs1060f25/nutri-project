@@ -92,20 +92,40 @@ const MealLogs = () => {
   };
 
   const getTotalNutrition = (items, logTotals) => {
+    const emptyTotals = {
+      calories: 0,
+      protein: 0,
+      carbs: 0,
+      fat: 0,
+      saturatedFat: 0,
+      cholesterol: 0,
+      sodium: 0,
+      sugars: 0,
+      dietaryFiber: 0,
+    };
+
     // Always calculate from items if available (items are the source of truth)
     if (items && items.length > 0) {
-      return items.reduce(
-        (totals, item) => {
-          const qty = item.quantity || 1;
-          return {
-            calories: totals.calories + parseNutrient(item.calories) * qty,
-            protein: totals.protein + parseNutrient(item.protein) * qty,
-            carbs: totals.carbs + parseNutrient(item.totalCarbs || item.totalCarb || item.carbs) * qty,
-            fat: totals.fat + parseNutrient(item.totalFat || item.fat) * qty,
-          };
-        },
-        { calories: 0, protein: 0, carbs: 0, fat: 0 }
-      );
+      return items.reduce((totals, item) => {
+        const qty = item.quantity || 1;
+        return {
+          calories: totals.calories + parseNutrient(item.calories) * qty,
+          protein: totals.protein + parseNutrient(item.protein) * qty,
+          carbs:
+            totals.carbs +
+            parseNutrient(item.totalCarbs || item.totalCarb || item.carbs) * qty,
+          fat: totals.fat + parseNutrient(item.totalFat || item.fat) * qty,
+          saturatedFat:
+            totals.saturatedFat + parseNutrient(item.saturatedFat) * qty,
+          cholesterol:
+            totals.cholesterol + parseNutrient(item.cholesterol) * qty,
+          sodium: totals.sodium + parseNutrient(item.sodium) * qty,
+          sugars: totals.sugars + parseNutrient(item.sugars) * qty,
+          dietaryFiber:
+            totals.dietaryFiber +
+            parseNutrient(item.dietaryFiber ?? item.fiber) * qty,
+        };
+      }, emptyTotals);
     }
 
     // Fallback to stored totals if items are not available
@@ -113,13 +133,20 @@ const MealLogs = () => {
       return {
         calories: parseNutrient(logTotals.calories),
         protein: parseNutrient(logTotals.protein),
-        carbs: parseNutrient(logTotals.totalCarbs || logTotals.totalCarb || logTotals.carbs),
+        carbs: parseNutrient(
+          logTotals.totalCarbs || logTotals.totalCarb || logTotals.carbs
+        ),
         fat: parseNutrient(logTotals.totalFat || logTotals.fat),
+        saturatedFat: parseNutrient(logTotals.saturatedFat),
+        cholesterol: parseNutrient(logTotals.cholesterol),
+        sodium: parseNutrient(logTotals.sodium),
+        sugars: parseNutrient(logTotals.sugars),
+        dietaryFiber: parseNutrient(logTotals.dietaryFiber || logTotals.fiber),
       };
     }
 
     // Default to zeros if nothing is available
-    return { calories: 0, protein: 0, carbs: 0, fat: 0 };
+    return emptyTotals;
   };
 
   return (
@@ -203,6 +230,27 @@ const MealLogs = () => {
         <div className="meal-logs-list">
           {logs.map((log) => {
             const totals = getTotalNutrition(log.items || [], log.totals);
+            const formatStatValue = (value, unit = '') => {
+              if (value === undefined || value === null || Number.isNaN(value)) {
+                return `0${unit}`;
+              }
+              return `${Math.round(value)}${unit}`;
+            };
+
+            const macroStats = [
+              { label: 'Calories', value: formatStatValue(totals.calories) },
+              { label: 'Protein', value: formatStatValue(totals.protein, 'g') },
+              { label: 'Carbs', value: formatStatValue(totals.carbs, 'g') },
+              { label: 'Fat', value: formatStatValue(totals.fat, 'g') },
+            ];
+
+            const detailStats = [
+              { label: 'Saturated Fat', value: formatStatValue(totals.saturatedFat, 'g') },
+              { label: 'Cholesterol', value: formatStatValue(totals.cholesterol, 'mg') },
+              { label: 'Sodium', value: formatStatValue(totals.sodium, 'mg') },
+              { label: 'Sugars', value: formatStatValue(totals.sugars, 'g') },
+              { label: 'Fiber', value: formatStatValue(totals.dietaryFiber, 'g') },
+            ];
             return (
               <div key={log.id} className="meal-log-card">
                 <div className="meal-log-header">
@@ -270,22 +318,21 @@ const MealLogs = () => {
                 )}
 
                 <div className="meal-log-nutrition">
-                  <div className="nutrition-stat">
-                    <span className="nutrition-label">Calories</span>
-                    <span className="nutrition-value">{Math.round(totals.calories)}</span>
-                  </div>
-                  <div className="nutrition-stat">
-                    <span className="nutrition-label">Protein</span>
-                    <span className="nutrition-value">{Math.round(totals.protein)}g</span>
-                  </div>
-                  <div className="nutrition-stat">
-                    <span className="nutrition-label">Carbs</span>
-                    <span className="nutrition-value">{Math.round(totals.carbs)}g</span>
-                  </div>
-                  <div className="nutrition-stat">
-                    <span className="nutrition-label">Fat</span>
-                    <span className="nutrition-value">{Math.round(totals.fat)}g</span>
-                  </div>
+                  {macroStats.map((stat) => (
+                    <div key={stat.label} className="nutrition-stat">
+                      <span className="nutrition-label">{stat.label}</span>
+                      <span className="nutrition-value">{stat.value}</span>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="meal-log-nutrition micro">
+                  {detailStats.map((stat) => (
+                    <div key={stat.label} className="nutrition-stat">
+                      <span className="nutrition-label">{stat.label}</span>
+                      <span className="nutrition-value">{stat.value}</span>
+                    </div>
+                  ))}
                 </div>
 
                 {log.items && log.items.length > 0 && (

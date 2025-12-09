@@ -3,9 +3,34 @@
  */
 
 // Mock Firebase Admin before imports
+const mockAdd = jest.fn();
+const mockGet = jest.fn();
+const mockWhere = jest.fn();
+const mockOrderBy = jest.fn();
+const mockLimit = jest.fn();
+const mockSubCollection = jest.fn();
+const mockDoc = jest.fn();
+const mockCollection = jest.fn();
+
 jest.mock('../config/firebase', () => {
+  // Setup the chain: collection().doc().collection().add()
+  mockSubCollection.add = mockAdd;
+  mockSubCollection.where = jest.fn().mockReturnValue({
+    get: mockGet,
+    orderBy: jest.fn().mockReturnValue({ limit: mockLimit }),
+  });
+  mockSubCollection.get = mockGet;
+  
+  mockDoc.collection = jest.fn().mockReturnValue(mockSubCollection);
+  
+  mockCollection.doc = jest.fn().mockReturnValue(mockDoc);
+  mockCollection.where = mockWhere;
+  mockCollection.orderBy = mockOrderBy;
+  mockCollection.limit = mockLimit;
+  mockCollection.get = mockGet;
+
   const mockFirestore = {
-    collection: jest.fn(),
+    collection: jest.fn().mockReturnValue(mockCollection),
   };
 
   const mockAdmin = {
@@ -134,8 +159,7 @@ describe('Meal Log Service', () => {
 
   describe('createMealLog', () => {
     it('should create a meal log with calculated totals', async () => {
-      const mockAdd = jest.fn().mockResolvedValue({ id: 'meal123' });
-      mockFirestore.collection = jest.fn().mockReturnValue({ add: mockAdd });
+      mockAdd.mockResolvedValue({ id: 'meal123' });
 
       const mealData = {
         mealDate: '2025-10-27',
@@ -156,7 +180,7 @@ describe('Meal Log Service', () => {
 
       const result = await mealLogService.createMealLog('user123', 'user@test.com', mealData);
 
-      expect(mockFirestore.collection).toHaveBeenCalledWith('mealLogs');
+      expect(mockFirestore.collection).toHaveBeenCalledWith('users');
       expect(mockAdd).toHaveBeenCalled();
       expect(result.id).toBe('meal123');
       expect(result.userId).toBe('user123');
@@ -177,50 +201,58 @@ describe('Meal Log Service', () => {
         },
       ];
 
-      const mockGet = jest.fn().mockResolvedValue({
+      mockGet.mockResolvedValue({
         forEach: (callback) => mockDocs.forEach(doc => callback(doc)),
       });
 
-      const mockLimit = jest.fn().mockReturnValue({ get: mockGet });
-      const mockOrderBy = jest.fn().mockReturnValue({ limit: mockLimit });
-      const mockWhere = jest.fn().mockReturnValue({ orderBy: mockOrderBy });
-      mockFirestore.collection = jest.fn().mockReturnValue({ where: mockWhere });
+      mockLimit.mockReturnValue({ get: mockGet });
+      mockOrderBy.mockReturnValue({ limit: mockLimit });
+      mockSubCollection.orderBy = jest.fn().mockReturnValue({ limit: mockLimit });
 
       const meals = await mealLogService.getMealLogs('user123');
 
-      expect(mockFirestore.collection).toHaveBeenCalledWith('mealLogs');
-      expect(mockWhere).toHaveBeenCalledWith('userId', '==', 'user123');
+      expect(mockFirestore.collection).toHaveBeenCalledWith('users');
       expect(meals).toHaveLength(1);
       expect(meals[0].id).toBe('meal1');
     });
 
     it('should apply date filters', async () => {
-      const mockGet = jest.fn().mockResolvedValue({
+      mockGet.mockResolvedValue({
         forEach: jest.fn(),
       });
 
-      // Create a fully chainable mock query
-      const createChainableMock = () => {
-        const chain = {
-          where: jest.fn(function() { return this; }),
-          orderBy: jest.fn(function() { return this; }),
-          limit: jest.fn(function() { return this; }),
-          get: mockGet,
-        };
-        return chain;
+      // Create a chainable mock that supports .where() chaining
+      // Each where() call should return the same object for chaining
+      const chainableQuery = {
+        where: jest.fn(function(field, op, value) {
+          return this; // Return this for chaining
+        }),
+        orderBy: jest.fn(function() { return this; }),
+        limit: jest.fn(function() { return this; }),
+        get: mockGet,
       };
-      
-      const mockQuery = createChainableMock();
-      mockFirestore.collection = jest.fn().mockReturnValue(mockQuery);
+
+      // Make the subcollection itself chainable - it should have a where method that returns chainableQuery
+      mockSubCollection.where = jest.fn().mockReturnValue(chainableQuery);
+      // Also make sure the subcollection can be used as the initial query
+      Object.assign(mockSubCollection, {
+        where: jest.fn().mockReturnValue(chainableQuery),
+        orderBy: jest.fn().mockReturnValue(chainableQuery),
+        limit: jest.fn().mockReturnValue(chainableQuery),
+        get: mockGet,
+      });
+      mockLimit.mockReturnValue({ get: mockGet });
 
       await mealLogService.getMealLogs('user123', {
         startDate: '2025-10-01',
         endDate: '2025-10-31',
       });
 
-      expect(mockQuery.where).toHaveBeenCalledWith('userId', '==', 'user123');
-      expect(mockQuery.where).toHaveBeenCalledWith('mealDate', '>=', '2025-10-01');
-      expect(mockQuery.where).toHaveBeenCalledWith('mealDate', '<=', '2025-10-31');
+      expect(mockFirestore.collection).toHaveBeenCalledWith('users');
+      // Check that where was called twice (once for startDate, once for endDate)
+      // The first call is on mockSubCollection, the second on chainableQuery
+      expect(mockSubCollection.where).toHaveBeenCalledWith('mealDate', '>=', '2025-10-01');
+      expect(chainableQuery.where).toHaveBeenCalledWith('mealDate', '<=', '2025-10-31');
     });
   });
 
@@ -249,19 +281,17 @@ describe('Meal Log Service', () => {
         },
       ];
 
-      const mockGet = jest.fn().mockResolvedValue({
+      mockGet.mockResolvedValue({
         forEach: (callback) => mockDocs.forEach(doc => callback(doc)),
       });
 
-      const mockQuery = {
-        where: jest.fn(function() { return this; }),
+      mockSubCollection.where = jest.fn().mockReturnValue({
         get: mockGet,
-      };
-
-      mockFirestore.collection = jest.fn().mockReturnValue(mockQuery);
+      });
 
       const summary = await mealLogService.getDailySummary('user123', '2025-10-27');
 
+      expect(mockFirestore.collection).toHaveBeenCalledWith('users');
       expect(summary.date).toBe('2025-10-27');
       expect(summary.mealCount).toBe(2);
       expect(summary.dailyTotals.calories).toBe(500); // 200 + 300

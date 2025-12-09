@@ -354,6 +354,12 @@ const SaveLogModal = ({ isOpen, onClose, onSuccess, scanData, imageUrl, imageFil
           protein: item.protein || 0,
           carbs: item.carbs || 0,
           fat: item.fat || 0,
+          saturatedFat: item.saturatedFat || 0,
+          transFat: item.transFat || 0,
+          cholesterol: item.cholesterol || 0,
+          sodium: item.sodium || 0,
+          dietaryFiber: (item.fiber ?? item.dietaryFiber) || 0,
+          sugars: item.sugars || 0,
         })) || [],
       };
 
@@ -364,6 +370,9 @@ const SaveLogModal = ({ isOpen, onClose, onSuccess, scanData, imageUrl, imageFil
 
       // Save meal log
       await saveMealLog(mealLogData, accessToken);
+
+      // Notify other views (Home progress, Insights, etc.) to refresh
+      window.dispatchEvent(new CustomEvent('mealLogUpdated'));
 
       // Success - close modal and notify parent
       if (onSuccess) {

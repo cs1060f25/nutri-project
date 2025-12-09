@@ -118,3 +118,54 @@ export const updateUserProfile = async (profileData) => {
   return data.profile;
 };
 
+/**
+ * Change user password
+ * Body: { currentPassword, newPassword }
+ */
+export const changePassword = async ({ currentPassword, newPassword }) => {
+  const response = await fetchWithAuth(`${API_BASE}/api/account/change-password`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ currentPassword, newPassword }),
+  });
+
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(
+      data.error?.message ||
+      data.message ||
+      'Failed to change password'
+    );
+  }
+
+  return data;
+};
+
+/**
+ * Delete user account
+ * Body: { password }
+ */
+export const deleteAccount = async ({ password }) => {
+  const response = await fetchWithAuth(`${API_BASE}/api/account/delete-account`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ password }),
+  });
+
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(
+      data.error?.message ||
+      data.message ||
+      'Failed to delete account'
+    );
+  }
+
+  return data;
+};

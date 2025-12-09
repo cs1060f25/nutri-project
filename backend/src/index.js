@@ -15,6 +15,7 @@ const mealPlanRoutes = require('./routes/mealPlanRoutes');
 const savedMealPlanRoutes = require('./routes/savedMealPlanRoutes');
 const leaderboardRoutes = require('./routes/leaderboardRoutes');
 const geminiRoutes = require('./routes/geminiRoutes');
+const accountRoutes = require('./routes/accountRoutes');
 const { homeData } = require('../data');
 
 // Initialize Express app
@@ -66,6 +67,9 @@ app.use('/api/meals', mealLogRoutes);
 // User profile routes
 app.use('/api/profile', profileRoutes);
 
+// Account management routes (password change, account deletion)
+app.use('/api/account', accountRoutes);
+
 // Nutrition plan routes
 app.use('/api/nutrition-plan', nutritionPlanRoutes);
 
@@ -93,8 +97,8 @@ app.use('/api/leaderboard', leaderboardRoutes);
 // Home endpoint - returns app data
 app.get('/home', (req, res) => {
   const homeData = {
-    title: 'HUDS Nutrition Analyzer',
-    welcomeMessage: 'Welcome to the HUDS Nutrition Analyzer!',
+    title: 'Harvard Eats',
+    welcomeMessage: 'Welcome to Harvard Eats!',
     description: 'Track your dining hall consumption, create diet goals, and monitor your nutritional intake.',
     features: [
       'View HUDS menu nutritional facts',
@@ -156,6 +160,8 @@ app.listen(PORT, () => {
   console.log('  GET    /api/meals/summary/:date');
   console.log('  GET    /api/profile');
   console.log('  PUT    /api/profile');
+  console.log('  POST   /api/account/change-password');
+  console.log('  POST   /api/account/delete-account');
   console.log('  POST   /api/nutrition-plan');
   console.log('  GET    /api/nutrition-plan');
   console.log('  GET    /api/nutrition-plan/history');

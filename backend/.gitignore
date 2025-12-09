@@ -4,3 +4,5 @@ node_modules/
 .DS_Store
 serviceAccountKey.json
 .vercel
+venv/
+__pycache__/
