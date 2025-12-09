@@ -237,33 +237,6 @@ cd backend
 node scripts/viewFirestoreData.js
 ```
 
-**Output Example:**
-```
-🔍 Fetching Firestore Data...
-
-👥 Found 2 user(s)
-
-📄 User Document ID: abc123xyz
-
-User Profile:
-{
-  "email": "user@college.harvard.edu",
-  "firstName": "John",
-  "lastName": "Doe",
-  "residence": "Winthrop"
-}
-
-🍎 Nutrition Plans (1):
-
-  Plan 1 (ID: plan_abc123):
-  ├─ Preset: 🧘 Mind & Focus
-  ├─ Active: ✓
-  ├─ Metrics Tracked (5):
-  ├─    • waterIntake: 8 cups (Alert: 6 cups)
-  ├─    • caffeine: 200 mg (Alert: 400 mg)
-  └─    • protein: 150 g (Alert: 120 g)
-```
-
 **Options:**
 ```bash
 # View with raw JSON data
@@ -310,53 +283,18 @@ node scripts/setUserRole.js <userId> <role>
 node scripts/setUserRole.js abc123xyz admin
 ```
 
----
-
-## Deployment
-
-### Deploy to Google Cloud Run
-
-1. Create a `Dockerfile`:
-
-```dockerfile
-FROM node:18-alpine
-WORKDIR /app
-COPY package*.json ./
-RUN npm ci --only=production
-COPY . .
-EXPOSE 3000
-CMD ["npm", "start"]
-```
-
-2. Deploy:
-
-```bash
-gcloud run deploy nutri-auth-backend \
-  --source . \
-  --platform managed \
-  --region us-central1 \
-  --allow-unauthenticated \
-  --set-env-vars FIREBASE_PROJECT_ID=your-project-id,...
-```
-
-### Deploy to Firebase Functions
-
-1. Install Firebase CLI: `npm install -g firebase-tools`
-2. Initialize: `firebase init functions`
-3. Deploy: `firebase deploy --only functions`
-
 ## Testing
 
 The backend includes comprehensive automated tests to verify authentication functionality.
 
 ### Available Test Commands
 
-#### 1. Unit Tests
+#### 1. Run all tests in the suite
 ```bash
 npm test
 ```
 
-Runs unit tests for core authentication functions. This test suite:
+Includes tests for core authentication functions. This test suite:
 - Validates Firebase configuration
 - Tests email/password validation logic
 - Verifies error mapping functions
@@ -416,21 +354,47 @@ Comprehensive test of all authentication endpoints including edge cases. This te
 
 ---
 
-### Running Tests
-
-**Step 1**: Ensure the server is running
+#### 4. Unit Tests (Core Functionality)
 ```bash
-# In one terminal
-npm run dev
+npm run test:unit:functionality
 ```
 
-**Step 2**: Run tests in another terminal
+Runs unit tests for core functionality functions. This test suite includes:
+
+**Unit Test Files:**
+- `scanner.test.js` - Scanner and nutrition calculation functions
+- `insights.test.js` - Insight and analytics functions
+- `nutritionPlanner.test.js` - Nutrition planner calculation functions
+- `social.test.js` - Social/post utility functions
+- `mealPlanning.test.js` - Meal planning utility functions
+
+**Use this to**: Verify core business logic functions work correctly in isolation.
+
+---
+
+#### 5. Integration Tests
 ```bash
-# Run all tests
-npm test                # Unit tests (no server needed)
-npm run test:auth       # Full auth flow (server required)
-npm run test:api        # Complete endpoint suite (server required)
+npm run test:integration
 ```
+
+Runs end-to-end integration tests that verify complete workflows. This test suite includes:
+
+**Integration Test Files:**
+- `integration.mealLogging.test.js` - End-to-end meal logging and progress tracking flow
+- `integration.scannerToPost.test.js` - Scanner image analysis to social post creation flow
+
+**Use this to**: Verify that different components work together correctly in realistic scenarios.
+
+---
+
+#### 6. Run All Tests (Unit + Integration)
+```bash
+npm run test:all
+```
+
+Runs both unit tests and integration tests in a single command.
+
+**Use this to**: Run the complete test suite for core functionality and integration workflows.
 
 ### Test Prerequisites
 
@@ -448,27 +412,113 @@ npm run test:api        # Complete endpoint suite (server required)
 
 ### Manual Testing with cURL
 
-You can also test endpoints manually:
+You can also test endpoints manually using cURL commands. **Prerequisites**: The server must be running (`npm run dev`).
 
+#### Step-by-Step Example
+
+**1. Start the server** (if not already running):
 ```bash
-# Register
+cd backend
+npm run dev
+```
+
+The server should start on `http://localhost:3000`. Verify it's running:
+```bash
+curl http://localhost:3000/health
+```
+
+**2. Register a new user**:
+```bash
 curl -X POST http://localhost:3000/auth/register \
   -H "Content-Type: application/json" \
-  -d '{"email":"test@example.com","password":"password123"}'
+  -d '{
+    "email": "test_user@college.harvard.edu",
+    "password": "password123",
+    "firstName": "John",
+    "lastName": "Doe",
+    "residence": "Winthrop"
+  }'
+```
 
-# Login
+**Required Fields**:
+- `email` - Must end with `@college.harvard.edu`
+- `password` - Minimum 6 characters
+- `firstName` - User's first name
+- `lastName` - User's last name
+- `residence` - User's residence hall
+
+**Optional Fields** (can be added to the JSON):
+- `birthday`, `age`, `classYear`, `gender`, `height`, `weight`
+- `activityLevel`, `dietaryPattern`, `isKosher`, `isHalal`
+- `allergies` (array), `healthConditions` (array), `primaryGoal`
+
+**Expected Response** (201):
+```json
+{
+  "user": {
+    "id": "firebase-uid",
+    "email": "test@college.harvard.edu",
+    "name": "John Doe",
+    "firstName": "John",
+    "lastName": "Doe",
+    "residence": "Winthrop",
+    "roles": []
+  }
+}
+```
+
+**Common Errors**:
+- `400 INVALID_INPUT` - Missing required fields (firstName, lastName, residence)
+- `400 INVALID_EMAIL` - Email doesn't end with `@college.harvard.edu`
+- `409 EMAIL_ALREADY_EXISTS` - Email already registered (use a different email or proceed to login)
+
+**3. Login to get access token**:
+```bash
 curl -X POST http://localhost:3000/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"email":"test@example.com","password":"password123"}'
+  -d '{"email":"test_user@college.harvard.edu","password":"password123"}'
+```
 
-# Get current user
+**Expected Response** (200):
+```json
+{
+  "accessToken": "eyJhbGciOiJSUzI1NiIsImtpZCI6...",
+  "refreshToken": "AMf-vBwvLjPk...",
+  "user": {
+    "id": "firebase-uid",
+    "email": "test_user@college.harvard.edu",
+    "name": "John Doe",
+    "roles": ["user"]
+  }
+}
+```
+
+Copy the `accessToken` value from the response.
+
+**4. Use the access token to get current user info**:
+```bash
+# Replace YOUR_ACCESS_TOKEN with the actual token from step 3
 curl -X GET http://localhost:3000/auth/me \
   -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
 ```
 
-### Using Postman
+**Expected Response** (200):
+```json
+{
+  "id": "firebase-uid",
+  "email": "test_user@college.harvard.edu",
+  "name": "John Doe",
+  "roles": ["user"]
+}
+```
 
-Import `postman-collection.json` for a complete set of pre-configured API requests with automated token management.
+#### Troubleshooting
+
+- **Connection refused**: Make sure the server is running (`npm run dev`)
+- **404 Not Found**: Check that you're using the correct endpoint path (`/auth/register`, `/auth/login`, `/auth/me`)
+- **401 Unauthorized**: Verify the access token is correct and hasn't expired (tokens expire after 1 hour)
+- **409 Conflict**: The email is already registered - use a different email or login instead
+- **Invalid JSON**: Make sure quotes are properly escaped in your shell
 
 ## Support
 

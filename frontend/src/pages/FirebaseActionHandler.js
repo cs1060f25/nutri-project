@@ -29,7 +29,7 @@ const FirebaseActionHandler = () => {
 
       <div className="auth-card">
         <div className="auth-header">
-          <h1 className="auth-logo">HUDS Nutrition Analyzer</h1>
+          <h1 className="auth-logo">Harvard Eats</h1>
           <h2 className="auth-title">Redirecting...</h2>
         </div>
         <div style={{ textAlign: 'center', padding: '20px' }}>

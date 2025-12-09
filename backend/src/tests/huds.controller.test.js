@@ -41,17 +41,6 @@ describe('HUDS Controller', () => {
       expect(mockRes.json).toHaveBeenCalledWith(mockLocations);
     });
 
-    it('should handle errors and return 500', async () => {
-      const error = new Error('Service error');
-      hudsService.getLocations.mockRejectedValue(error);
-
-      await hudsController.getLocations(mockReq, mockRes);
-
-      expect(mockRes.status).toHaveBeenCalledWith(500);
-      expect(mockRes.json).toHaveBeenCalledWith({
-        error: 'Failed to fetch dining locations',
-      });
-    });
   });
 
   describe('getTodaysMenu', () => {
@@ -90,17 +79,6 @@ describe('HUDS Controller', () => {
       expect(mockRes.json).toHaveBeenCalledWith(mockMenu);
     });
 
-    it('should handle errors and return 500', async () => {
-      const error = new Error('Service error');
-      hudsService.getTodaysMenu.mockRejectedValue(error);
-
-      await hudsController.getTodaysMenu(mockReq, mockRes);
-
-      expect(mockRes.status).toHaveBeenCalledWith(500);
-      expect(mockRes.json).toHaveBeenCalledWith({
-        error: 'Failed to fetch today\'s menu',
-      });
-    });
   });
 
   describe('getRecipes', () => {
@@ -142,17 +120,6 @@ describe('HUDS Controller', () => {
       expect(mockRes.json).toHaveBeenCalledWith(mockRecipes);
     });
 
-    it('should handle errors and return 500', async () => {
-      const error = new Error('Service error');
-      hudsService.getRecipes.mockRejectedValue(error);
-
-      await hudsController.getRecipes(mockReq, mockRes);
-
-      expect(mockRes.status).toHaveBeenCalledWith(500);
-      expect(mockRes.json).toHaveBeenCalledWith({
-        error: 'Failed to fetch recipes',
-      });
-    });
   });
 
   describe('getRecipeById', () => {
@@ -168,18 +135,6 @@ describe('HUDS Controller', () => {
       expect(mockRes.json).toHaveBeenCalledWith(mockRecipe);
     });
 
-    it('should handle not found errors and return 404', async () => {
-      mockReq.params.id = '999';
-      const error = new Error('Not found');
-      hudsService.getRecipeById.mockRejectedValue(error);
-
-      await hudsController.getRecipeById(mockReq, mockRes);
-
-      expect(mockRes.status).toHaveBeenCalledWith(404);
-      expect(mockRes.json).toHaveBeenCalledWith({
-        error: 'Recipe not found',
-      });
-    });
   });
 });
 

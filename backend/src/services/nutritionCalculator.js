@@ -76,7 +76,7 @@ const findMatchingRecipe = (dishName, menuData) => {
 const clampServings = (value) => {
   const num = parseFloat(value);
   if (isNaN(num) || !isFinite(num)) return 1;
-  return Math.min(3, Math.max(0.25, num));
+  return Math.min(1.5, Math.max(0.25, num));
 };
 
 const calculateMealMacros = (predictions, menuData) => {
@@ -85,6 +85,13 @@ const calculateMealMacros = (predictions, menuData) => {
     totalProtein: 0,
     totalCarbs: 0,
     totalFat: 0,
+    saturatedFat: 0,
+    transFat: 0,
+    cholesterol: 0,
+    sodium: 0,
+    fiber: 0,
+    sugars: 0,
+    caloriesFromFat: 0,
   };
 
   const matchedItems = [];
@@ -103,11 +110,25 @@ const calculateMealMacros = (predictions, menuData) => {
       const protein = parseNutrient(recipe.Protein) * estimatedServings;
       const carbs = parseNutrient(recipe.Total_Carb) * estimatedServings;
       const fat = parseNutrient(recipe.Total_Fat) * estimatedServings;
+      const saturatedFat = parseNutrient(recipe.Sat_Fat) * estimatedServings;
+      const transFat = parseNutrient(recipe.Trans_Fat) * estimatedServings;
+      const cholesterol = parseNutrient(recipe.Cholesterol) * estimatedServings;
+      const sodium = parseNutrient(recipe.Sodium) * estimatedServings;
+      const fiber = parseNutrient(recipe.Dietary_Fiber) * estimatedServings;
+      const sugars = parseNutrient(recipe.Sugars) * estimatedServings;
+      const caloriesFromFat = parseNutrient(recipe.Calories_From_Fat) * estimatedServings;
 
       totals.totalCalories += calories;
       totals.totalProtein += protein;
       totals.totalCarbs += carbs;
       totals.totalFat += fat;
+      totals.saturatedFat += saturatedFat;
+      totals.transFat += transFat;
+      totals.cholesterol += cholesterol;
+      totals.sodium += sodium;
+      totals.fiber += fiber;
+      totals.sugars += sugars;
+      totals.caloriesFromFat += caloriesFromFat;
 
       matchedItems.push({
         predictedName: prediction.dish,
@@ -120,6 +141,13 @@ const calculateMealMacros = (predictions, menuData) => {
         protein,
         carbs,
         fat,
+        saturatedFat,
+        transFat,
+        cholesterol,
+        sodium,
+        fiber,
+        sugars,
+        caloriesFromFat,
         servingSize: recipe.Serving_Size || '1 serving',
       });
     } else {
@@ -131,6 +159,13 @@ const calculateMealMacros = (predictions, menuData) => {
   totals.totalProtein = Math.round(totals.totalProtein * 10) / 10;
   totals.totalCarbs = Math.round(totals.totalCarbs * 10) / 10;
   totals.totalFat = Math.round(totals.totalFat * 10) / 10;
+  totals.saturatedFat = Math.round(totals.saturatedFat * 10) / 10;
+  totals.transFat = Math.round(totals.transFat * 10) / 10;
+  totals.cholesterol = Math.round(totals.cholesterol * 10) / 10;
+  totals.sodium = Math.round(totals.sodium * 10) / 10;
+  totals.fiber = Math.round(totals.fiber * 10) / 10;
+  totals.sugars = Math.round(totals.sugars * 10) / 10;
+  totals.caloriesFromFat = Math.round(totals.caloriesFromFat);
 
   return {
     nutritionTotals: totals,

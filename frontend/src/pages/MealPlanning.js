@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 import { getLocations, getMenuByDate, getTodaysMenu } from '../services/hudsService';
 import { getMealPlans, createMealPlan, deleteMealPlan, updateMealPlan } from '../services/mealPlanService';
 import { getActiveNutritionPlan } from '../services/nutritionPlanService';
@@ -14,26 +15,54 @@ const MEAL_TYPES = ['breakfast', 'lunch', 'dinner'];
 
 // Color mapping for dining halls
 const DINING_HALL_COLORS = {
-  'Adams House': { bg: '#e3f2fd', border: '#2196f3', hover: '#bbdefb' },
-  'Annenberg Hall': { bg: '#fff8e1', border: '#ffc107', hover: '#ffecb3' },
-  'Cabot House': { bg: '#f3e5f5', border: '#9c27b0', hover: '#e1bee7' },
-  'Currier House': { bg: '#fff3e0', border: '#ff9800', hover: '#ffe0b2' },
-  'Dunster House': { bg: '#e8f5e9', border: '#4caf50', hover: '#c8e6c9' },
-  'Eliot House': { bg: '#fce4ec', border: '#e91e63', hover: '#f8bbd0' },
-  'Kirkland House': { bg: '#e0f2f1', border: '#009688', hover: '#b2dfdb' },
-  'Leverett House': { bg: '#fff9c4', border: '#fbc02d', hover: '#fff59d' },
-  'Lowell House': { bg: '#f1f8e9', border: '#8bc34a', hover: '#dcedc8' },
-  'Mather House': { bg: '#e1f5fe', border: '#03a9f4', hover: '#b3e5fc' },
-  'Pforzheimer House': { bg: '#fce4ec', border: '#e91e63', hover: '#f8bbd0' },
-  'Quincy House': { bg: '#ede7f6', border: '#673ab7', hover: '#d1c4e9' },
-  'Winthrop House': { bg: '#fff3e0', border: '#ff9800', hover: '#ffe0b2' },
+  'Adams House': '#2196f3',
+  'Annenberg Hall': '#ffc107',
+  'Cabot House': '#9c27b0',
+  'Currier House': '#ff9800',
+  'Dunster House': '#4caf50',
+  'Eliot House': '#e91e63',
+  'Kirkland House': '#009688',
+  'Leverett House': '#fbc02d',
+  'Lowell House': '#8bc34a',
+  'Mather House': '#03a9f4',
+  'Pforzheimer House': '#e91e63',
+  'Quincy House': '#673ab7',
+  'Winthrop House': '#ff9800',
+};
+
+const hexToRgba = (hex, alpha) => {
+  let sanitized = hex.replace('#', '');
+  if (sanitized.length === 3) {
+    sanitized = sanitized.split('').map((c) => c + c).join('');
+  }
+  const parsed = parseInt(sanitized, 16);
+  if (Number.isNaN(parsed)) {
+    return `rgba(0, 0, 0, ${alpha})`;
+  }
+  const r = (parsed >> 16) & 255;
+  const g = (parsed >> 8) & 255;
+  const b = parsed & 255;
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+};
+
+const buildColorTokens = (accent, theme) => {
+  const backgroundAlpha = theme === 'dark' ? 0.22 : 0.12;
+  const hoverAlpha = theme === 'dark' ? 0.32 : 0.2;
+  const borderAlpha = theme === 'dark' ? 0.65 : 0.4;
+  return {
+    accent,
+    bg: hexToRgba(accent, backgroundAlpha),
+    hover: hexToRgba(accent, hoverAlpha),
+    border: hexToRgba(accent, borderAlpha),
+    text: theme === 'dark' ? '#f8fdf9' : '#102a1c',
+  };
 };
 
 // Helper function to get color for a dining hall
-const getDiningHallColor = (locationName) => {
+const getDiningHallColor = (locationName, theme) => {
   if (!locationName) {
     console.warn('No location name provided, using default color');
-    return DINING_HALL_COLORS['Dunster House'];
+    return buildColorTokens(DINING_HALL_COLORS['Dunster House'], theme);
   }
   
   // Normalize the location name - remove extra spaces
@@ -47,20 +76,21 @@ const getDiningHallColor = (locationName) => {
   if (normalized.includes(' and ')) {
     const firstHouse = normalized.split(' and ')[0].trim() + ' House';
     console.log('Paired house detected, using first house:', firstHouse);
-    return DINING_HALL_COLORS[firstHouse] || DINING_HALL_COLORS['Dunster House'];
+    const accent = DINING_HALL_COLORS[firstHouse] || DINING_HALL_COLORS['Dunster House'];
+    return buildColorTokens(accent, theme);
   }
   
   // Try exact match first
   if (DINING_HALL_COLORS[normalized]) {
     console.log('Exact match found:', normalized);
-    return DINING_HALL_COLORS[normalized];
+    return buildColorTokens(DINING_HALL_COLORS[normalized], theme);
   }
   
   // Try with "House" suffix if not present
   const withHouse = normalized.endsWith(' House') ? normalized : `${normalized} House`;
   if (DINING_HALL_COLORS[withHouse]) {
     console.log('Match found with House suffix:', withHouse);
-    return DINING_HALL_COLORS[withHouse];
+    return buildColorTokens(DINING_HALL_COLORS[withHouse], theme);
   }
   
   // Try case-insensitive match
@@ -69,7 +99,7 @@ const getDiningHallColor = (locationName) => {
     const keyLower = key.toLowerCase();
     if (keyLower === lowerNormalized || keyLower === lowerNormalized + ' house') {
       console.log('Case-insensitive match found:', key);
-      return value;
+      return buildColorTokens(value, theme);
     }
   }
   
@@ -89,22 +119,23 @@ const getDiningHallColor = (locationName) => {
   const normalizedWithHouse = normalized.replace(/\s+Hall\s*$/i, ' House');
   if (DINING_HALL_COLORS[normalizedWithHouse]) {
     console.log('Match found by converting Hall to House:', normalizedWithHouse);
-    return DINING_HALL_COLORS[normalizedWithHouse];
+    return buildColorTokens(DINING_HALL_COLORS[normalizedWithHouse], theme);
   }
   
   const normalizedWithHall = normalized.replace(/\s+House\s*$/i, ' Hall');
   if (DINING_HALL_COLORS[normalizedWithHall]) {
     console.log('Match found by converting House to Hall:', normalizedWithHall);
-    return DINING_HALL_COLORS[normalizedWithHall];
+    return buildColorTokens(DINING_HALL_COLORS[normalizedWithHall], theme);
   }
   
   // Default fallback
   console.warn('No match found for:', normalized, 'using default color');
-  return DINING_HALL_COLORS['Dunster House'];
+  return buildColorTokens(DINING_HALL_COLORS['Dunster House'], theme);
 };
 
 const MealPlanning = () => {
   const { accessToken, refreshAccessToken } = useAuth();
+  const { theme } = useTheme();
   // Only plan for today
   const [today] = useState(() => {
     const today = new Date();
@@ -1316,7 +1347,7 @@ const MealPlanning = () => {
                     style={{ cursor: 'pointer' }}
                   >
                     {plan && (() => {
-                      const colors = getDiningHallColor(plan.locationName);
+                      const colors = getDiningHallColor(plan.locationName, theme);
                       // Debug logging
                       if (process.env.NODE_ENV === 'development') {
                         console.log('Meal plan location:', plan.locationName, 'Colors:', colors);
@@ -1332,7 +1363,9 @@ const MealPlanning = () => {
                             backgroundColor: colors.bg,
                             borderColor: colors.border,
                             borderWidth: '1px',
-                            borderStyle: 'solid'
+                            borderStyle: 'solid',
+                            color: colors.text,
+                            boxShadow: `0 6px 18px ${hexToRgba(colors.accent, theme === 'dark' ? 0.4 : 0.18)}`
                           }}
                           onMouseEnter={(e) => {
                             e.currentTarget.style.backgroundColor = colors.hover;
@@ -2237,7 +2270,7 @@ const MealPlanning = () => {
               }}>×</button>
             </div>
 
-            <div style={{ padding: '1.5rem'}}>
+            <div className="modal-body">
               <div className="">
                 <div className="form-group">
                   <label>Meal Type</label>

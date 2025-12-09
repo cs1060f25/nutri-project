@@ -40,10 +40,38 @@ const hudsRequest = async (endpoint, params = {}) => {
 };
 
 /**
- * Get all dining locations
+ * Allowed dining locations (whitelist)
+ * Only these locations should be accessible in the app
+ */
+const ALLOWED_LOCATIONS = new Set([
+  'Adams House',
+  'Annenberg Hall',
+  'Cabot House',
+  'Pforzheimer House',
+  'Currier House',
+  'Dunster House',
+  'Mather House',
+  'Eliot House',
+  'Kirkland House',
+  'Leverett House',
+  'Lowell House',
+  'Winthrop House',
+  'Quincy House',
+  'Fly-By'
+]);
+
+/**
+ * Get all dining locations (filtered to allowed locations only)
  */
 const getLocations = async () => {
-  return hudsRequest('/locations');
+  const allLocations = await hudsRequest('/locations');
+  
+  // Filter to only include allowed dining halls
+  const filtered = allLocations.filter(location => {
+    return ALLOWED_LOCATIONS.has(location.location_name);
+  });
+  
+  return filtered;
 };
 
 /**

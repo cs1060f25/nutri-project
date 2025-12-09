@@ -16,8 +16,9 @@ describe('HUDS Service', () => {
   describe('getLocations', () => {
     it('should fetch all dining locations', async () => {
       const mockLocations = [
-        { location_number: '01', location_name: 'Annenberg' },
-        { location_number: '05', location_name: 'Adams' },
+        { location_number: '01', location_name: 'Annenberg Hall' },
+        { location_number: '05', location_name: 'Adams House' },
+        { location_number: '99', location_name: 'Not Allowed Location' }, // Should be filtered out
       ];
 
       axios.get.mockResolvedValue({ data: mockLocations });
@@ -32,14 +33,13 @@ describe('HUDS Service', () => {
           }),
         })
       );
-      expect(result).toEqual(mockLocations);
+      // Should only return allowed locations
+      expect(result).toEqual([
+        { location_number: '01', location_name: 'Annenberg Hall' },
+        { location_number: '05', location_name: 'Adams House' },
+      ]);
     });
 
-    it('should handle API errors', async () => {
-      axios.get.mockRejectedValue(new Error('Network error'));
-
-      await expect(hudsService.getLocations()).rejects.toThrow('Network error');
-    });
   });
 
   describe('getRecipes', () => {

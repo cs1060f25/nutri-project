@@ -6,7 +6,8 @@
   padding: 20px;
   position: relative;
   overflow: hidden;
-  background: #f0f9f4;
+  background: var(--bg-gradient-start);
+  transition: background 0.3s ease;
 }
 
 .auth-background {
@@ -68,17 +69,18 @@
 }
 
 .auth-card {
-  background: rgba(255, 255, 255, 0.95);
+  background: var(--card-bg);
   backdrop-filter: blur(10px);
   border-radius: 24px;
   padding: 48px 40px;
   width: 100%;
   max-width: 540px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 20px 60px var(--shadow-hover-color);
   position: relative;
   z-index: 1;
   animation: slideUp 0.6s ease-out;
-  transition: max-width 0.3s ease;
+  transition: all 0.3s ease;
+  border: 1px solid var(--border-color);
 }
 
 @keyframes slideUp {
@@ -115,13 +117,13 @@
 .auth-title {
   font-size: 28px;
   font-weight: 700;
-  color: #1a5f3f;
+  color: var(--text-primary);
   margin-bottom: 8px;
 }
 
 .auth-subtitle {
   font-size: 15px;
-  color: #718096;
+  color: var(--text-secondary);
   margin: 0;
 }
 
@@ -199,7 +201,7 @@
 .form-group label {
   font-size: 14px;
   font-weight: 600;
-  color: #2d3748;
+  color: var(--text-secondary);
 }
 
 .password-input-wrapper {
@@ -210,24 +212,25 @@
 
 .password-input-wrapper input {
   padding: 14px 45px 14px 16px;
-  border: 2px solid #e2e8f0;
+  border: 2px solid var(--input-border);
   border-radius: 12px;
   font-size: 15px;
   transition: all 0.3s ease;
-  background: white;
-  color: #2d3748;
+  background: var(--input-bg);
+  color: var(--text-primary);
   width: 100%;
 }
 
 .password-input-wrapper input:focus {
   outline: none;
-  border-color: #2d8659;
-  box-shadow: 0 0 0 3px rgba(45, 134, 89, 0.1);
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px var(--shadow-color);
 }
 
 .password-input-wrapper input:disabled {
-  background: #f7fafc;
+  background: var(--card-hover-bg);
   cursor: not-allowed;
+  opacity: 0.6;
 }
 
 .password-input-wrapper input::placeholder {
@@ -244,8 +247,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #64748b;
-  transition: color 0.2s ease;
+  color: var(--text-secondary);
+  transition: color 0.3s ease;
   z-index: 1;
   width: 28px;
   height: 28px;
@@ -257,7 +260,7 @@
 }
 
 .password-toggle:hover:not(:disabled) {
-  color: #2d8659;
+  color: var(--primary-color);
 }
 
 .password-toggle:disabled {
@@ -267,23 +270,24 @@
 
 .form-group input {
   padding: 14px 16px;
-  border: 2px solid #e2e8f0;
+  border: 2px solid var(--input-border);
   border-radius: 12px;
   font-size: 15px;
   transition: all 0.3s ease;
-  background: white;
-  color: #2d3748;
+  background: var(--input-bg);
+  color: var(--text-primary);
 }
 
 .form-group input:focus {
   outline: none;
-  border-color: #2d8659;
-  box-shadow: 0 0 0 3px rgba(45, 134, 89, 0.1);
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px var(--shadow-color);
 }
 
 .form-group input:disabled {
-  background: #f7fafc;
+  background: var(--card-hover-bg);
   cursor: not-allowed;
+  opacity: 0.6;
 }
 
 .form-group input::placeholder {
@@ -293,11 +297,13 @@
 
 /* Override CustomSelect text color to match input fields */
 .auth-form .custom-select-trigger {
-  color: #2d3748 !important;
+  color: var(--text-primary) !important;
+  background: var(--input-bg) !important;
+  border-color: var(--input-border) !important;
 }
 
 .auth-form .custom-select-trigger .selected-value {
-  color: #2d3748 !important;
+  color: var(--text-primary) !important;
 }
 
 .form-options {
@@ -313,14 +319,14 @@
   gap: 8px;
   cursor: pointer;
   font-size: 14px;
-  color: #2d3748;
+  color: var(--text-secondary);
 }
 
 .remember-me input[type="checkbox"] {
   width: 18px;
   height: 18px;
   cursor: pointer;
-  accent-color: #1a5f3f;
+  accent-color: var(--primary-color);
 }
 
 .remember-me span {
@@ -330,7 +336,7 @@
 .forgot-password-link {
   background: none;
   border: none;
-  color: #1a5f3f;
+  color: var(--primary-color);
   font-size: 14px;
   cursor: pointer;
   padding: 0;
@@ -340,7 +346,7 @@
 }
 
 .forgot-password-link:hover:not(:disabled) {
-  color: #2d8659;
+  color: var(--primary-hover);
   text-decoration: underline;
 }
 
@@ -351,7 +357,7 @@
 
 .auth-button {
   padding: 16px;
-  background: #1a5f3f;
+  background: var(--primary-dark);
   color: white;
   border: none;
   border-radius: 12px;
@@ -360,13 +366,13 @@
   cursor: pointer;
   transition: all 0.3s ease;
   margin-top: 8px;
-  box-shadow: 0 4px 12px rgba(26, 95, 63, 0.3);
+  box-shadow: 0 4px 12px var(--shadow-color);
 }
 
 .auth-button:hover:not(:disabled) {
-  background: #2d6a4f;
+  background: var(--primary-hover);
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(26, 95, 63, 0.4);
+  box-shadow: 0 6px 20px var(--shadow-hover-color);
 }
 
 .auth-button:active:not(:disabled) {
@@ -408,19 +414,19 @@
   margin-top: 24px;
   text-align: center;
   padding-top: 24px;
-  border-top: 1px solid #e2e8f0;
+  border-top: 1px solid var(--border-color);
 }
 
 .auth-footer p {
   margin: 0;
-  color: #718096;
+  color: var(--text-secondary);
   font-size: 14px;
 }
 
 .auth-toggle-button {
   background: none;
   border: none;
-  color: #1a5f3f;
+  color: var(--primary-color);
   font-weight: 600;
   cursor: pointer;
   font-size: 14px;
@@ -430,7 +436,7 @@
 }
 
 .auth-toggle-button:hover:not(:disabled) {
-  color: #2d8659;
+  color: var(--primary-hover);
   text-decoration: underline;
 }
 
@@ -462,8 +468,8 @@
 .spinner {
   width: 50px;
   height: 50px;
-  border: 4px solid #e2e8f0;
-  border-top-color: #1a5f3f;
+  border: 4px solid var(--border-color);
+  border-top-color: var(--primary-color);
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin: 20px auto;
@@ -502,20 +508,20 @@
   left: 60%;
   right: -40%;
   height: 2px;
-  background: #e2e8f0;
+  background: var(--border-color);
   z-index: 0;
 }
 
 .progress-step.completed::after {
-  background: #1a5f3f;
+  background: var(--primary-dark);
 }
 
 .step-number {
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: #e2e8f0;
-  color: #718096;
+  background: var(--border-color);
+  color: var(--text-secondary);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -527,13 +533,13 @@
 }
 
 .progress-step.active .step-number {
-  background: #1a5f3f;
+  background: var(--primary-dark);
   color: white;
   transform: scale(1.1);
 }
 
 .progress-step.completed .step-number {
-  background: #1a5f3f;
+  background: var(--primary-dark);
   color: white;
 }
 
@@ -572,7 +578,7 @@
 }
 
 .checkbox-label:hover {
-  background: #f7fafc;
+  background: var(--card-hover-bg);
 }
 
 .checkbox-label input[type="checkbox"] {
@@ -581,23 +587,23 @@
   min-width: 20px;
   min-height: 20px;
   cursor: pointer;
-  accent-color: #1a5f3f;
+  accent-color: var(--primary-color);
   flex-shrink: 0;
   margin: 0;
   padding: 0;
   appearance: none;
   -webkit-appearance: none;
   -moz-appearance: none;
-  border: 2px solid #cbd5e0;
+  border: 2px solid var(--border-color);
   border-radius: 4px;
-  background: white;
+  background: var(--input-bg);
   position: relative;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
 }
 
 .checkbox-label input[type="checkbox"]:checked {
-  background: #1a5f3f;
-  border-color: #1a5f3f;
+  background: var(--primary-dark);
+  border-color: var(--primary-dark);
 }
 
 .checkbox-label input[type="checkbox"]:checked::after {
@@ -614,7 +620,7 @@
 
 .checkbox-label input[type="checkbox"]:focus {
   outline: none;
-  box-shadow: 0 0 0 3px rgba(26, 95, 63, 0.1);
+  box-shadow: 0 0 0 3px var(--shadow-color);
 }
 
 .checkbox-label input[type="checkbox"]:disabled {
@@ -624,7 +630,7 @@
 
 .checkbox-label span {
   font-size: 15px;
-  color: #2d3748;
+  color: var(--text-primary);
   line-height: 1.5;
   flex: 1;
 }
@@ -642,39 +648,39 @@
   align-items: center;
   gap: 8px;
   padding: 10px 16px;
-  border: 2px solid #e2e8f0;
+  border: 2px solid var(--border-color);
   border-radius: 24px;
-  background: #f5f5f5;
-  color: #2d3748;
+  background: var(--input-bg);
+  color: var(--text-primary);
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
   outline: none;
   user-select: none;
   position: relative;
 }
 
 .chip:hover:not(:disabled) {
-  border-color: #1a5f3f;
-  background: #f0f9f4;
-  color: #1a5f3f;
+  border-color: var(--primary-color);
+  background: var(--card-hover-bg);
+  color: var(--primary-color);
   transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(26, 95, 63, 0.15);
+  box-shadow: 0 2px 8px var(--shadow-color);
 }
 
 .chip.chip-selected {
-  background: #1a5f3f;
-  border-color: #1a5f3f;
+  background: var(--primary-dark);
+  border-color: var(--primary-dark);
   color: white;
-  box-shadow: 0 2px 8px rgba(26, 95, 63, 0.2);
+  box-shadow: 0 2px 8px var(--shadow-color);
 }
 
 .chip.chip-selected:hover:not(:disabled) {
-  background: #2d8659;
-  border-color: #2d8659;
+  background: var(--primary-hover);
+  border-color: var(--primary-hover);
   transform: translateY(-1px);
-  box-shadow: 0 2px 12px rgba(26, 95, 63, 0.3);
+  box-shadow: 0 2px 12px var(--shadow-hover-color);
 }
 
 .chip:disabled {
@@ -685,7 +691,7 @@
 
 .chip:focus {
   outline: none;
-  box-shadow: 0 0 0 3px rgba(26, 95, 63, 0.1);
+  box-shadow: 0 0 0 3px var(--shadow-color);
 }
 
 .chip-icon {
@@ -703,14 +709,14 @@
 }
 
 .chip:not(.chip-selected) .chip-icon {
-  background: #f0f9f4;
-  color: #1a5f3f;
-  border: 1px solid #1a5f3f;
+  background: var(--card-hover-bg);
+  color: var(--primary-color);
+  border: 1px solid var(--primary-color);
 }
 
 .chip.chip-selected .chip-icon {
   background: white;
-  color: #1a5f3f;
+  color: var(--primary-dark);
   border: 1px solid white;
 }
 

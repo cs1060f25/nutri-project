@@ -1,15 +1,15 @@
 /* ===== Nutrition Progress Card ===== */
 .nutrition-progress-card {
-  background: white;
+  background: var(--card-bg);
   border-radius: 20px;
   padding: 2rem;
-  box-shadow: 0 4px 20px rgba(40, 167, 69, 0.08);
-  border: 1px solid #e8f5e9;
+  box-shadow: 0 4px 20px var(--shadow-color);
+  border: 1px solid var(--border-color);
   transition: all 0.3s ease;
 }
 
 .nutrition-progress-card:hover {
-  box-shadow: 0 8px 32px rgba(40, 167, 69, 0.12);
+  box-shadow: 0 8px 32px var(--shadow-hover-color);
 }
 
 /* ===== Card Header ===== */
@@ -20,21 +20,21 @@
   gap: 1rem;
   margin-bottom: 2rem;
   padding-bottom: 1.5rem;
-  border-bottom: 2px solid #e8f5e9;
+  border-bottom: 2px solid var(--border-color);
   flex-wrap: wrap;
 }
 
 .card-icon {
   width: 28px;
   height: 28px;
-  color: #52b788;
+  color: var(--primary-color);
   flex-shrink: 0;
 }
 
 .progress-title {
   font-size: 1.5rem;
   font-weight: 700;
-  color: #1b4332;
+  color: var(--text-primary);
   margin: 0;
   letter-spacing: -0.02em;
   flex: 1;
@@ -47,21 +47,21 @@
 .progress-refresh-button {
   background: transparent;
   border: none;
-  color: #52b788;
+  color: var(--primary-color);
   cursor: pointer;
   padding: 0.5rem;
   border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
   flex-shrink: 0;
   margin-left: auto;
 }
 
 .progress-refresh-button:hover:not(:disabled) {
-  background-color: #e8f5e9;
-  color: #1a5f3f;
+  background-color: var(--border-color);
+  color: var(--primary-dark);
 }
 
 .progress-refresh-button:disabled {
@@ -87,20 +87,21 @@
   align-items: center;
   gap: 0.375rem;
   padding: 0.25rem 0.75rem;
-  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-  border: 1px solid #f59e0b;
+  background: linear-gradient(135deg, var(--warning-bg) 0%, var(--warning-border) 100%);
+  border: 1px solid var(--warning-text);
   border-radius: 12px;
   font-size: 0.75rem;
   font-weight: 600;
-  color: #92400e;
+  color: var(--warning-text);
   text-transform: uppercase;
   letter-spacing: 0.05em;
+  transition: all 0.3s ease;
 }
 
 .hypothetical-icon {
   width: 14px;
   height: 14px;
-  color: #f59e0b;
+  color: var(--warning-text);
 }
 
 /* ===== Meals Stat ===== */
@@ -109,15 +110,16 @@
   align-items: center;
   gap: 0.75rem;
   padding: 0.75rem 1.25rem;
-  background: linear-gradient(135deg, #f1f8f4 0%, #e8f5e9 100%);
+  background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--border-color) 100%);
   border-radius: 16px;
-  border: 1px solid #d8f3dc;
+  border: 1px solid var(--border-color-alt);
+  transition: all 0.3s ease;
 }
 
 .meal-icon {
   width: 28px;
   height: 28px;
-  color: #52b788;
+  color: var(--primary-color);
   flex-shrink: 0;
 }
 
@@ -130,14 +132,14 @@
 .meal-count {
   font-size: 1.5rem;
   font-weight: 800;
-  color: #1b4332;
+  color: var(--text-primary);
   line-height: 1;
 }
 
 .meal-label {
   font-size: 0.75rem;
   font-weight: 600;
-  color: #52b788;
+  color: var(--primary-color);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -150,21 +152,22 @@
   justify-content: center;
   padding: 3rem 2rem;
   text-align: center;
-  background: linear-gradient(135deg, #f8fdf9 0%, #f1f8f4 100%);
+  background: linear-gradient(135deg, var(--card-bg-alt) 0%, var(--bg-gradient-start) 100%);
   border-radius: 16px;
-  border: 2px dashed #d8f3dc;
+  border: 2px dashed var(--border-color-alt);
+  transition: all 0.3s ease;
 }
 
 .no-plan-icon {
   width: 64px;
   height: 64px;
-  color: #95d5b2;
+  color: var(--border-color-hover);
   margin-bottom: 1rem;
 }
 
 .no-plan-message {
   font-size: 1rem;
-  color: #2d6a4f;
+  color: var(--text-secondary);
   margin: 0;
   max-width: 500px;
   line-height: 1.6;
@@ -178,21 +181,22 @@
   justify-content: center;
   padding: 3rem 2rem;
   text-align: center;
-  background: linear-gradient(135deg, #f8fdf9 0%, #f1f8f4 100%);
+  background: linear-gradient(135deg, var(--card-bg-alt) 0%, var(--bg-gradient-start) 100%);
   border-radius: 16px;
-  border: 2px dashed #d8f3dc;
+  border: 2px dashed var(--border-color-alt);
+  transition: all 0.3s ease;
 }
 
 .no-meals-icon {
   width: 56px;
   height: 56px;
-  color: #95d5b2;
+  color: var(--border-color-hover);
   margin-bottom: 1rem;
 }
 
 .no-meals-message {
   font-size: 1rem;
-  color: #2d6a4f;
+  color: var(--text-secondary);
   margin: 0;
   max-width: 400px;
   line-height: 1.6;
@@ -250,7 +254,7 @@
 .circle-percentage {
   font-size: 1.5rem;
   font-weight: 800;
-  color: #1b4332;
+  color: var(--text-primary);
   line-height: 1;
   letter-spacing: -0.02em;
 }
@@ -267,14 +271,14 @@
 .metric-name {
   font-size: 0.9375rem;
   font-weight: 700;
-  color: #1b4332;
+  color: var(--text-primary);
   text-transform: capitalize;
   letter-spacing: -0.01em;
 }
 
 .metric-values {
   font-size: 0.875rem;
-  color: #2d6a4f;
+  color: var(--text-secondary);
   display: flex;
   align-items: baseline;
   gap: 0.25rem;
@@ -285,45 +289,47 @@
 .metric-values strong {
   font-size: 1.125rem;
   font-weight: 800;
-  color: #1b4332;
+  color: var(--text-primary);
 }
 
 .separator {
-  color: #95d5b2;
+  color: var(--border-color-hover);
   font-weight: 600;
   margin: 0 0.125rem;
 }
 
 .target {
   font-weight: 600;
-  color: #52b788;
+  color: var(--primary-color);
 }
 
 .unit {
   font-size: 0.8125rem;
   font-weight: 600;
-  color: #95d5b2;
+  color: var(--border-color-hover);
   margin-left: 0.125rem;
 }
 
 .remaining-badge {
   font-size: 0.8125rem;
   font-weight: 600;
-  color: #52b788;
-  background: #e8f5e9;
+  color: var(--primary-color);
+  background: var(--border-color);
   padding: 0.25rem 0.75rem;
   border-radius: 12px;
-  border: 1px solid #d8f3dc;
+  border: 1px solid var(--border-color-alt);
+  transition: all 0.3s ease;
 }
 
 .goal-met-badge {
   font-size: 0.8125rem;
   font-weight: 600;
-  color: #2d6a4f;
-  background: #d8f3dc;
+  color: var(--text-secondary);
+  background: var(--border-color-alt);
   padding: 0.25rem 0.75rem;
   border-radius: 12px;
-  border: 1px solid #95d5b2;
+  border: 1px solid var(--border-color-hover);
+  transition: all 0.3s ease;
 }
 
 /* ===== Responsive Design ===== */
