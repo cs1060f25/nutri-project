@@ -1,8 +1,8 @@
-# Unit Test Scripts
+# Test Scripts
 
-This directory contains scripts to run the 5 unit test files we created to test the functionality of our core features.
+This directory contains scripts to run unit tests and integration tests for the HUDS Nutrition Analyzer backend.
 
-## Test Files
+## Unit Test Files
 
 1. `scanner.test.js` - Scanner and nutrition calculation functions
 2. `insights.test.js` - Insight and analytics functions
@@ -10,32 +10,27 @@ This directory contains scripts to run the 5 unit test files we created to test 
 4. `social.test.js` - Social/post utility functions
 5. `mealPlanning.test.js` - Meal planning utility functions
 
+## Integration Test Files
+
+1. `integration.mealLogging.test.js` - End-to-end meal logging and progress tracking flow
+2. `integration.scannerToPost.test.js` - Scanner image analysis to social post creation flow
+
 ## Running the Tests
 
-### Option 1: Using npm script (Recommended)
+### Unit Tests Only
 ```bash
-cd backend
-npm run test:unit:new
+cd backend && npm run test:unit:functionality
 ```
 
-### Option 2: Using shell script
+**Note:** The script is named `test:unit:functionality` because these are unit tests for core functionality functions (scanner, insights, nutrition planner, social, and meal planning).
+
+### Integration Tests Only
 ```bash
-cd backend
-./run-unit-tests.sh
+cd backend && npm run test:integration
 ```
 
-### Option 3: Run all tests
+### Run Both Unit and Integration Tests
 ```bash
-cd backend
-npm test
+cd backend && npm run test:all
 ```
-
-## Test Results
-
-All 5 test suites should pass with a total of 117 tests:
-- scanner.test.js: 22 tests
-- insights.test.js: 20 tests
-- nutritionPlanner.test.js: 32 tests
-- social.test.js: 25 tests
-- mealPlanning.test.js: 18 tests
 
