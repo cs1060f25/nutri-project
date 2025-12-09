@@ -1,7 +1,10 @@
 .notification-bell {
-  position: relative;
+  position: absolute;
+  top: 1.5rem;
+  left: 1.5rem;
   display: inline-flex;
   align-items: center;
+  z-index: 1100;
 }
 
 .notification-bell-button {
@@ -15,12 +18,15 @@
   gap: 8px;
   cursor: pointer;
   box-shadow: 0 6px 12px rgba(15, 23, 42, 0.06);
-  transition: box-shadow 0.2s ease, transform 0.2s ease;
+  transition: box-shadow var(--transition-fast) var(--easing-standard),
+    transform var(--transition-fast) var(--easing-standard),
+    border-color var(--transition-fast) var(--easing-standard);
 }
 
 .notification-bell-button:hover {
   box-shadow: 0 10px 16px rgba(15, 23, 42, 0.12);
   transform: translateY(-1px);
+  border-color: var(--primary-color);
 }
 
 .notification-bell-button img {
@@ -163,4 +169,26 @@
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--text-secondary);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .notification-bell {
+    top: 1rem;
+    left: 1rem;
+  }
+
+  .notification-bell-button {
+    padding: 6px 10px;
+  }
+
+  .notification-bell-button img {
+    width: 18px;
+    height: 18px;
+  }
+
+  .notification-panel {
+    width: 280px;
+    max-height: 320px;
+  }
 }
