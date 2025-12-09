@@ -472,7 +472,7 @@ const createPostFromScan = async (userId, scanData) => {
       });
 
       try {
-        await mealLogService.createMealLog(userId, userData.email || '', {
+        const createdMealLog = await mealLogService.createMealLog(userId, userData.email || '', {
           mealDate,
           mealType: scanData.mealType || null,
           mealName: scanData.mealType || null,
@@ -486,6 +486,20 @@ const createPostFromScan = async (userId, scanData) => {
           review: scanData.review || null, // Store review if provided
         });
         console.log('✅ Meal log created successfully for post with date:', mealDate, 'totals:', totals);
+        
+        // Update the post with the meal log ID so we can delete it when the meal log is deleted
+        if (createdMealLog && createdMealLog.id) {
+          try {
+            await postRef.update({
+              mealId: createdMealLog.id,
+              updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+            });
+            console.log('✅ Updated post with mealId:', createdMealLog.id);
+          } catch (updateError) {
+            console.error('Error updating post with mealId:', updateError);
+            // Don't fail - post and meal log are both created successfully
+          }
+        }
       } catch (mealLogError) {
         // Log error but don't fail the post creation
         console.error('Error creating meal log for post:', mealLogError);

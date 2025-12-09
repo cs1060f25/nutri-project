@@ -273,13 +273,52 @@ const deleteMealLog = async (userId, mealId) => {
   try {
     const POSTS_COLLECTION = 'posts';
     const postsRef = getDb().collection(POSTS_COLLECTION);
-    const postsQuery = postsRef.where('mealId', '==', mealId).where('userId', '==', userId);
-    const postsSnapshot = await postsQuery.get();
     
-    if (!postsSnapshot.empty) {
-      const deletePromises = postsSnapshot.docs.map(postDoc => postDoc.ref.delete());
+    // Try to find posts by mealId first (most reliable)
+    let postsToDelete = [];
+    try {
+      const postsQuery = postsRef.where('mealId', '==', mealId).where('userId', '==', userId);
+      const postsSnapshot = await postsQuery.get();
+      postsToDelete = postsSnapshot.docs;
+    } catch (queryError) {
+      // If query fails (e.g., missing composite index), try alternative approach
+      console.warn('Query by mealId failed, trying alternative method:', queryError.message);
+      
+      // Query by userId only, then filter by mealId in memory
+      try {
+        const userPostsQuery = postsRef.where('userId', '==', userId);
+        const userPostsSnapshot = await userPostsQuery.get();
+        postsToDelete = userPostsSnapshot.docs.filter(doc => {
+          const postData = doc.data();
+          return postData.mealId === mealId;
+        });
+      } catch (altError) {
+        console.error('Alternative query also failed:', altError.message);
+        // As a last resort, try to match by date and mealType
+        const mealDate = mealLogData.mealDate;
+        const mealType = mealLogData.mealType;
+        if (mealDate && mealType) {
+          try {
+            const datePostsQuery = postsRef.where('userId', '==', userId).where('mealDate', '==', mealDate);
+            const datePostsSnapshot = await datePostsQuery.get();
+            postsToDelete = datePostsSnapshot.docs.filter(doc => {
+              const postData = doc.data();
+              return postData.mealType?.toLowerCase() === mealType?.toLowerCase() &&
+                     (!postData.mealId || postData.mealId === mealId); // Prefer posts with matching mealId
+            });
+          } catch (dateError) {
+            console.error('Date-based query also failed:', dateError.message);
+          }
+        }
+      }
+    }
+    
+    if (postsToDelete.length > 0) {
+      const deletePromises = postsToDelete.map(postDoc => postDoc.ref.delete());
       await Promise.all(deletePromises);
-      console.log(`Deleted ${postsSnapshot.docs.length} post(s) associated with meal log ${mealId}`);
+      console.log(`Deleted ${postsToDelete.length} post(s) associated with meal log ${mealId}`);
+    } else {
+      console.log(`No posts found associated with meal log ${mealId}`);
     }
   } catch (error) {
     // Log error but don't fail the deletion

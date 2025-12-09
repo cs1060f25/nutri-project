@@ -300,20 +300,7 @@ const CreatePostModal = ({ isOpen, onClose, onSuccess, scanData, imageUrl, image
           sugars: item.sugars ? `${item.sugars}g` : '0g',
         }));
 
-        // Calculate totals
-        const nutritionTotals = scanData.nutritionTotals || {
-          calories: scanData.calories || 0,
-          protein: scanData.protein || 0,
-          totalCarbs: scanData.carbs || scanData.totalCarbs || 0,
-          totalFat: scanData.fat || scanData.totalFat || 0,
-          saturatedFat: scanData.saturatedFat || 0,
-          transFat: scanData.transFat || 0,
-          cholesterol: scanData.cholesterol || 0,
-          sodium: scanData.sodium || 0,
-          dietaryFiber: scanData.dietaryFiber || 0,
-          sugars: scanData.sugars || 0,
-        };
-
+        // totals will be calculated by backend from items
         const mealLogData = {
           mealDate,
           mealType: mealType ? mealType.toLowerCase() : null,
@@ -333,6 +320,9 @@ const CreatePostModal = ({ isOpen, onClose, onSuccess, scanData, imageUrl, image
         let currentToken = accessToken;
         try {
           await saveMealLog(mealLogData, currentToken);
+          
+          // Dispatch event to notify other components (Home, Insights, MealPlanning) to refresh progress
+          window.dispatchEvent(new CustomEvent('mealLogUpdated'));
         } catch (err) {
           // If token expired, try refreshing and retrying once
           if (err.message && (err.message.includes('expired') || err.message.includes('invalid token'))) {
@@ -340,6 +330,9 @@ const CreatePostModal = ({ isOpen, onClose, onSuccess, scanData, imageUrl, image
               console.log('Token expired, refreshing...');
               currentToken = await refreshAccessToken();
               await saveMealLog(mealLogData, currentToken);
+              
+              // Dispatch event after successful creation
+              window.dispatchEvent(new CustomEvent('mealLogUpdated'));
             } catch (refreshErr) {
               console.error('Failed to refresh token:', refreshErr);
               throw new Error('Session expired. Please log in again.');

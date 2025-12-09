@@ -427,8 +427,8 @@ const MealPlanning = () => {
   useEffect(() => {
     const handleMealLogUpdated = async () => {
       if (selectedMealPlan && accessToken) {
-        // Add a small delay to ensure the meal log is saved to Firestore
-        setTimeout(async () => {
+        // Use retry logic with increasing delays to handle Vercel's slower Firestore writes
+        const checkCompletion = async (retryCount = 0) => {
           try {
             // Query only by date to avoid index requirement, then filter by meal type in memory
             const mealLogs = await getMealLogs({
@@ -436,21 +436,50 @@ const MealPlanning = () => {
               endDate: selectedMealPlan.date,
             }, accessToken);
             
-            // Compare case-insensitively since meal plans use lowercase but meal logs might use capitalized
-            // Normalize dates to YYYY-MM-DD format for comparison
+            // Use the same comparison logic as handleMealPlanClick (with item matching)
             const isCompleted = mealLogs.meals && mealLogs.meals.some(meal => {
+              // Normalize dates to YYYY-MM-DD format for comparison
               const mealDateStr = meal.mealDate ? String(meal.mealDate).split('T')[0] : '';
               const planDateStr = selectedMealPlan.date ? String(selectedMealPlan.date).split('T')[0] : '';
               const dateMatch = mealDateStr === planDateStr;
+              
+              // Compare meal types case-insensitively
               const typeMatch = meal.mealType?.toLowerCase() === selectedMealPlan.mealType?.toLowerCase();
-              return dateMatch && typeMatch;
+              
+              // Also check if the meal log items match the meal plan items
+              const planItemNames = (selectedMealPlan.selectedItems || []).map(item => item.name?.toLowerCase() || '');
+              const mealItemNames = (meal.items || []).map(item => item.recipeName?.toLowerCase() || item.name?.toLowerCase() || '');
+              
+              // Check if at least some items from the meal plan are in the meal log
+              const hasMatchingItems = planItemNames.length > 0 && planItemNames.some(planItem => 
+                mealItemNames.some(mealItem => 
+                  mealItem.includes(planItem) || planItem.includes(mealItem)
+                )
+              );
+              
+              // Only mark as completed if date, meal type, AND items match
+              return dateMatch && typeMatch && hasMatchingItems;
             });
             
             setIsMealPlanCompleted(isCompleted || false);
+            
+            // If not completed and we haven't retried too many times, retry
+            if (!isCompleted && retryCount < 3) {
+              const delay = (retryCount + 1) * 1500; // 1.5s, 3s, 4.5s
+              setTimeout(() => checkCompletion(retryCount + 1), delay);
+            }
           } catch (error) {
             console.error('Error checking meal plan completion:', error);
+            // Retry on error if we haven't retried too many times
+            if (retryCount < 3) {
+              const delay = (retryCount + 1) * 1500;
+              setTimeout(() => checkCompletion(retryCount + 1), delay);
+            }
           }
-        }, 1000); // Wait 1 second for Firestore to save
+        };
+        
+        // Start checking after initial delay (longer for Vercel)
+        setTimeout(() => checkCompletion(), 2000); // Start with 2 second delay
       }
     };
 
@@ -2467,9 +2496,9 @@ const MealPlanning = () => {
             setShowCompleteModal(false);
             setCompleteModalScanData(null);
             // Re-check if meal plan is completed after closing
-            // Add a small delay to ensure the meal log is saved to Firestore
+            // Use retry logic with increasing delays to handle Vercel's slower Firestore writes
             if (selectedMealPlan && accessToken) {
-              setTimeout(async () => {
+              const checkCompletion = async (retryCount = 0) => {
                 try {
                   // Query only by date to avoid index requirement, then filter by meal type in memory
                   const mealLogs = await getMealLogs({
@@ -2477,20 +2506,50 @@ const MealPlanning = () => {
                     endDate: selectedMealPlan.date,
                   }, accessToken);
                   
-                  // Use the same comparison logic as the event listener
+                  // Use the same comparison logic as handleMealPlanClick (with item matching)
                   const isCompleted = mealLogs.meals && mealLogs.meals.some(meal => {
+                    // Normalize dates to YYYY-MM-DD format for comparison
                     const mealDateStr = meal.mealDate ? String(meal.mealDate).split('T')[0] : '';
                     const planDateStr = selectedMealPlan.date ? String(selectedMealPlan.date).split('T')[0] : '';
                     const dateMatch = mealDateStr === planDateStr;
+                    
+                    // Compare meal types case-insensitively
                     const typeMatch = meal.mealType?.toLowerCase() === selectedMealPlan.mealType?.toLowerCase();
-                    return dateMatch && typeMatch;
+                    
+                    // Also check if the meal log items match the meal plan items
+                    const planItemNames = (selectedMealPlan.selectedItems || []).map(item => item.name?.toLowerCase() || '');
+                    const mealItemNames = (meal.items || []).map(item => item.recipeName?.toLowerCase() || item.name?.toLowerCase() || '');
+                    
+                    // Check if at least some items from the meal plan are in the meal log
+                    const hasMatchingItems = planItemNames.length > 0 && planItemNames.some(planItem => 
+                      mealItemNames.some(mealItem => 
+                        mealItem.includes(planItem) || planItem.includes(mealItem)
+                      )
+                    );
+                    
+                    // Only mark as completed if date, meal type, AND items match
+                    return dateMatch && typeMatch && hasMatchingItems;
                   });
                   
                   setIsMealPlanCompleted(isCompleted || false);
+                  
+                  // If not completed and we haven't retried too many times, retry
+                  if (!isCompleted && retryCount < 3) {
+                    const delay = (retryCount + 1) * 1500; // 1.5s, 3s, 4.5s
+                    setTimeout(() => checkCompletion(retryCount + 1), delay);
+                  }
                 } catch (err) {
                   console.error('Error checking completion:', err);
+                  // Retry on error if we haven't retried too many times
+                  if (retryCount < 3) {
+                    const delay = (retryCount + 1) * 1500;
+                    setTimeout(() => checkCompletion(retryCount + 1), delay);
+                  }
                 }
-              }, 1000); // Wait 1 second for Firestore to save
+              };
+              
+              // Start checking after initial delay
+              setTimeout(() => checkCompletion(), 1500); // Start with 1.5 second delay
             }
           }}
           scanData={completeModalScanData}
