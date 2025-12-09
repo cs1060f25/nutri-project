@@ -230,18 +230,39 @@ const NotificationBell = () => {
   };
 
   const renderMessage = (notif) => {
-    if (notif.type === 'friend_request_accepted') {
-      return (
-        <div className="notification-text">
-          <strong>{notif.from}</strong> accepted your friend request
-        </div>
-      );
+    switch (notif.type) {
+      case 'friend_request_accepted':
+        return (
+          <div className="notification-text">
+            <strong>{notif.from}</strong> accepted your friend request
+          </div>
+        );
+      case 'friend_request_received':
+      case 'request':
+        return (
+          <div className="notification-text">
+            <strong>{notif.from}</strong> sent you a friend request
+          </div>
+        );
+      case 'post_upvoted':
+        return (
+          <div className="notification-text">
+            <strong>{notif.from}</strong> upvoted your post
+          </div>
+        );
+      case 'comment_received':
+        return (
+          <div className="notification-text">
+            <strong>{notif.from}</strong> commented on your post
+          </div>
+        );
+      default:
+        return (
+          <div className="notification-text">
+            <strong>{notif.from}</strong> sent you a notification
+          </div>
+        );
     }
-    return (
-      <div className="notification-text">
-        <strong>{notif.from}</strong> requested to be friends
-      </div>
-    );
   };
 
   return (
@@ -264,7 +285,7 @@ const NotificationBell = () => {
         <div className="notification-panel">
           <div className="notification-panel-header">
             <h4>Notifications</h4>
-            <span className="notification-panel-subtitle">Friend requests</span>
+            <span className="notification-panel-subtitle">Activity & friend requests</span>
             {unreadNotifications.length > 0 && (
               <button
                 type="button"
