@@ -1,25 +1,57 @@
 .create-post-modal-overlay {
   position: fixed;
   top: 0;
-  left: 0;
+  left: 260px; /* Width of expanded sidebar */
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.6);
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
-  padding: 1rem;
+  padding: 2rem;
+  overflow-y: auto;
+  /* Ensure modal is centered in viewport, not page content */
+  margin: 0;
+  /* Prevent body scroll when modal is open */
+  overscroll-behavior: contain;
+  /* Ensure overlay starts at top when opened */
+  scroll-behavior: auto;
+  /* Ensure overlay is always relative to viewport */
+  transform: translateZ(0);
+}
+
+/* When sidebar is collapsed */
+.sidebar-collapsed .create-post-modal-overlay {
+  left: 70px;
 }
 
 .create-post-modal {
   background: white;
   border-radius: 16px;
   width: 100%;
-  max-width: 600px;
+  max-width: 900px;
   max-height: 90vh;
   overflow-y: auto;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  animation: modalFadeIn 0.2s ease-out;
+  /* Ensure modal is centered within overlay */
+  margin: auto;
+  /* Prevent modal from shrinking below its content */
+  flex-shrink: 0;
+}
+
+@keyframes modalFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
 }
 
 .create-post-modal-header {

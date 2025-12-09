@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Star } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { getLocations } from '../services/hudsService';
@@ -62,6 +63,50 @@ const EditPostModal = ({ isOpen, onClose, post, onPostUpdated, onPostDeleted }) 
   const [showProtein, setShowProtein] = useState(true);
   const [showCarbs, setShowCarbs] = useState(true);
   const [showFat, setShowFat] = useState(true);
+
+  // Initialize form with post data and handle scroll locking
+  useEffect(() => {
+    if (isOpen) {
+      // Store current scroll position
+      const scrollY = window.scrollY;
+      
+      // Lock body scroll when modal is open
+      const originalOverflow = document.body.style.overflow;
+      const originalPaddingRight = document.body.style.paddingRight;
+      const originalPosition = document.body.style.position;
+      const originalTop = document.body.style.top;
+      const originalWidth = document.body.style.width;
+      const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+      
+      // Prevent body from scrolling and maintain scroll position
+      document.body.style.overflow = 'hidden';
+      document.body.style.position = 'fixed';
+      document.body.style.top = `-${scrollY}px`;
+      document.body.style.width = '100%';
+      if (scrollbarWidth > 0) {
+        document.body.style.paddingRight = `${scrollbarWidth}px`;
+      }
+      
+      // Scroll overlay to top to ensure modal is centered in viewport
+      setTimeout(() => {
+        const overlay = document.querySelector('.create-post-modal-overlay');
+        if (overlay) {
+          overlay.scrollTop = 0;
+        }
+      }, 0);
+      
+      // Cleanup: restore body scroll when modal closes
+      return () => {
+        document.body.style.overflow = originalOverflow;
+        document.body.style.position = originalPosition;
+        document.body.style.top = originalTop;
+        document.body.style.width = originalWidth;
+        document.body.style.paddingRight = originalPaddingRight;
+        // Restore scroll position
+        window.scrollTo(0, scrollY);
+      };
+    }
+  }, [isOpen]);
 
   // Initialize form with post data
   useEffect(() => {
@@ -290,12 +335,11 @@ const EditPostModal = ({ isOpen, onClose, post, onPostUpdated, onPostDeleted }) 
     }
   };
 
-  return (
-    <>
-      {/* Main Edit Modal */}
-      {isOpen && post && (
-        <div className="create-post-modal-overlay" onClick={onClose}>
-          <div className="create-post-modal" onClick={(e) => e.stopPropagation()}>
+  if (!isOpen || !post) return null;
+
+  const modalContent = (
+    <div className="create-post-modal-overlay" onClick={onClose}>
+      <div className="create-post-modal" onClick={(e) => e.stopPropagation()}>
             <div className="create-post-modal-header">
               <h2>Edit Post</h2>
               <button className="create-post-modal-close" onClick={onClose}>
@@ -582,41 +626,45 @@ const EditPostModal = ({ isOpen, onClose, post, onPostUpdated, onPostDeleted }) 
           </form>
         </div>
       </div>
-      )}
+  );
 
-      {/* Delete Confirmation Modal */}
-      {showDeleteConfirmationModal && (
-        <div className="create-post-modal-overlay" onClick={() => setShowDeleteConfirmationModal(false)}>
-          <div className="create-post-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="create-post-modal-header">
-              <h2>Confirm Delete</h2>
-              <button className="create-post-modal-close" onClick={() => setShowDeleteConfirmationModal(false)}>×</button>
-            </div>
+  const deleteModalContent = showDeleteConfirmationModal ? (
+    <div className="create-post-modal-overlay" onClick={() => setShowDeleteConfirmationModal(false)}>
+      <div className="create-post-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="create-post-modal-header">
+          <h2>Confirm Delete</h2>
+          <button className="create-post-modal-close" onClick={() => setShowDeleteConfirmationModal(false)}>×</button>
+        </div>
 
-            <div className="create-post-modal-content">
-              <div className="delete-confirmation-message">
-                Are you sure you want to delete this post? This action cannot be undone.
-              </div>
-            </div>
-
-            <div className="create-post-modal-actions">
-              <button
-                className="create-post-modal-cancel"
-                onClick={() => setShowDeleteConfirmationModal(false)}
-              >
-                Cancel
-              </button>
-              <button
-                className="create-post-modal-delete"
-                onClick={handleConfirmDelete}
-                disabled={deleting}
-              >
-                {deleting ? 'Deleting...' : 'Delete'}
-              </button>
-            </div>
+        <div className="create-post-modal-content">
+          <div className="delete-confirmation-message">
+            Are you sure you want to delete this post? This action cannot be undone.
           </div>
         </div>
-      )}
+
+        <div className="create-post-modal-actions">
+          <button
+            className="create-post-modal-cancel"
+            onClick={() => setShowDeleteConfirmationModal(false)}
+          >
+            Cancel
+          </button>
+          <button
+            className="create-post-modal-delete"
+            onClick={handleConfirmDelete}
+            disabled={deleting}
+          >
+            {deleting ? 'Deleting...' : 'Delete'}
+          </button>
+        </div>
+      </div>
+    </div>
+  ) : null;
+
+  return (
+    <>
+      {createPortal(modalContent, document.body)}
+      {createPortal(deleteModalContent, document.body)}
     </>
   );
 };

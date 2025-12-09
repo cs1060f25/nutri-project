@@ -5,6 +5,7 @@
 const { admin } = require('../config/firebase');
 
 const SAVED_MEAL_PLANS_COLLECTION = 'savedMealPlans';
+const USERS_COLLECTION = 'users';
 
 // Lazy-load Firestore instance to avoid initialization issues
 const getDb = () => admin.firestore();
@@ -48,6 +49,118 @@ const createSavedMealPlan = async (userId, savedPlanData) => {
 };
 
 /**
+ * Helper function to normalize item name for comparison
+ */
+const normalizeItemName = (name) => {
+  if (!name) return '';
+  return name.toLowerCase().trim().replace(/\s+/g, ' ');
+};
+
+/**
+ * Helper function to check if two items match
+ */
+const itemsMatch = (item1, item2) => {
+  // First try to match by ID (recipeId or id)
+  const id1 = item1.recipeId || item1.id || item1.Recipe_Number;
+  const id2 = item2.recipeId || item2.id || item2.Recipe_Number;
+  
+  if (id1 && id2 && String(id1) === String(id2)) {
+    return true;
+  }
+  
+  // Fallback to name matching
+  const name1 = normalizeItemName(item1.recipeName || item1.name || item1.matchedName);
+  const name2 = normalizeItemName(item2.recipeName || item2.name || item2.matchedName);
+  
+  return name1 === name2;
+};
+
+/**
+ * Calculate actual usage count by counting meal logs that match the saved meal plan
+ */
+const calculateActualUsageCount = async (userId, savedPlan) => {
+  try {
+    const db = getDb();
+    
+    // Get all meal logs for the user (no limit for accurate count)
+    const mealsRef = db
+      .collection(USERS_COLLECTION)
+      .doc(userId)
+      .collection('meals');
+    
+    const snapshot = await mealsRef.get();
+    
+    const mealLogs = [];
+    snapshot.forEach(doc => {
+      mealLogs.push({
+        id: doc.id,
+        ...doc.data(),
+      });
+    });
+    
+    if (!mealLogs || mealLogs.length === 0) {
+      return 0;
+    }
+    
+    // Get saved plan items
+    const savedPlanItems = savedPlan.selectedItems || [];
+    if (savedPlanItems.length === 0) {
+      return 0;
+    }
+    
+    // Create a set of saved plan item identifiers for quick lookup
+    const savedPlanItemIds = new Set(
+      savedPlanItems.map(item => {
+        const id = item.recipeId || item.id || item.Recipe_Number;
+        return id ? String(id) : normalizeItemName(item.name || item.recipeName);
+      })
+    );
+    
+    // Count meal logs that match
+    let count = 0;
+    for (const mealLog of mealLogs) {
+      const mealLogItems = mealLog.items || [];
+      
+      // Check if meal log has same number of items
+      if (mealLogItems.length !== savedPlanItems.length) {
+        continue;
+      }
+      
+      // Check if meal type and location match
+      if (savedPlan.mealType && mealLog.mealType && 
+          savedPlan.mealType.toLowerCase() !== mealLog.mealType.toLowerCase()) {
+        continue;
+      }
+      
+      if (savedPlan.locationId && mealLog.locationId && 
+          savedPlan.locationId !== mealLog.locationId) {
+        continue;
+      }
+      
+      // Check if all items match
+      const mealLogItemIds = new Set(
+        mealLogItems.map(item => {
+          const id = item.recipeId || item.id || item.Recipe_Number;
+          return id ? String(id) : normalizeItemName(item.recipeName || item.name);
+        })
+      );
+      
+      // Check if sets match (same items)
+      if (savedPlanItemIds.size === mealLogItemIds.size &&
+          [...savedPlanItemIds].every(id => mealLogItemIds.has(id))) {
+        count++;
+      }
+    }
+    
+    return count;
+  } catch (error) {
+    console.error('Error calculating actual usage count:', error);
+    // Return stored usageCount as fallback
+    return savedPlan.usageCount || 0;
+  }
+};
+
+/**
  * Get all saved meal plans for a user
  */
 const getSavedMealPlans = async (userId) => {
@@ -67,14 +180,25 @@ const getSavedMealPlans = async (userId) => {
       updatedAt: doc.data().updatedAt?.toDate(),
     }));
 
+    // Calculate actual usage count for each plan
+    const plansWithUsageCount = await Promise.all(
+      plans.map(async (plan) => {
+        const actualUsageCount = await calculateActualUsageCount(userId, plan);
+        return {
+          ...plan,
+          usageCount: actualUsageCount, // Override stored usageCount with calculated value
+        };
+      })
+    );
+
     // Sort by createdAt in descending order (newest first)
-    plans.sort((a, b) => {
+    plansWithUsageCount.sort((a, b) => {
       const aTime = a.createdAt?.getTime() || 0;
       const bTime = b.createdAt?.getTime() || 0;
       return bTime - aTime;
     });
 
-    return plans;
+    return plansWithUsageCount;
   } catch (error) {
     console.error('Error in getSavedMealPlans:', error);
     throw error;

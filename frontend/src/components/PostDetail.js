@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { X, ThumbsUp, ThumbsDown, Send, Star } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -52,6 +53,50 @@ const PostDetail = ({ postId, onClose }) => {
   useEffect(() => {
     fetchPostDetails();
   }, [fetchPostDetails]);
+
+  // Handle scroll locking when modal is open
+  useEffect(() => {
+    if (postId) {
+      // Store current scroll position
+      const scrollY = window.scrollY;
+      
+      // Lock body scroll when modal is open
+      const originalOverflow = document.body.style.overflow;
+      const originalPaddingRight = document.body.style.paddingRight;
+      const originalPosition = document.body.style.position;
+      const originalTop = document.body.style.top;
+      const originalWidth = document.body.style.width;
+      const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+      
+      // Prevent body from scrolling and maintain scroll position
+      document.body.style.overflow = 'hidden';
+      document.body.style.position = 'fixed';
+      document.body.style.top = `-${scrollY}px`;
+      document.body.style.width = '100%';
+      if (scrollbarWidth > 0) {
+        document.body.style.paddingRight = `${scrollbarWidth}px`;
+      }
+      
+      // Scroll overlay to top to ensure modal is centered in viewport
+      setTimeout(() => {
+        const overlay = document.querySelector('.post-detail-modal-overlay');
+        if (overlay) {
+          overlay.scrollTop = 0;
+        }
+      }, 0);
+      
+      // Cleanup: restore body scroll when modal closes
+      return () => {
+        document.body.style.overflow = originalOverflow;
+        document.body.style.position = originalPosition;
+        document.body.style.top = originalTop;
+        document.body.style.width = originalWidth;
+        document.body.style.paddingRight = originalPaddingRight;
+        // Restore scroll position
+        window.scrollTo(0, scrollY);
+      };
+    }
+  }, [postId]);
 
   const handleUpvote = async () => {
     if (!accessToken || !post || isOwnPost) return;
@@ -163,7 +208,9 @@ const PostDetail = ({ postId, onClose }) => {
   const downvoteCount = downvotes.length;
   const isOwnPost = userId && (userId === post?.userId);
 
-  return (
+  if (!postId) return null;
+
+  const modalContent = (
     <div className="post-detail-modal-overlay" onClick={onClose}>
       <div className="post-detail-modal" onClick={(e) => e.stopPropagation()}>
         {loading ? (
@@ -407,6 +454,8 @@ const PostDetail = ({ postId, onClose }) => {
       </div>
     </div>
   );
+
+  return createPortal(modalContent, document.body);
 };
 
 export default PostDetail;

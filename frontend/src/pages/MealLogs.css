@@ -410,6 +410,11 @@
   flex-wrap: wrap;
 }
 
+.meal-item-macros .nutrition-chip {
+  flex: 0 0 auto;
+  width: auto;
+}
+
 .meal-item-macros span,
 .meal-item-macros .nutrition-chip {
   background: var(--border-color);
