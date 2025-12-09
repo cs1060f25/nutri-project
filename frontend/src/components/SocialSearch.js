@@ -1,26 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import { Search as SearchIcon, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { useLocation } from 'react-router-dom';
-import { searchUsers, searchLocations, sendFriendRequest, getFriends, removeFriend, followDiningHall, unfollowDiningHall, getFollowedDiningHalls, getFriendRequests, getPostsByUser, acceptFriendRequest } from '../services/socialService';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { searchUsers, searchLocations, sendFriendRequest, getFriends, followDiningHall, unfollowDiningHall, getFollowedDiningHalls, getFriendRequests, getPostsByUser, acceptFriendRequest } from '../services/socialService';
 import { getPostsByLocationName } from '../services/socialService';
 import PostCard from './PostCard';
 import PostDetail from './PostDetail';
-import ConfirmModal from './ConfirmModal';
 import '../pages/Social.css';
 import '../components/CreatePostModal.css';
 
 const SocialSearch = () => {
   const { accessToken } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [searchType, setSearchType] = useState('users'); // 'users' or 'locations'
   const [users, setUsers] = useState([]);
   const [locations, setLocations] = useState([]);
   const [locationPosts, setLocationPosts] = useState([]);
   const [selectedLocation, setSelectedLocation] = useState(null);
-  const [selectedUser, setSelectedUser] = useState(null);
-  const [userPosts, setUserPosts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [friends, setFriends] = useState([]);
   const [friendRequestStatus, setFriendRequestStatus] = useState({});
@@ -29,8 +27,6 @@ const SocialSearch = () => {
   const [followedDiningHalls, setFollowedDiningHalls] = useState([]);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [successMessage, setSuccessMessage] = useState('Friend request sent!');
-  const [showUnfriendModal, setShowUnfriendModal] = useState(false);
-  const [userToUnfriend, setUserToUnfriend] = useState(null);
   const [showPostModal, setShowPostModal] = useState(false);
   const [modalPostId, setModalPostId] = useState(null);
 
@@ -149,7 +145,6 @@ const SocialSearch = () => {
 
   const handleLocationClick = async (location) => {
     setSelectedLocation(location);
-    setSelectedUser(null); // Clear user selection
     try {
       const data = await getPostsByLocationName(location.locationName, 50, accessToken);
       setLocationPosts(data.posts || []);
@@ -160,15 +155,8 @@ const SocialSearch = () => {
   };
 
   const handleUserClick = async (user) => {
-    setSelectedUser(user);
-    setSelectedLocation(null); // Clear location selection
-    try {
-      const data = await getPostsByUser(user.id, 50, accessToken);
-      setUserPosts(data.posts || []);
-    } catch (err) {
-      console.error('Error fetching user posts:', err);
-      alert('Failed to load posts: ' + err.message);
-    }
+    // Navigate to the profile route instead of showing inline
+    navigate(`/home/social/user/${user.id}`);
   };
 
   const handleSendFriendRequest = async (userId) => {
@@ -217,29 +205,6 @@ const SocialSearch = () => {
     }
   };
 
-  const handleConfirmUnfriend = async () => {
-    if (!userToUnfriend) return;
-
-    try {
-      await removeFriend(userToUnfriend.id, accessToken);
-      // Refresh friends list
-      const friendsData = await getFriends(accessToken);
-      setFriends(friendsData.friends || []);
-      // Update friend status
-      const updatedIsFriend = friendsData.friends?.some((f) => f.id === userToUnfriend.id);
-      if (!updatedIsFriend) {
-        // If no longer friends, refresh the view
-        setSelectedUser(null);
-        setUserPosts([]);
-      }
-    } catch (err) {
-      console.error('Error removing friend:', err);
-      alert('Failed to remove friend: ' + err.message);
-    } finally {
-      setShowUnfriendModal(false);
-      setUserToUnfriend(null);
-    }
-  };
 
   const handleFollowDiningHall = async (locationId, locationName, e) => {
     if (e) e.stopPropagation(); // Prevent navigation to location page if event exists
@@ -368,108 +333,6 @@ const SocialSearch = () => {
     );
   }
 
-  if (selectedUser) {
-    const isFriend = friends.some((f) => f.id === selectedUser.id);
-    const hasSentRequest = friendRequestStatus[selectedUser.id] === 'sent';
-    const hasIncomingRequest = incomingRequests[selectedUser.id] !== undefined;
-
-    return (
-      <div className="full-width-detail-page">
-        <button
-          className="profile-back-button"
-          onClick={() => {
-            setSelectedUser(null);
-            setUserPosts([]);
-          }}
-          style={{ marginBottom: '1.5rem' }}
-        >
-          <ArrowLeft size={20} />
-          Back to Search
-        </button>
-        <div className="profile-detail-header-card">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div>
-              <h2>{selectedUser.name}</h2>
-              <p style={{ color: '#666', marginTop: '0.5rem' }}>
-                {selectedUser.email} {selectedUser.residence && `• ${selectedUser.residence}`}
-              </p>
-            </div>
-            <div onClick={(e) => e.stopPropagation()}>
-              {isFriend ? (
-                <button
-                  className="btn btn-secondary"
-                  onClick={() => {
-                    setUserToUnfriend(selectedUser);
-                    setShowUnfriendModal(true);
-                  }}
-                >
-                  Unfriend
-                </button>
-              ) : hasIncomingRequest ? (
-                <button
-                  className="btn btn-primary"
-                  onClick={async () => {
-                    try {
-                      await handleAcceptFriendRequest(selectedUser.id);
-                    } catch (err) {
-                      console.error('Error accepting friend request:', err);
-                    }
-                  }}
-                >
-                  Accept Request
-                </button>
-              ) : hasSentRequest ? (
-                <span style={{ color: '#666', padding: '0.5rem 1rem' }}>Friend Request Sent</span>
-              ) : (
-                <button
-                  className="btn btn-primary"
-                  onClick={async () => {
-                    try {
-                      await handleSendFriendRequest(selectedUser.id);
-                    } catch (err) {
-                      console.error('Error sending friend request:', err);
-                    }
-                  }}
-                >
-                  Add Friend
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-        <p style={{ color: '#666', marginBottom: '1.5rem' }}>
-          {userPosts.length} {userPosts.length === 1 ? 'creation' : 'creations'}
-        </p>
-        {userPosts.length === 0 ? (
-          <div className="empty-state">
-            <div className="empty-state-icon">📭</div>
-            <div className="empty-state-title">No creations yet</div>
-            <div className="empty-state-message">
-              This user hasn't shared any meals yet.
-            </div>
-          </div>
-        ) : (
-          userPosts.map((post) => (
-            <PostCard key={post.id} post={post} />
-          ))
-        )}
-
-        <ConfirmModal
-          isOpen={showUnfriendModal}
-          onClose={() => {
-            setShowUnfriendModal(false);
-            setUserToUnfriend(null);
-          }}
-          onConfirm={handleConfirmUnfriend}
-          title="Remove Friend"
-          message={`Are you sure you want to remove ${userToUnfriend?.name || 'this user'} as a friend?`}
-          confirmText="Remove Friend"
-          cancelText="Cancel"
-          isDangerous={true}
-        />
-      </div>
-    );
-  }
 
   return (
     <div className="social-search">
@@ -662,20 +525,6 @@ const SocialSearch = () => {
           </div>
         </div>
       )}
-
-      <ConfirmModal
-        isOpen={showUnfriendModal}
-        onClose={() => {
-          setShowUnfriendModal(false);
-          setUserToUnfriend(null);
-        }}
-        onConfirm={handleConfirmUnfriend}
-        title="Remove Friend"
-        message={`Are you sure you want to remove ${userToUnfriend?.name || 'this user'} as a friend?`}
-        confirmText="Remove Friend"
-        cancelText="Cancel"
-        isDangerous={true}
-      />
 
       {showPostModal && modalPostId && (
         <PostDetail

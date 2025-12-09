@@ -17,6 +17,9 @@ const Social = () => {
     { id: 'profile', label: 'My Profile', path: '/home/social/profile' },
   ];
 
+  // Check if we're viewing a user profile (not own profile)
+  const isViewingUserProfile = location.pathname.startsWith('/home/social/user/');
+
   // Default to feed if on base social path
   React.useEffect(() => {
     if (location.pathname === '/home/social' || location.pathname === '/home/social/') {
@@ -25,32 +28,36 @@ const Social = () => {
   }, [location.pathname, navigate]);
 
   return (
-    <div className="social-page">
-      <div className="social-header">
-        <h1>Social</h1>
-        <p>Share your best HUDS creations and get inspired by your friends</p>
-      </div>
+    <div className={`social-page ${isViewingUserProfile ? 'viewing-user-profile' : ''}`}>
+      {!isViewingUserProfile && (
+        <>
+          <div className="social-header">
+            <h1>Social</h1>
+            <p>Share your best HUDS creations and get inspired by your friends</p>
+          </div>
 
-      <div className="social-tabs">
-        <div className="social-tabs-left">
-          {tabs.map((tab) => (
-            <Link
-              key={tab.id}
-              to={tab.path}
-              className={`social-tab ${location.pathname === tab.path ? 'active' : ''}`}
+          <div className="social-tabs">
+            <div className="social-tabs-left">
+              {tabs.map((tab) => (
+                <Link
+                  key={tab.id}
+                  to={tab.path}
+                  className={`social-tab ${location.pathname === tab.path ? 'active' : ''}`}
+                >
+                  {tab.label}
+                </Link>
+              ))}
+            </div>
+            <button
+              className="post-creation-button"
+              onClick={() => navigate('/home/social/post')}
             >
-              {tab.label}
-            </Link>
-          ))}
-        </div>
-        <button
-          className="post-creation-button"
-          onClick={() => navigate('/home/social/post')}
-        >
-          <Plus size={18} />
-          Post a HUDS Creation
-        </button>
-      </div>
+              <Plus size={18} />
+              Post a HUDS Creation
+            </button>
+          </div>
+        </>
+      )}
 
       <div className="social-content">
         <Routes>

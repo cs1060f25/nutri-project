@@ -387,6 +387,7 @@ const MealLogs = () => {
                                 </>
                               );
                             })()}
+                          </div>
                           <div className="meal-item-nutrition">
                             <div className="meal-item-macros">
                               <span className="meal-item-calories">{Math.round(parseNutrient(item.calories))} cal</span>

@@ -426,8 +426,9 @@ const SocialProfile = () => {
     );
   }
 
-  // If viewing another user's profile from a modal, show full-width detail page
-  if (!isOwnProfile && fromModal && modalPostId) {
+  // If viewing another user's profile, show full-width detail page
+  if (!isOwnProfile && urlUserId) {
+    // Get user info from posts if available, otherwise we'll need to fetch it
     const userPost = posts[0];
     const userName = userPost?.userName || 'User';
     const userEmail = userPost?.userEmail || '';
@@ -442,14 +443,18 @@ const SocialProfile = () => {
         <button
           className="profile-back-button"
           onClick={() => {
-            navigate(returnPath, {
-              state: { openPostModal: true, postId: modalPostId }
-            });
+            if (fromModal && modalPostId) {
+              navigate(returnPath, {
+                state: { openPostModal: true, postId: modalPostId }
+              });
+            } else {
+              navigate(-1);
+            }
           }}
           style={{ marginBottom: '1.5rem' }}
         >
           <ArrowLeft size={20} />
-          Back to Post
+          {fromModal && modalPostId ? 'Back to Post' : 'Back'}
         </button>
         <div className="profile-detail-header-card">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
