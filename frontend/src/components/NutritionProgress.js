@@ -161,7 +161,7 @@ const NutritionProgress = ({ progressData }) => {
 
 // Helper function to format metric names
 const formatMetricName = (key) => {
-  const names = {
+  const explicitNames = {
     calories: 'Calories',
     protein: 'Protein',
     totalFat: 'Total Fat',
@@ -170,8 +170,20 @@ const formatMetricName = (key) => {
     fiber: 'Fiber',
     sugars: 'Sugars',
     sodium: 'Sodium',
+    caloriesFromFat: 'Calories from Fat',
   };
-  return names[key] || key;
+
+  if (explicitNames[key]) {
+    return explicitNames[key];
+  }
+
+  // Fallback: convert camelCase or snake_case to Title Case
+  return key
+    .replace(/([A-Z])/g, ' $1')
+    .replace(/[_-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/^\w/, (c) => c.toUpperCase());
 };
 
 export default NutritionProgress;
