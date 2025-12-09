@@ -7,6 +7,7 @@ import { generateMealSuggestion } from '../services/mealSuggestionService';
 import MealLogger from '../components/MealLogger';
 import NutritionProgress from '../components/NutritionProgress';
 import CustomSelect from '../components/CustomSelect';
+import { HARVARD_DINING_HALLS } from '../config/diningHalls';
 import './Home.css';
 
 // Houses that share menus (11 houses, excluding Quincy)
@@ -24,11 +25,8 @@ const SHARED_MENU_HOUSES = [
   'Winthrop House'
 ];
 
-// All 12 houses (including Quincy which has its own menu)
-const ALL_HOUSES = [
-  ...SHARED_MENU_HOUSES,
-  'Quincy House'
-];
+// All 13 standard dining halls (including Annenberg)
+const ALL_HOUSES = HARVARD_DINING_HALLS;
 
 // Helper to ensure house names have "House" suffix
 const normalizeHouseName = (houseName) => {
@@ -76,6 +74,7 @@ const Home = () => {
   const [suggestionData, setSuggestionData] = useState(null);
   const [suggestedItems, setSuggestedItems] = useState([]);
   const [hypotheticalMeals, setHypotheticalMeals] = useState([]);
+  const [menuSearchQuery, setMenuSearchQuery] = useState('');
   const { accessToken } = useAuth();
 
   // Fetch locations on mount and expand paired houses
@@ -109,7 +108,49 @@ const Home = () => {
           }
         });
         
-        setExpandedLocations(expanded);
+        // Create a map of existing locations by name for quick lookup
+        const existingByName = new Map();
+        expanded.forEach(loc => {
+          existingByName.set(loc.location_name.toLowerCase(), loc);
+        });
+        
+        // Ensure all standard dining halls are present
+        // Use a shared location number for houses that share menus
+        const sharedMenuLocationNumber = expanded.find(loc => 
+          SHARED_MENU_HOUSES.some(h => loc.location_name.toLowerCase() === h.toLowerCase())
+        )?.location_number || '05'; // Default to a common location number
+        
+        const annenbergLocation = expanded.find(loc => 
+          loc.location_name.toLowerCase().includes('annenberg')
+        )?.location_number || '03';
+        
+        const quincyLocation = expanded.find(loc => 
+          loc.location_name.toLowerCase().includes('quincy')
+        )?.location_number || '30';
+        
+        const allHalls = HARVARD_DINING_HALLS.map(hallName => {
+          const existing = existingByName.get(hallName.toLowerCase());
+          if (existing) {
+            return existing;
+          }
+          // Create entry for missing hall
+          let locationNumber = sharedMenuLocationNumber;
+          if (hallName === 'Annenberg Hall') {
+            locationNumber = annenbergLocation;
+          } else if (hallName === 'Quincy House') {
+            locationNumber = quincyLocation;
+          }
+          return {
+            location_number: locationNumber,
+            location_name: hallName,
+            original_name: hallName
+          };
+        });
+        
+        // Sort alphabetically
+        allHalls.sort((a, b) => a.location_name.localeCompare(b.location_name));
+        
+        setExpandedLocations(allHalls);
       } catch (err) {
         console.error('Error fetching locations:', err);
       } finally {
@@ -579,6 +620,53 @@ const Home = () => {
   };
 
   const filteredMenu = getFilteredMenu();
+
+  // Filter menu items by search query
+  const getSearchFilteredMenu = () => {
+    if (!menuSearchQuery.trim()) return filteredMenu;
+    
+    const query = menuSearchQuery.toLowerCase().trim();
+    
+    return filteredMenu.map(location => {
+      const filteredMeals = {};
+      
+      if (location.meals) {
+        Object.entries(location.meals).forEach(([mealKey, meal]) => {
+          const filteredCategories = {};
+          
+          if (meal.categories) {
+            Object.entries(meal.categories).forEach(([catKey, category]) => {
+              const matchingRecipes = category.recipes?.filter(recipe => {
+                const name = (recipe.Recipe_Print_As_Name || recipe.Recipe_Name || '').toLowerCase();
+                return name.includes(query);
+              }) || [];
+              
+              if (matchingRecipes.length > 0) {
+                filteredCategories[catKey] = {
+                  ...category,
+                  recipes: matchingRecipes
+                };
+              }
+            });
+          }
+          
+          if (Object.keys(filteredCategories).length > 0) {
+            filteredMeals[mealKey] = {
+              ...meal,
+              categories: filteredCategories
+            };
+          }
+        });
+      }
+      
+      return {
+        ...location,
+        meals: filteredMeals
+      };
+    }).filter(location => Object.keys(location.meals).length > 0);
+  };
+
+  const searchFilteredMenu = getSearchFilteredMenu();
 
   // Get available meal types for suggestion card
   const getSuggestionMealTypes = () => {
@@ -1331,6 +1419,32 @@ const Home = () => {
 
         {/* Menu Results Section */}
         <div className="menu-results-section">
+          {/* Search bar - only show when menu items are available */}
+          {!error && selectedMealType && filteredMenu.length > 0 && (
+            <div className="menu-search-container">
+              <svg className="menu-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="11" cy="11" r="8"/>
+                <path d="M21 21l-4.35-4.35"/>
+              </svg>
+              <input
+                type="text"
+                className="menu-search-input"
+                placeholder="Search menu items..."
+                value={menuSearchQuery}
+                onChange={(e) => setMenuSearchQuery(e.target.value)}
+              />
+              {menuSearchQuery && (
+                <button 
+                  className="menu-search-clear"
+                  onClick={() => setMenuSearchQuery('')}
+                  type="button"
+                >
+                  ×
+                </button>
+              )}
+            </div>
+          )}
+
           {/* Only show menu results if a meal type is selected */}
           {error && selectedLocation && (
             <div className="menu-card error-card">
@@ -1354,7 +1468,17 @@ const Home = () => {
             </div>
           )}
 
-          {!error && selectedMealType && filteredMenu.length > 0 && filteredMenu.map(location => (
+          {!error && selectedMealType && filteredMenu.length > 0 && searchFilteredMenu.length === 0 && menuSearchQuery && (
+            <div className="menu-card empty-card">
+              <svg className="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="11" cy="11" r="8"/>
+                <path d="M21 21l-4.35-4.35"/>
+              </svg>
+              <p className="empty-text">No items match "{menuSearchQuery}"</p>
+            </div>
+          )}
+
+          {!error && selectedMealType && searchFilteredMenu.length > 0 && searchFilteredMenu.map(location => (
             <div key={location.locationNumber} className="menu-card">
               <div className="menu-card-header">
                 <svg className="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

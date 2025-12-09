@@ -42,10 +42,9 @@ const FoodScanner = () => {
   const handleFileSelect = (e) => {
     const file = e.target.files[0];
     if (file) {
-      // HEIC files may have type 'image/heic' or empty string, so check extension too
-      const isValidImage = file.type.startsWith('image/') || file.name.toLowerCase().endsWith('.heic');
-      if (!isValidImage) {
-        setError('Please select a valid image file (JPG, PNG, or HEIC)');
+      const validTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+      if (!validTypes.includes(file.type)) {
+        setError('Please select a valid image file (JPG or PNG)');
         return;
       }
       
@@ -159,12 +158,12 @@ const FoodScanner = () => {
                 <label htmlFor="file-upload" className="scanner-dropzone">
                   <Upload className="scanner-dropzone-icon" />
                   <p className="scanner-dropzone-title">Drop image or browse files</p>
-                  <p className="scanner-dropzone-subtitle">Supports JPG/PNG/HEIC up to 20MB</p>
+                  <p className="scanner-dropzone-subtitle">Supports JPG/PNG up to 20MB</p>
                 </label>
                 <input
                   id="file-upload"
                   type="file"
-                  accept=".jpg,.jpeg,.png,.heic"
+                  accept=".jpg,.jpeg,.png"
                   onChange={handleFileSelect}
                   className="scanner-hidden-input"
                 />

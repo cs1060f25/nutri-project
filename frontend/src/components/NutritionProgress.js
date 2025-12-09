@@ -95,7 +95,7 @@ const NutritionProgress = ({ progressData }) => {
         </div>
       ) : (
         <div className="progress-circles-grid">
-          {Object.entries(progress).map(([key, metric]) => {
+          {sortMetrics(Object.entries(progress)).map(([key, metric]) => {
             const { circumference, offset } = getCircleProps(metric.percentage);
             const color = getStatusColor(metric.status);
             
@@ -157,6 +157,39 @@ const NutritionProgress = ({ progressData }) => {
       )}
     </div>
   );
+};
+
+// Define the preferred order for nutrition metrics
+const METRIC_ORDER = [
+  'calories',
+  'totalCarbs',
+  'protein',
+  'totalFat',
+  'fiber',
+  'sugars',
+  'saturatedFat',
+  'sodium',
+  'cholesterol',
+  'caloriesFromFat',
+];
+
+// Helper function to sort metrics in preferred order
+const sortMetrics = (entries) => {
+  return entries.sort(([keyA], [keyB]) => {
+    const indexA = METRIC_ORDER.indexOf(keyA);
+    const indexB = METRIC_ORDER.indexOf(keyB);
+    
+    // If both are in the order list, sort by their position
+    if (indexA !== -1 && indexB !== -1) {
+      return indexA - indexB;
+    }
+    // If only A is in the list, A comes first
+    if (indexA !== -1) return -1;
+    // If only B is in the list, B comes first
+    if (indexB !== -1) return 1;
+    // If neither is in the list, sort alphabetically
+    return keyA.localeCompare(keyB);
+  });
 };
 
 // Helper function to format metric names

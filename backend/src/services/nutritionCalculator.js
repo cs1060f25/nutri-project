@@ -76,7 +76,8 @@ const findMatchingRecipe = (dishName, menuData) => {
 const clampServings = (value) => {
   const num = parseFloat(value);
   if (isNaN(num) || !isFinite(num)) return 1;
-  return Math.min(1.5, Math.max(0.25, num));
+  // Allow up to 5 servings to handle multiple items (e.g., 2 kiwis, 3 pieces of chicken)
+  return Math.min(5, Math.max(0.25, num));
 };
 
 const calculateMealMacros = (predictions, menuData) => {

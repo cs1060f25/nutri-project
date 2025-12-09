@@ -69,6 +69,61 @@
   gap: 1.5rem;
 }
 
+/* ===== Menu Search Bar ===== */
+.menu-search-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  background: var(--card-bg);
+  border-radius: 12px;
+  padding: 0.75rem 1rem;
+  box-shadow: 0 2px 12px var(--shadow-color);
+  border: 1px solid var(--border-color);
+  transition: all 0.3s ease;
+}
+
+.menu-search-container:focus-within {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(45, 106, 79, 0.1);
+}
+
+.menu-search-icon {
+  width: 20px;
+  height: 20px;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+  margin-right: 0.75rem;
+}
+
+.menu-search-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  font-size: 0.95rem;
+  color: var(--text-primary);
+  outline: none;
+}
+
+.menu-search-input::placeholder {
+  color: var(--text-secondary);
+}
+
+.menu-search-clear {
+  background: none;
+  border: none;
+  font-size: 1.25rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 0.25rem;
+  line-height: 1;
+  margin-left: 0.5rem;
+  transition: color 0.2s;
+}
+
+.menu-search-clear:hover {
+  color: var(--text-primary);
+}
+
 /* ===== Common Card Styles ===== */
 .menu-selector-card,
 .menu-card {
