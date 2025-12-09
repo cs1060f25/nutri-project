@@ -21,6 +21,47 @@ const createErrorResponse = (errorCode, message) => {
   return { error: { code: errorCode, message: message } };
 };
 
+// Maximum allowed values for nutrition metrics (reasonable upper bounds)
+const MAX_ALLOWED_VALUES = {
+  calories: 10000,
+  caloriesFromFat: 5000,
+  protein: 500,
+  totalCarbs: 1000,
+  totalFat: 300,
+  saturatedFat: 100,
+  transFat: 20,
+  fiber: 100,
+  sugars: 500,
+  cholesterol: 1000,
+  sodium: 10000,
+};
+
+/**
+ * Sanitize and clamp metric values to prevent abuse
+ */
+const sanitizeMetrics = (metrics) => {
+  if (!metrics || typeof metrics !== 'object') return metrics;
+  
+  const sanitized = {};
+  for (const [key, value] of Object.entries(metrics)) {
+    if (!value || typeof value !== 'object') {
+      sanitized[key] = value;
+      continue;
+    }
+    
+    const sanitizedMetric = { ...value };
+    if (sanitizedMetric.target !== undefined && sanitizedMetric.target !== '') {
+      const numValue = parseFloat(sanitizedMetric.target);
+      const maxValue = MAX_ALLOWED_VALUES[key];
+      if (!isNaN(numValue) && maxValue && numValue > maxValue) {
+        sanitizedMetric.target = maxValue.toString();
+      }
+    }
+    sanitized[key] = sanitizedMetric;
+  }
+  return sanitized;
+};
+
 // Calculate age from birthday
 const calculateAgeFromBirthday = (birthday) => {
   if (!birthday) return null;
@@ -769,6 +810,11 @@ module.exports = async (req, res) => {
         return res.status(400).json(createErrorResponse('INVALID_REQUEST', 'Plan data is required.'));
       }
 
+      // Sanitize metrics to prevent absurdly large values
+      if (planData.metrics) {
+        planData.metrics = sanitizeMetrics(planData.metrics);
+      }
+
       const timestamp = admin.firestore.FieldValue.serverTimestamp();
       const docRef = getDb()
         .collection(USERS_COLLECTION)
@@ -834,6 +880,11 @@ module.exports = async (req, res) => {
       const planData = req.body;
       if (!planData || Object.keys(planData).length === 0) {
         return res.status(400).json(createErrorResponse('INVALID_REQUEST', 'Plan data is required.'));
+      }
+
+      // Sanitize metrics to prevent absurdly large values
+      if (planData.metrics) {
+        planData.metrics = sanitizeMetrics(planData.metrics);
       }
 
       // Save to Firestore
