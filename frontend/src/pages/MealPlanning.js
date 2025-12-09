@@ -9,6 +9,7 @@ import { getMealLogs } from '../services/mealLogService';
 import { getSavedMealPlans, createSavedMealPlan, deleteSavedMealPlan, incrementSavedMealPlanUsage, updateSavedMealPlan } from '../services/savedMealPlanService';
 import CustomSelect from '../components/CustomSelect';
 import CreatePostModal from '../components/CreatePostModal';
+import { HARVARD_DINING_HALLS } from '../config/diningHalls';
 import './MealPlanning.css';
 
 const MEAL_TYPES = ['breakfast', 'lunch', 'dinner'];
@@ -153,6 +154,7 @@ const MealPlanning = () => {
   const [menuItems, setMenuItems] = useState({});
   const [selectedItems, setSelectedItems] = useState([]);
   const [menuLoading, setMenuLoading] = useState(false);
+  const [foodSearchQuery, setFoodSearchQuery] = useState('');
   const [selectedMealPlan, setSelectedMealPlan] = useState(null);
   const [isSidePanelOpen, setIsSidePanelOpen] = useState(false);
   const [nutritionPlan, setNutritionPlan] = useState(null);
@@ -297,16 +299,53 @@ const MealPlanning = () => {
           }
         });
         
-        // Sort locations by name
-        expanded.sort((a, b) => a.location_name.localeCompare(b.location_name));
+        // Create a map of existing locations by name for quick lookup
+        const existingByName = new Map();
+        expanded.forEach(loc => {
+          existingByName.set(loc.location_name.toLowerCase(), loc);
+        });
         
-        // Ensure uniqueness - remove any duplicates based on location_name
+        // Ensure all standard dining halls are present
+        // Use a shared location number for houses that share menus
+        const sharedMenuLocationNumber = expanded.find(loc => 
+          SHARED_MENU_HOUSES.some(h => loc.location_name.toLowerCase() === h.toLowerCase())
+        )?.location_number || '05';
+        
+        const annenbergLocation = expanded.find(loc => 
+          loc.location_name.toLowerCase().includes('annenberg')
+        )?.location_number || '03';
+        
+        const quincyLocation = expanded.find(loc => 
+          loc.location_name.toLowerCase().includes('quincy')
+        )?.location_number || '30';
+        
+        const allHalls = HARVARD_DINING_HALLS.map(hallName => {
+          const existing = existingByName.get(hallName.toLowerCase());
+          if (existing) {
+            return existing;
+          }
+          // Create entry for missing hall
+          let locationNumber = sharedMenuLocationNumber;
+          if (hallName === 'Annenberg Hall') {
+            locationNumber = annenbergLocation;
+          } else if (hallName === 'Quincy House') {
+            locationNumber = quincyLocation;
+          }
+          return {
+            location_number: locationNumber,
+            location_name: hallName,
+            original_name: hallName
+          };
+        });
+        
+        // Sort alphabetically and ensure uniqueness
+        allHalls.sort((a, b) => a.location_name.localeCompare(b.location_name));
+        
         const uniqueLocations = [];
         const seenNames = new Set();
-        expanded.forEach(loc => {
-          const uniqueKey = `${loc.location_name}-${loc.location_number}`;
-          if (!seenNames.has(uniqueKey)) {
-            seenNames.add(uniqueKey);
+        allHalls.forEach(loc => {
+          if (!seenNames.has(loc.location_name.toLowerCase())) {
+            seenNames.add(loc.location_name.toLowerCase());
             uniqueLocations.push(loc);
           }
         });
@@ -527,6 +566,7 @@ const MealPlanning = () => {
     setSelectedLocationName('');
     setMenuItems({});
     setSelectedItems([]);
+    setFoodSearchQuery('');
     setMealPlanToUpdate(null);
     setIsAddModalOpen(true);
   };
@@ -549,6 +589,7 @@ const MealPlanning = () => {
     setSelectedMealType(value);
     setSelectedItems([]);
     setMenuItems({});
+    setFoodSearchQuery('');
     
     // If location and date are already selected, fetch menu items
     if (value && selectedLocationId && selectedDate) {
@@ -565,6 +606,7 @@ const MealPlanning = () => {
     setSelectedLocationName(location ? location.location_name : '');
     setSelectedItems([]);
     setMenuItems({});
+    setFoodSearchQuery('');
 
     if (locationId && selectedDate && selectedMealType) {
       await fetchMenuItems(selectedDate, locationId);
@@ -805,9 +847,39 @@ const MealPlanning = () => {
       if (exists) {
         return prev.filter(i => i.id !== item.id);
       } else {
-        return [...prev, item];
+        // Add item with default portion of 1
+        return [...prev, { ...item, portions: 1 }];
       }
     });
+  };
+
+  // Update portion for a selected item
+  const updateItemPortion = (itemId, portions) => {
+    const portionValue = Math.max(0.25, Math.min(10, portions)); // Clamp between 0.25 and 10
+    setSelectedItems(prev => 
+      prev.map(item => 
+        item.id === itemId ? { ...item, portions: portionValue } : item
+      )
+    );
+  };
+
+  // Filter menu items based on search query
+  const getFilteredMenuItems = () => {
+    if (!foodSearchQuery.trim()) return menuItems;
+    
+    const query = foodSearchQuery.toLowerCase().trim();
+    const filtered = {};
+    
+    Object.entries(menuItems).forEach(([category, items]) => {
+      const matchingItems = items.filter(item => 
+        item.name?.toLowerCase().includes(query)
+      );
+      if (matchingItems.length > 0) {
+        filtered[category] = matchingItems;
+      }
+    });
+    
+    return filtered;
   };
 
   // Submit meal plan (create or update)
@@ -904,6 +976,7 @@ const MealPlanning = () => {
       setSelectedLocationName('');
       setMenuItems({});
       setSelectedItems([]);
+      setFoodSearchQuery('');
       setMealPlanToUpdate(null);
       setSavedMealPlanIdForCurrentPlan(null); // Reset saved meal plan tracking
       
@@ -2646,8 +2719,81 @@ const MealPlanning = () => {
               {!menuLoading && Object.keys(menuItems).length > 0 && (
                 <div className="form-group">
                   <label>Select Items ({selectedItems.length} selected)</label>
+                  
+                  {/* Search input */}
+                  <div className="food-search-container">
+                    <input
+                      type="text"
+                      className="food-search-input"
+                      placeholder="Search for foods..."
+                      value={foodSearchQuery}
+                      onChange={(e) => setFoodSearchQuery(e.target.value)}
+                    />
+                    {foodSearchQuery && (
+                      <button 
+                        className="food-search-clear"
+                        onClick={() => setFoodSearchQuery('')}
+                        type="button"
+                      >
+                        ×
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Selected items with portion controls */}
+                  {selectedItems.length > 0 && (
+                    <div className="selected-items-summary">
+                      <h4>Selected Items</h4>
+                      <div className="selected-items-list">
+                        {selectedItems.map((item) => {
+                          const { cleanedName } = cleanItemName(item.name);
+                          return (
+                            <div key={`selected-${item.id}`} className="selected-item-row">
+                              <span className="selected-item-name">{capitalizeFoodName(cleanedName)}</span>
+                              <div className="portion-controls">
+                                <button
+                                  type="button"
+                                  className="portion-btn"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    updateItemPortion(item.id, (item.portions || 1) - 0.25);
+                                  }}
+                                  disabled={(item.portions || 1) <= 0.25}
+                                >
+                                  −
+                                </button>
+                                <span className="portion-value">{item.portions || 1}</span>
+                                <button
+                                  type="button"
+                                  className="portion-btn"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    updateItemPortion(item.id, (item.portions || 1) + 0.25);
+                                  }}
+                                  disabled={(item.portions || 1) >= 10}
+                                >
+                                  +
+                                </button>
+                              </div>
+                              <button
+                                type="button"
+                                className="remove-item-btn"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  toggleItemSelection(item);
+                                }}
+                              >
+                                ×
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
                   <div className="menu-items-by-category">
-                    {Object.entries(menuItems).map(([category, items], categoryIndex) => {
+                    {Object.entries(getFilteredMenuItems()).map(([category, items], categoryIndex) => {
                       // Map category names to better display titles
                       const categoryTitles = {
                         'Entrees': 'Main Dishes',
@@ -2731,6 +2877,10 @@ const MealPlanning = () => {
 
               {!menuLoading && selectedLocationId && selectedDate && selectedMealType && Object.keys(menuItems).length === 0 && (
                 <div className="no-menu-items">No menu items available for this selection.</div>
+              )}
+
+              {!menuLoading && foodSearchQuery && Object.keys(getFilteredMenuItems()).length === 0 && Object.keys(menuItems).length > 0 && (
+                <div className="no-menu-items">No items match "{foodSearchQuery}". Try a different search.</div>
               )}
             </div>
 

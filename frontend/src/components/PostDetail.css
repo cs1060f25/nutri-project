@@ -561,3 +561,93 @@
   }
 }
 
+/* Dark mode support */
+.dark-mode .post-detail-modal {
+  background: var(--card-bg, #1a2e23);
+}
+
+.dark-mode .post-detail-modal-header {
+  background: var(--card-bg, #1a2e23);
+  border-bottom-color: var(--border-color, #2d4a3e);
+}
+
+.dark-mode .post-detail-card,
+.dark-mode .comments-section {
+  background: var(--card-bg, #1a2e23);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.dark-mode .post-detail-section h3 {
+  color: var(--text-secondary, #9ca3af);
+}
+
+.dark-mode .post-item {
+  background: var(--card-bg-alt, #243b2f);
+}
+
+.dark-mode .post-item-name {
+  color: var(--text-primary, #e8f5e9);
+}
+
+.dark-mode .post-item-nutrition {
+  color: var(--text-secondary, #9ca3af);
+}
+
+.dark-mode .post-total-item {
+  background: var(--card-bg-alt, #243b2f);
+}
+
+.dark-mode .post-total-label {
+  color: var(--text-secondary, #9ca3af);
+}
+
+.dark-mode .post-total-value {
+  color: var(--primary-color, #4ade80);
+}
+
+.dark-mode .post-review-text {
+  color: var(--text-primary, #e8f5e9);
+}
+
+.dark-mode .post-user-name {
+  color: var(--text-primary, #e8f5e9);
+}
+
+.dark-mode .post-meta {
+  color: var(--text-secondary, #9ca3af);
+}
+
+.dark-mode .post-detail-close {
+  border-color: var(--border-color, #2d4a3e);
+  color: var(--text-secondary, #9ca3af);
+}
+
+.dark-mode .post-detail-close:hover {
+  background: var(--card-bg-alt, #243b2f);
+  border-color: var(--primary-color, #4ade80);
+  color: var(--primary-color, #4ade80);
+}
+
+.dark-mode .vote-button {
+  background: var(--card-bg, #1a2e23);
+  border-color: var(--border-color, #2d4a3e);
+}
+
+.dark-mode .comment-card {
+  background: var(--card-bg-alt, #243b2f);
+  border-color: var(--border-color, #2d4a3e);
+}
+
+.dark-mode .comment-text {
+  color: var(--text-primary, #e8f5e9);
+}
+
+.dark-mode .comment-input-container textarea {
+  background: var(--input-bg, #243b2f);
+  border-color: var(--border-color, #2d4a3e);
+  color: var(--text-primary, #e8f5e9);
+}
+
+.dark-mode .comment-input-container textarea:focus {
+  border-color: var(--primary-color, #4ade80);
+}

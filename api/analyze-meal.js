@@ -478,12 +478,13 @@ const parseMultipartForm = (req) => {
     }
 
     const busboy = Busboy({ headers: req.headers });
-    const fileData = { buffer: null, mimetype: null };
+    const fileData = { buffer: null, mimetype: null, filename: null };
 
     busboy.on('file', (name, file, info) => {
       const { filename, encoding, mimeType } = info;
       if (name === 'image') {
         fileData.mimetype = mimeType;
+        fileData.filename = filename;
         const chunks = [];
         file.on('data', (chunk) => {
           chunks.push(chunk);
@@ -525,7 +526,7 @@ module.exports = async (req, res) => {
 
   try {
     // Parse multipart form data
-    const { buffer, mimetype } = await parseMultipartForm(req);
+    const { buffer, mimetype, filename } = await parseMultipartForm(req);
 
     if (!buffer) {
       return res.status(400).json({ 
