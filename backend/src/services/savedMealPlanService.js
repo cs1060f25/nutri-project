@@ -122,7 +122,7 @@ const updateSavedMealPlan = async (savedPlanId, userId, updates) => {
     throw new Error('Unauthorized: You can only update your own saved meal plans');
   }
 
-  const allowedUpdates = ['title', 'mealType', 'locationId', 'locationName', 'selectedItems', 'image', 'stars'];
+  const allowedUpdates = ['title', 'mealType', 'locationId', 'locationName', 'selectedItems', 'image', 'stars', 'usageCount'];
   const updateData = { updatedAt: admin.firestore.FieldValue.serverTimestamp() };
 
   Object.keys(updates).forEach(key => {

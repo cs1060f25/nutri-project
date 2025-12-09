@@ -247,6 +247,8 @@ const updateMealLog = async (userId, mealId, updates) => {
 
 /**
  * Delete a meal log from users/{userId}/meals subcollection
+ * Also decrements saved meal plan usage count if the meal log was created from a saved meal plan
+ * Also deletes any posts associated with this meal log
  */
 const deleteMealLog = async (userId, mealId) => {
   const docRef = getDb()
@@ -261,7 +263,50 @@ const deleteMealLog = async (userId, mealId) => {
     throw new Error('Meal log not found');
   }
 
+  const mealLogData = doc.data();
+  const savedMealPlanId = mealLogData.savedMealPlanId;
+
+  // Delete the meal log
   await docRef.delete();
+
+  // Delete any posts associated with this meal log
+  try {
+    const POSTS_COLLECTION = 'posts';
+    const postsRef = getDb().collection(POSTS_COLLECTION);
+    const postsQuery = postsRef.where('mealId', '==', mealId).where('userId', '==', userId);
+    const postsSnapshot = await postsQuery.get();
+    
+    if (!postsSnapshot.empty) {
+      const deletePromises = postsSnapshot.docs.map(postDoc => postDoc.ref.delete());
+      await Promise.all(deletePromises);
+      console.log(`Deleted ${postsSnapshot.docs.length} post(s) associated with meal log ${mealId}`);
+    }
+  } catch (error) {
+    // Log error but don't fail the deletion
+    console.error('Error deleting associated posts:', error);
+    // Continue with deletion even if post deletion fails
+  }
+
+  // If this meal log was created from a saved meal plan, decrement the usage count
+  if (savedMealPlanId) {
+    try {
+      const savedMealPlanService = require('./savedMealPlanService');
+      // Get the saved meal plan to check current usage count
+      const savedPlan = await savedMealPlanService.getSavedMealPlanById(savedMealPlanId, userId);
+      
+      // Only decrement if usage count is greater than 0
+      if (savedPlan && savedPlan.usageCount > 0) {
+        await savedMealPlanService.updateSavedMealPlan(savedMealPlanId, userId, {
+          usageCount: Math.max(0, savedPlan.usageCount - 1) // Ensure it doesn't go below 0
+        });
+        console.log(`Decremented usage count for saved meal plan ${savedMealPlanId} to ${savedPlan.usageCount - 1}`);
+      }
+    } catch (error) {
+      // Log error but don't fail the deletion
+      console.error('Error decrementing saved meal plan usage count:', error);
+      // Continue with deletion even if decrement fails
+    }
+  }
 
   return { id: mealId, deleted: true };
 };

@@ -3,6 +3,7 @@ import { X, Star } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { getLocations } from '../services/hudsService';
 import { createPostFromScan } from '../services/socialService';
+import { saveMealLog } from '../services/mealLogService';
 import CustomSelect from './CustomSelect';
 import './CreatePostModal.css';
 
@@ -279,44 +280,120 @@ const CreatePostModal = ({ isOpen, onClose, onSuccess, scanData, imageUrl, image
         return;
       }
 
-      // Prepare the post data
-      const postData = {
-        image: imageBase64,
-        locationId: locationNumber,
-        locationName: selectedLocation.locationName,
-        mealDate,
-        mealType: mealType || null,
-        rating,
-        review: review.trim(), // Send empty string instead of null
-        isPublic,
-        matchedItems: scanData.matchedItems || [],
-        unmatchedDishes: scanData.unmatchedDishes || [],
-        nutritionTotals: {
-          calories: scanData.calories,
-          protein: scanData.protein,
-          totalCarbs: scanData.carbs || scanData.totalCarbs,
-          totalFat: scanData.fat || scanData.totalFat,
-        },
-        timestamp: scanData.timestamp || new Date().toISOString(),
-      };
+      // If from meal planning, create only a meal log (not a post)
+      if (isFromMealPlanning) {
+        // Convert matchedItems to meal log items format
+        const mealLogItems = (scanData.matchedItems || []).map(item => ({
+          recipeId: item.recipeId || item.id || null,
+          recipeName: item.matchedName || item.predictedName || item.name || 'Unknown dish',
+          quantity: item.estimatedServings || 1,
+          servingSize: item.portionDescription || '1 serving',
+          calories: String(item.calories || 0),
+          protein: `${item.protein || 0}g`,
+          totalCarbs: `${item.carbs || item.totalCarbs || 0}g`,
+          totalFat: `${item.fat || item.totalFat || 0}g`,
+          saturatedFat: item.saturatedFat ? `${item.saturatedFat}g` : '0g',
+          transFat: item.transFat ? `${item.transFat}g` : '0g',
+          cholesterol: item.cholesterol ? `${item.cholesterol}mg` : '0mg',
+          sodium: item.sodium ? `${item.sodium}mg` : '0mg',
+          dietaryFiber: item.dietaryFiber ? `${item.dietaryFiber}g` : '0g',
+          sugars: item.sugars ? `${item.sugars}g` : '0g',
+        }));
 
-      // Try to create the post, refresh token if expired and retry
-      let currentToken = accessToken;
-      try {
-        await createPostFromScan(postData, currentToken);
-      } catch (err) {
-        // If token expired, try refreshing and retrying once
-        if (err.message && (err.message.includes('expired') || err.message.includes('invalid token'))) {
-          try {
-            console.log('Token expired, refreshing...');
-            currentToken = await refreshAccessToken();
-            await createPostFromScan(postData, currentToken);
-          } catch (refreshErr) {
-            console.error('Failed to refresh token:', refreshErr);
-            throw new Error('Session expired. Please log in again.');
+        // Calculate totals
+        const nutritionTotals = scanData.nutritionTotals || {
+          calories: scanData.calories || 0,
+          protein: scanData.protein || 0,
+          totalCarbs: scanData.carbs || scanData.totalCarbs || 0,
+          totalFat: scanData.fat || scanData.totalFat || 0,
+          saturatedFat: scanData.saturatedFat || 0,
+          transFat: scanData.transFat || 0,
+          cholesterol: scanData.cholesterol || 0,
+          sodium: scanData.sodium || 0,
+          dietaryFiber: scanData.dietaryFiber || 0,
+          sugars: scanData.sugars || 0,
+        };
+
+        const mealLogData = {
+          mealDate,
+          mealType: mealType ? mealType.toLowerCase() : null,
+          mealName: mealType || null,
+          locationId: locationNumber,
+          locationName: selectedLocation.locationName,
+          items: mealLogItems,
+          // totals will be calculated by backend from items
+          timestamp: scanData.timestamp || new Date().toISOString(),
+          rating: rating || null,
+          review: review.trim() || null,
+          savedMealPlanId: scanData.savedMealPlanId || null,
+          imageUrl: imageBase64 || null,
+        };
+
+        // Try to create the meal log, refresh token if expired and retry
+        let currentToken = accessToken;
+        try {
+          await saveMealLog(mealLogData, currentToken);
+        } catch (err) {
+          // If token expired, try refreshing and retrying once
+          if (err.message && (err.message.includes('expired') || err.message.includes('invalid token'))) {
+            try {
+              console.log('Token expired, refreshing...');
+              currentToken = await refreshAccessToken();
+              await saveMealLog(mealLogData, currentToken);
+            } catch (refreshErr) {
+              console.error('Failed to refresh token:', refreshErr);
+              throw new Error('Session expired. Please log in again.');
+            }
+          } else {
+            throw err;
           }
-        } else {
-          throw err;
+        }
+      } else {
+        // Create a post (from scanner)
+        const postData = {
+          image: imageBase64,
+          locationId: locationNumber,
+          locationName: selectedLocation.locationName,
+          mealDate,
+          mealType: mealType || null,
+          rating,
+          review: review.trim(), // Send empty string instead of null
+          isPublic,
+          matchedItems: scanData.matchedItems || [],
+          unmatchedDishes: scanData.unmatchedDishes || [],
+          nutritionTotals: scanData.nutritionTotals || {
+            calories: scanData.calories || 0,
+            protein: scanData.protein || 0,
+            totalCarbs: scanData.carbs || scanData.totalCarbs || 0,
+            totalFat: scanData.fat || scanData.totalFat || 0,
+            saturatedFat: scanData.saturatedFat || 0,
+            transFat: scanData.transFat || 0,
+            cholesterol: scanData.cholesterol || 0,
+            sodium: scanData.sodium || 0,
+            dietaryFiber: scanData.dietaryFiber || 0,
+            sugars: scanData.sugars || 0,
+          },
+          timestamp: scanData.timestamp || new Date().toISOString(),
+        };
+
+        // Try to create the post, refresh token if expired and retry
+        let currentToken = accessToken;
+        try {
+          await createPostFromScan(postData, currentToken);
+        } catch (err) {
+          // If token expired, try refreshing and retrying once
+          if (err.message && (err.message.includes('expired') || err.message.includes('invalid token'))) {
+            try {
+              console.log('Token expired, refreshing...');
+              currentToken = await refreshAccessToken();
+              await createPostFromScan(postData, currentToken);
+            } catch (refreshErr) {
+              console.error('Failed to refresh token:', refreshErr);
+              throw new Error('Session expired. Please log in again.');
+            }
+          } else {
+            throw err;
+          }
         }
       }
 
@@ -506,19 +583,21 @@ const CreatePostModal = ({ isOpen, onClose, onSuccess, scanData, imageUrl, image
             />
           </div>
 
-          {/* Public/Private Toggle */}
-          <div className="create-post-modal-field">
-            <label htmlFor="post-visibility">Post Visibility</label>
-            <CustomSelect
-              value={isPublic ? 'public' : 'private'}
-              onChange={(value) => setIsPublic(value === 'public')}
-              options={[
-                { value: 'public', label: 'Public - Visible to everyone' },
-                { value: 'private', label: 'Private - Only visible to you' }
-              ]}
-              placeholder="Select visibility"
-            />
-          </div>
+          {/* Public/Private Toggle - Only show when not from meal planning */}
+          {!isFromMealPlanning && (
+            <div className="create-post-modal-field">
+              <label htmlFor="post-visibility">Post Visibility</label>
+              <CustomSelect
+                value={isPublic ? 'public' : 'private'}
+                onChange={(value) => setIsPublic(value === 'public')}
+                options={[
+                  { value: 'public', label: 'Public - Visible to everyone' },
+                  { value: 'private', label: 'Private - Only visible to you' }
+                ]}
+                placeholder="Select visibility"
+              />
+            </div>
+          )}
 
           {/* Food Items as Chips */}
           {foodItems.length > 0 && (

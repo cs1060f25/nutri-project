@@ -351,10 +351,35 @@ const MealLogs = () => {
                             )}
                           </div>
                           <div className="meal-item-macros">
-                            <span>{Math.round(parseNutrient(item.calories))} cal</span>
-                            <span>Protein: {Math.round(parseNutrient(item.protein))}g</span>
-                            <span>Carbs: {Math.round(parseNutrient(item.totalCarbs || item.totalCarb || item.carbs))}g</span>
-                            <span>Fat: {Math.round(parseNutrient(item.totalFat || item.fat))}g</span>
+                            {(() => {
+                              const calories = Math.round(parseNutrient(item.calories));
+                              const protein = Math.round(parseNutrient(item.protein));
+                              const carbs = Math.round(parseNutrient(item.totalCarbs || item.totalCarb || item.carbs));
+                              const fat = Math.round(parseNutrient(item.totalFat || item.fat));
+                              const saturatedFat = Math.round(parseNutrient(item.saturatedFat));
+                              const transFat = Math.round(parseNutrient(item.transFat));
+                              const cholesterol = Math.round(parseNutrient(item.cholesterol));
+                              const sodium = Math.round(parseNutrient(item.sodium));
+                              const dietaryFiber = Math.round(parseNutrient(item.dietaryFiber || item.fiber));
+                              const sugars = Math.round(parseNutrient(item.sugars));
+                              const caloriesFromFat = Math.round(parseNutrient(item.caloriesFromFat));
+
+                              return (
+                                <>
+                                  {calories > 0 && <span className="nutrition-chip">{calories} cal</span>}
+                                  {protein > 0 && <span className="nutrition-chip">{protein}g protein</span>}
+                                  {carbs > 0 && <span className="nutrition-chip">{carbs}g carbs</span>}
+                                  {fat > 0 && <span className="nutrition-chip">{fat}g fat</span>}
+                                  {caloriesFromFat > 0 && <span className="nutrition-chip">{caloriesFromFat} cal from fat</span>}
+                                  {saturatedFat > 0 && <span className="nutrition-chip">{saturatedFat}g saturated fat</span>}
+                                  {transFat > 0 && <span className="nutrition-chip">{transFat}g trans fat</span>}
+                                  {cholesterol > 0 && <span className="nutrition-chip">{cholesterol}mg cholesterol</span>}
+                                  {sodium > 0 && <span className="nutrition-chip">{sodium}mg sodium</span>}
+                                  {dietaryFiber > 0 && <span className="nutrition-chip">{dietaryFiber}g fiber</span>}
+                                  {sugars > 0 && <span className="nutrition-chip">{sugars}g sugars</span>}
+                                </>
+                              );
+                            })()}
                           </div>
                         </div>
                       ))}

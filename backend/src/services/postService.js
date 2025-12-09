@@ -421,24 +421,36 @@ const createPostFromScan = async (userId, scanData) => {
       // Also create a meal log so progress tracking works
       // Convert post items to meal log format
       const mealLogService = require('./mealLogService');
-      const mealLogItems = items.map(item => ({
-        recipeId: item.recipeId || null,
-        recipeName: item.recipeName || 'Unknown dish',
-        quantity: 1, // Scanner items already have totals (multiplied by servings), so quantity must be 1 to avoid double multiplication
-        servingSize: item.servingSize || '1 serving',
-        // Format nutrition values with units (required for calculateTotals to parse correctly)
-        calories: String(item.calories || 0),
-        protein: `${item.protein || 0}g`,
-        totalCarbs: `${item.carbs || 0}g`,
-        totalFat: `${item.fat || 0}g`,
-        // Set defaults for missing nutrition fields
-        saturatedFat: '0g',
-        transFat: '0g',
-        cholesterol: '0mg',
-        sodium: '0mg',
-        dietaryFiber: '0g',
-        sugars: '0g',
-      }));
+      const mealLogItems = items.map(item => {
+        // Helper to format nutrition value with unit
+        const formatNutrient = (value, unit) => {
+          if (value === undefined || value === null) return `0${unit}`;
+          // If already formatted (string with unit), return as is
+          if (typeof value === 'string' && value.includes(unit)) return value;
+          // Otherwise format the number
+          const num = Number(value || 0);
+          return unit === 'mg' ? `${Math.round(num)}${unit}` : `${num.toFixed(2)}${unit}`;
+        };
+
+        return {
+          recipeId: item.recipeId || null,
+          recipeName: item.recipeName || 'Unknown dish',
+          quantity: 1, // Scanner items already have totals (multiplied by servings), so quantity must be 1 to avoid double multiplication
+          servingSize: item.servingSize || '1 serving',
+          // Format nutrition values with units (required for calculateTotals to parse correctly)
+          calories: String(item.calories || 0),
+          protein: formatNutrient(item.protein, 'g'),
+          totalCarbs: formatNutrient(item.carbs || item.totalCarbs, 'g'),
+          totalFat: formatNutrient(item.fat || item.totalFat, 'g'),
+          // Use actual values from item if available, otherwise default to 0
+          saturatedFat: formatNutrient(item.saturatedFat, 'g'),
+          transFat: formatNutrient(item.transFat, 'g'),
+          cholesterol: formatNutrient(item.cholesterol, 'mg'),
+          sodium: formatNutrient(item.sodium, 'mg'),
+          dietaryFiber: formatNutrient(item.dietaryFiber, 'g'),
+          sugars: formatNutrient(item.sugars, 'g'),
+        };
+      });
 
       const mealDate = scanData.mealDate || new Date().toISOString().split('T')[0];
       const mealTimestamp = scanData.timestamp ? new Date(scanData.timestamp) : new Date();
@@ -469,6 +481,9 @@ const createPostFromScan = async (userId, scanData) => {
           items: mealLogItems,
           totals: totals, // Add totals field - this is the source of truth (1209 calories from scanner)
           timestamp: mealTimestamp,
+          savedMealPlanId: scanData.savedMealPlanId || null, // Store reference to saved meal plan if applicable
+          rating: scanData.rating || null, // Store rating if provided
+          review: scanData.review || null, // Store review if provided
         });
         console.log('✅ Meal log created successfully for post with date:', mealDate, 'totals:', totals);
       } catch (mealLogError) {

@@ -179,6 +179,7 @@ const MealPlanning = () => {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [deleteType, setDeleteType] = useState('mealPlan'); // 'mealPlan' or 'savedMealPlan'
   const [deleteTargetId, setDeleteTargetId] = useState(null);
+  const [savedMealPlanIdForCurrentPlan, setSavedMealPlanIdForCurrentPlan] = useState(null); // Track which saved meal plan the current meal plan came from
   
   // Only show today
   const todayDates = [today];
@@ -837,6 +838,7 @@ const MealPlanning = () => {
           locationId: selectedLocationId,
           locationName: selectedLocationName,
           selectedItems: cleanedItems,
+          savedMealPlanId: savedMealPlanIdForCurrentPlan || null, // Store reference to saved meal plan if applicable
         }, token));
       }
 
@@ -854,6 +856,7 @@ const MealPlanning = () => {
       setMenuItems({});
       setSelectedItems([]);
       setMealPlanToUpdate(null);
+      setSavedMealPlanIdForCurrentPlan(null); // Reset saved meal plan tracking
       
       // Show success message
       setConfirmationMessage('Meal plan saved successfully!');
@@ -1029,6 +1032,33 @@ const MealPlanning = () => {
     }
   };
 
+  // Helper function to match a meal plan to a saved meal plan by comparing items
+  const findMatchingSavedMealPlan = (mealPlan) => {
+    if (!mealPlan || !mealPlan.selectedItems || savedMealPlans.length === 0) return null;
+    
+    // Compare items by name and id
+    const mealPlanItemIds = new Set(mealPlan.selectedItems.map(item => item.id || item.name?.toLowerCase()));
+    
+    return savedMealPlans.find(savedPlan => {
+      if (!savedPlan.selectedItems || savedPlan.selectedItems.length !== mealPlan.selectedItems.length) {
+        return false;
+      }
+      
+      const savedPlanItemIds = new Set(savedPlan.selectedItems.map(item => item.id || item.name?.toLowerCase()));
+      
+      // Check if all items match
+      if (mealPlanItemIds.size !== savedPlanItemIds.size) return false;
+      
+      for (const id of mealPlanItemIds) {
+        if (!savedPlanItemIds.has(id)) return false;
+      }
+      
+      // Also check meal type and location match
+      return savedPlan.mealType?.toLowerCase() === mealPlan.mealType?.toLowerCase() &&
+             savedPlan.locationId === mealPlan.locationId;
+    });
+  };
+
   // Handle complete meal plan - open create post modal with pre-filled data
   const handleCompleteMealPlan = () => {
     if (!selectedMealPlan) return;
@@ -1037,7 +1067,7 @@ const MealPlanning = () => {
     const totals = calculateNutritionTotals(selectedMealPlan);
     
     // Convert meal plan items to matchedItems format (for scanData)
-    // Backend expects: calories, protein, carbs, fat (not totalCarb/totalFat)
+    // Backend expects nutrients directly on item object, not just in nutrition object
     const matchedItems = selectedMealPlan.selectedItems.map((item, idx) => ({
       predictedName: item.name || `Item ${idx + 1}`,
       matchedName: item.name || `Item ${idx + 1}`,
@@ -1054,9 +1084,25 @@ const MealPlanning = () => {
       protein: item.protein || 0,
       carbs: item.totalCarbs || item.totalCarb || 0,  // Use 'carbs' not 'totalCarbs' for backend
       fat: item.totalFat || 0,     // Use 'fat' not 'totalFat' for backend
+      // Include all nutrients directly on item for backend processing
+      saturatedFat: item.saturatedFat || 0,
+      transFat: item.transFat || 0,
+      cholesterol: item.cholesterol || 0,
+      sodium: item.sodium || 0,
+      dietaryFiber: item.dietaryFiber || 0,
+      sugars: item.sugars || 0,
       recipeId: item.id || null,
       recipeName: item.name || 'Unknown dish',
     }));
+
+    // Check if meal plan has a savedMealPlanId or find matching saved meal plan
+    let savedMealPlanId = selectedMealPlan.savedMealPlanId;
+    if (!savedMealPlanId) {
+      const matchingSavedPlan = findMatchingSavedMealPlan(selectedMealPlan);
+      if (matchingSavedPlan) {
+        savedMealPlanId = matchingSavedPlan.id;
+      }
+    }
 
     // Create scanData format for CreatePostModal
     const scanData = {
@@ -1067,6 +1113,20 @@ const MealPlanning = () => {
       carbs: totals?.totalCarbs || totals?.totalCarb || 0,
       fat: totals?.totalFat || 0,
       timestamp: new Date().toISOString(),
+      savedMealPlanId: savedMealPlanId || null, // Store saved meal plan ID for meal log
+      // Include all nutrition totals for backend
+      nutritionTotals: {
+        calories: totals?.calories || 0,
+        protein: totals?.protein || 0,
+        totalCarbs: totals?.totalCarbs || totals?.totalCarb || 0,
+        totalFat: totals?.totalFat || 0,
+        saturatedFat: totals?.saturatedFat || 0,
+        transFat: totals?.transFat || 0,
+        cholesterol: totals?.cholesterol || 0,
+        sodium: totals?.sodium || 0,
+        dietaryFiber: totals?.dietaryFiber || 0,
+        sugars: totals?.sugars || 0,
+      },
     };
 
     setCompleteModalScanData(scanData);
@@ -1117,14 +1177,25 @@ const MealPlanning = () => {
     return { cleanedName, isVegan };
   };
 
+  // Helper function to normalize item names for comparison
+  const normalizeItemName = (name) => {
+    if (!name) return '';
+    // Convert to lowercase, remove extra spaces, remove common punctuation
+    return name.toLowerCase()
+      .replace(/[.,;:!?]/g, '') // Remove punctuation
+      .replace(/\s+/g, ' ') // Normalize whitespace
+      .trim();
+  };
+
   // Check if saved meal plan items are available today
   const checkSavedPlanAvailability = (savedPlan) => {
     if (!todaysMenu || todaysMenu.length === 0) {
       return { canMake: false, mealTypes: [] };
     }
 
-    // Flatten today's menu to get all available items
-    const availableItems = new Set();
+    // Flatten today's menu to get all available items by ID and name
+    const availableItemIds = new Set();
+    const availableItemNames = new Set();
     const availableMealTypes = new Set();
     
     todaysMenu.forEach(location => {
@@ -1135,8 +1206,15 @@ const MealPlanning = () => {
             Object.values(meal.categories).forEach(category => {
               if (category.recipes) {
                 category.recipes.forEach(recipe => {
-                  const itemName = recipe.Recipe_Name?.toLowerCase() || '';
-                  availableItems.add(itemName);
+                  // Store recipe ID if available
+                  if (recipe.Recipe_Number) {
+                    availableItemIds.add(String(recipe.Recipe_Number));
+                  }
+                  // Store normalized name
+                  const itemName = normalizeItemName(recipe.Recipe_Name || '');
+                  if (itemName) {
+                    availableItemNames.add(itemName);
+                  }
                   if (mealName === savedPlan.mealType.toLowerCase()) {
                     availableMealTypes.add(mealName);
                   }
@@ -1149,15 +1227,41 @@ const MealPlanning = () => {
     });
 
     // Check if all items in saved plan are available
-    const savedItemNames = savedPlan.selectedItems.map(item => 
-      item.name?.toLowerCase() || ''
-    );
+    const savedItems = (savedPlan.selectedItems || []).filter(item => item); // Filter out null/undefined
     
-    const allAvailable = savedItemNames.every(itemName => {
-      // Check for exact match or partial match
-      return Array.from(availableItems).some(available => 
-        available.includes(itemName) || itemName.includes(available)
-      );
+    if (savedItems.length === 0) {
+      return { canMake: false, mealTypes: [] };
+    }
+    
+    const allAvailable = savedItems.every(savedItem => {
+      // First try to match by recipe ID (most reliable)
+      if (savedItem.id) {
+        const itemId = String(savedItem.id);
+        if (availableItemIds.has(itemId)) {
+          return true;
+        }
+      }
+      
+      // Fall back to name matching
+      const itemName = normalizeItemName(savedItem.name || '');
+      if (!itemName) return false;
+      
+      // Check for exact match first
+      if (availableItemNames.has(itemName)) {
+        return true;
+      }
+      
+      // Check for partial match (either direction)
+      return Array.from(availableItemNames).some(available => {
+        // Check if one contains the other (with some minimum length to avoid false matches)
+        const minLength = Math.min(itemName.length, available.length);
+        if (minLength < 3) return false; // Skip very short names
+        
+        return available.includes(itemName) || itemName.includes(available) ||
+               // Also check if the core words match (split by spaces)
+               itemName.split(' ').some(word => word.length >= 3 && available.includes(word)) ||
+               available.split(' ').some(word => word.length >= 3 && itemName.includes(word));
+      });
     });
 
     return {
@@ -1171,8 +1275,8 @@ const MealPlanning = () => {
     if (!accessToken) return;
     
     try {
-      // Increment usage count
-      await incrementSavedMealPlanUsage(savedPlan.id, accessToken);
+      // Track which saved meal plan this is from (will increment usage when meal log is created)
+      setSavedMealPlanIdForCurrentPlan(savedPlan.id);
       
       // Refresh saved meal plans
       const data = await getSavedMealPlans(accessToken);
@@ -1290,15 +1394,29 @@ const MealPlanning = () => {
     return plan.selectedItems.reduce((totals, item) => {
       return {
         calories: (totals.calories || 0) + parseNumber(item.calories),
+        caloriesFromFat: (totals.caloriesFromFat || 0) + parseNumber(item.caloriesFromFat),
         totalFat: (totals.totalFat || 0) + parseNumber(item.totalFat),
-        protein: (totals.protein || 0) + parseNumber(item.protein),
+        saturatedFat: (totals.saturatedFat || 0) + parseNumber(item.saturatedFat),
+        transFat: (totals.transFat || 0) + parseNumber(item.transFat),
+        cholesterol: (totals.cholesterol || 0) + parseNumber(item.cholesterol),
+        sodium: (totals.sodium || 0) + parseNumber(item.sodium),
         totalCarbs: (totals.totalCarbs || totals.totalCarb || 0) + parseNumber(item.totalCarbs || item.totalCarb),
+        dietaryFiber: (totals.dietaryFiber || 0) + parseNumber(item.dietaryFiber),
+        sugars: (totals.sugars || 0) + parseNumber(item.sugars),
+        protein: (totals.protein || 0) + parseNumber(item.protein),
       };
     }, {
       calories: 0,
+      caloriesFromFat: 0,
       totalFat: 0,
-      protein: 0,
-      totalCarbs: 0
+      saturatedFat: 0,
+      transFat: 0,
+      cholesterol: 0,
+      sodium: 0,
+      totalCarbs: 0,
+      dietaryFiber: 0,
+      sugars: 0,
+      protein: 0
     });
   };
 
@@ -1734,6 +1852,48 @@ const MealPlanning = () => {
                           <span className="metric-label">Fat</span>
                           <span className="metric-value">{Math.round(totals.totalFat || 0)}g</span>
                         </div>
+                        {totals.caloriesFromFat > 0 && (
+                          <div className="nutrition-metric">
+                            <span className="metric-label">Calories from Fat</span>
+                            <span className="metric-value">{Math.round(totals.caloriesFromFat || 0)}</span>
+                          </div>
+                        )}
+                        {totals.saturatedFat > 0 && (
+                          <div className="nutrition-metric">
+                            <span className="metric-label">Saturated Fat</span>
+                            <span className="metric-value">{Math.round(totals.saturatedFat || 0)}g</span>
+                          </div>
+                        )}
+                        {totals.transFat > 0 && (
+                          <div className="nutrition-metric">
+                            <span className="metric-label">Trans Fat</span>
+                            <span className="metric-value">{Math.round(totals.transFat || 0)}g</span>
+                          </div>
+                        )}
+                        {totals.cholesterol > 0 && (
+                          <div className="nutrition-metric">
+                            <span className="metric-label">Cholesterol</span>
+                            <span className="metric-value">{Math.round(totals.cholesterol || 0)}mg</span>
+                          </div>
+                        )}
+                        {totals.sodium > 0 && (
+                          <div className="nutrition-metric">
+                            <span className="metric-label">Sodium</span>
+                            <span className="metric-value">{Math.round(totals.sodium || 0)}mg</span>
+                          </div>
+                        )}
+                        {totals.dietaryFiber > 0 && (
+                          <div className="nutrition-metric">
+                            <span className="metric-label">Dietary Fiber</span>
+                            <span className="metric-value">{Math.round(totals.dietaryFiber || 0)}g</span>
+                          </div>
+                        )}
+                        {totals.sugars > 0 && (
+                          <div className="nutrition-metric">
+                            <span className="metric-label">Sugars</span>
+                            <span className="metric-value">{Math.round(totals.sugars || 0)}g</span>
+                          </div>
+                        )}
                       </div>
                     </div>
                   );
@@ -1999,6 +2159,48 @@ const MealPlanning = () => {
                           <span className="metric-label">Fat</span>
                           <span className="metric-value">{Math.round(totals.totalFat || 0)}g</span>
                         </div>
+                        {totals.caloriesFromFat > 0 && (
+                          <div className="nutrition-metric">
+                            <span className="metric-label">Calories from Fat</span>
+                            <span className="metric-value">{Math.round(totals.caloriesFromFat || 0)}</span>
+                          </div>
+                        )}
+                        {totals.saturatedFat > 0 && (
+                          <div className="nutrition-metric">
+                            <span className="metric-label">Saturated Fat</span>
+                            <span className="metric-value">{Math.round(totals.saturatedFat || 0)}g</span>
+                          </div>
+                        )}
+                        {totals.transFat > 0 && (
+                          <div className="nutrition-metric">
+                            <span className="metric-label">Trans Fat</span>
+                            <span className="metric-value">{Math.round(totals.transFat || 0)}g</span>
+                          </div>
+                        )}
+                        {totals.cholesterol > 0 && (
+                          <div className="nutrition-metric">
+                            <span className="metric-label">Cholesterol</span>
+                            <span className="metric-value">{Math.round(totals.cholesterol || 0)}mg</span>
+                          </div>
+                        )}
+                        {totals.sodium > 0 && (
+                          <div className="nutrition-metric">
+                            <span className="metric-label">Sodium</span>
+                            <span className="metric-value">{Math.round(totals.sodium || 0)}mg</span>
+                          </div>
+                        )}
+                        {totals.dietaryFiber > 0 && (
+                          <div className="nutrition-metric">
+                            <span className="metric-label">Dietary Fiber</span>
+                            <span className="metric-value">{Math.round(totals.dietaryFiber || 0)}g</span>
+                          </div>
+                        )}
+                        {totals.sugars > 0 && (
+                          <div className="nutrition-metric">
+                            <span className="metric-label">Sugars</span>
+                            <span className="metric-value">{Math.round(totals.sugars || 0)}g</span>
+                          </div>
+                        )}
                       </div>
                     </div>
 
@@ -2229,6 +2431,38 @@ const MealPlanning = () => {
       {showCompleteModal && completeModalScanData && selectedMealPlan && (
         <CreatePostModal
           isOpen={showCompleteModal}
+          onSuccess={async () => {
+            // Meal log was successfully created, increment saved meal plan usage count
+            if (selectedMealPlan && accessToken) {
+              // Add a small delay to ensure the meal log is saved to Firestore
+              setTimeout(async () => {
+                try {
+                  // Check if meal plan has a savedMealPlanId
+                  let savedMealPlanId = selectedMealPlan.savedMealPlanId;
+                  
+                  // If not, try to find a matching saved meal plan
+                  if (!savedMealPlanId) {
+                    const matchingSavedPlan = findMatchingSavedMealPlan(selectedMealPlan);
+                    if (matchingSavedPlan) {
+                      savedMealPlanId = matchingSavedPlan.id;
+                    }
+                  }
+                  
+                  // Increment usage count if we found a saved meal plan
+                  if (savedMealPlanId) {
+                    await incrementSavedMealPlanUsage(savedMealPlanId, accessToken);
+                    
+                    // Refresh saved meal plans to update the count
+                    const data = await getSavedMealPlans(accessToken);
+                    setSavedMealPlans(data.savedPlans || []);
+                  }
+                } catch (err) {
+                  console.error('Error incrementing saved meal plan usage:', err);
+                  // Don't show error to user, just log it
+                }
+              }, 500); // Wait 500ms for Firestore to save
+            }
+          }}
           onClose={async () => {
             setShowCompleteModal(false);
             setCompleteModalScanData(null);

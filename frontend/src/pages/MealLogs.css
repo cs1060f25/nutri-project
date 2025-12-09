@@ -410,13 +410,26 @@
   flex-wrap: wrap;
 }
 
-.meal-item-macros span {
+.meal-item-macros span,
+.meal-item-macros .nutrition-chip {
   background: var(--border-color);
   padding: 0.25rem 0.5rem;
   border-radius: 6px;
   border: 1px solid var(--border-color-alt);
   white-space: nowrap;
   transition: all 0.3s ease;
+  display: inline-block;
+}
+
+.nutrition-chip {
+  background: #f0f4f8;
+  color: #475569;
+  padding: 0.25rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.7rem;
+  font-weight: 500;
+  white-space: nowrap;
+  border: none;
 }
 
 @media (max-width: 768px) {
