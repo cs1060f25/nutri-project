@@ -112,6 +112,15 @@ const sendFriendRequest = async (fromUserId, toUserId) => {
   const requestDoc = await requestRef.get();
   const requestData = requestDoc.data();
 
+  // Notify the recipient about the friend request
+  await createNotification({
+    type: 'friend_request_received',
+    toUserId: toUserId,
+    fromUserId: fromUserId,
+    fromUserName: `${fromUserData.firstName} ${fromUserData.lastName}`,
+    requestId: requestDoc.id,
+  });
+
   return {
     id: requestDoc.id,
     ...requestData,

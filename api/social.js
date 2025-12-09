@@ -254,6 +254,17 @@ const sendFriendRequest = async (fromUserId, toUserId) => {
   const requestDoc = await requestRef.get();
   const requestData = requestDoc.data();
 
+  // Notify the recipient about the friend request
+  await db.collection(NOTIFICATIONS_COLLECTION).add({
+    type: 'friend_request_received',
+    toUserId: toUserId,
+    fromUserId: fromUserId,
+    fromUserName: `${fromUserData.firstName} ${fromUserData.lastName}`,
+    requestId: requestDoc.id,
+    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    read: false,
+  });
+
   return {
     id: requestDoc.id,
     ...requestData,
@@ -1262,6 +1273,31 @@ const toggleUpvote = async (postId, userId) => {
     }
     
     await postRef.update(updates);
+
+    // Notify post owner about the upvote (don't notify if user upvotes their own post)
+    if (postData.userId && postData.userId !== userId) {
+      try {
+        const userDoc = await db.collection(USERS_COLLECTION).doc(userId).get();
+        const userData = userDoc.data();
+        const userName = userData?.firstName && userData?.lastName 
+          ? `${userData.firstName} ${userData.lastName}` 
+          : userData?.name || 'Someone';
+        
+        await db.collection(NOTIFICATIONS_COLLECTION).add({
+          type: 'post_upvoted',
+          toUserId: postData.userId,
+          fromUserId: userId,
+          fromUserName: userName,
+          postId: postId,
+          postTitle: postData.title || postData.mealName || 'your post',
+          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+          read: false,
+        });
+      } catch (notifError) {
+        console.error('Error creating upvote notification:', notifError);
+        // Don't fail the upvote if notification fails
+      }
+    }
   }
 
   return { success: true };
@@ -1332,10 +1368,13 @@ const addComment = async (postId, userId, commentText) => {
   // Get user info
   const userDoc = await db.collection(USERS_COLLECTION).doc(userId).get();
   const userData = userDoc.data();
+  const userName = userData?.firstName && userData?.lastName 
+    ? `${userData.firstName} ${userData.lastName}` 
+    : userData?.name || 'Anonymous';
 
   const comment = {
     userId,
-    userName: userData?.name || 'Anonymous',
+    userName: userName,
     comment: commentText,
     timestamp: admin.firestore.FieldValue.serverTimestamp(),
   };
@@ -1345,6 +1384,29 @@ const addComment = async (postId, userId, commentText) => {
     .doc(postId)
     .collection('comments')
     .add(comment);
+
+  // Notify post owner about the comment (don't notify if user comments on their own post)
+  const postDoc = await db.collection(POSTS_COLLECTION).doc(postId).get();
+  const postData = postDoc.data();
+  
+  if (postData?.userId && postData.userId !== userId) {
+    try {
+      await db.collection(NOTIFICATIONS_COLLECTION).add({
+        type: 'comment_received',
+        toUserId: postData.userId,
+        fromUserId: userId,
+        fromUserName: userName,
+        postId: postId,
+        postTitle: postData.title || postData.mealName || 'your post',
+        commentPreview: commentText.length > 50 ? commentText.substring(0, 50) + '...' : commentText,
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        read: false,
+      });
+    } catch (notifError) {
+      console.error('Error creating comment notification:', notifError);
+      // Don't fail the comment if notification fails
+    }
+  }
 
   return {
     id: commentRef.id,
