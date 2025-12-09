@@ -182,7 +182,14 @@ const NotificationBell = () => {
     } finally {
       setLoading(false);
     }
-  }, [accessToken, user?.uid, loadStoredReads, loadStoredNotifications]);
+  }, [
+    accessToken,
+    user?.uid,
+    loadStoredReads,
+    loadStoredNotifications,
+    persistReads,
+    persistNotifications,
+  ]);
 
   const toggleOpen = () => {
     if (!isOpen && isAuthenticated) {

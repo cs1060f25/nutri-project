@@ -141,17 +141,6 @@ const Insights = () => {
     return Object.keys(data.trend.metrics);
   }, [data]);
 
-  const dayOptions = useMemo(() => {
-    if (!data?.days?.length) return [];
-    return data.days.map((day) => ({
-      value: day.date,
-      label: new Date(day.date).toLocaleDateString(undefined, {
-        month: 'short',
-        day: 'numeric',
-      }),
-    }));
-  }, [data?.days]);
-
   useEffect(() => {
     if (!metricOptions.length) {
       setSelectedMetric('');
