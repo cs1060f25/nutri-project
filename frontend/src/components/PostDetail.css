@@ -90,19 +90,19 @@
 }
 
 .post-detail-content {
-  padding: 2rem;
+  padding: 1.25rem;
 }
 
 .post-detail-container {
   display: flex;
   flex-direction: column;
-  gap: 2rem;
+  gap: 1.25rem;
 }
 
 .post-detail-card {
   background: white;
   border-radius: 16px;
-  padding: 2rem;
+  padding: 1.25rem 1.5rem;
   box-shadow: 0 2px 8px rgba(21, 76, 57, 0.08);
 }
 
@@ -221,15 +221,17 @@
 }
 
 .post-detail-section {
-  margin-bottom: 1.5rem;
+  margin-bottom: 1rem;
 }
 
 .post-detail-section h3 {
-  font-size: 1rem;
+  font-size: 0.85rem;
   font-weight: 600;
-  color: #333;
-  margin-bottom: 0.5rem;
+  color: #6b7280;
+  margin-bottom: 0.4rem;
   margin-top: 0rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
 }
 
 .post-rating {
@@ -246,49 +248,50 @@
 .post-items {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.35rem;
 }
 
 .post-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.75rem;
+  padding: 0.5rem 0.75rem;
   background: #f8fbf9;
-  border-radius: 8px;
+  border-radius: 6px;
 }
 
 .post-item-name {
   font-weight: 500;
   color: #1a4d2e;
+  font-size: 0.9rem;
 }
 
 .post-item-nutrition {
   color: #6b7280;
-  font-size: 0.9rem;
+  font-size: 0.8rem;
 }
 
 .post-totals-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+  gap: 0.5rem;
 }
 
 .post-total-item {
   text-align: center;
-  padding: 1rem;
+  padding: 0.5rem 0.4rem;
   background: #f0f8f3;
-  border-radius: 8px;
+  border-radius: 6px;
 }
 
 .post-total-label {
-  font-size: 0.85rem;
+  font-size: 0.7rem;
   color: #6b7280;
-  margin-bottom: 0.25rem;
+  margin-bottom: 0.15rem;
 }
 
 .post-total-value {
-  font-size: 1.5rem;
+  font-size: 1.1rem;
   font-weight: 700;
   color: #2d6a4f;
 }
