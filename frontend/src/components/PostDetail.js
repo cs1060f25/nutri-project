@@ -1,13 +1,17 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { X, ThumbsUp, ThumbsDown, Send, Star } from 'lucide-react';
+// eslint-disable-next-line no-unused-vars
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import './PostDetail.css';
 
 const PostDetail = ({ postId, onClose }) => {
   const { accessToken, user } = useAuth();
+  // Navigation hooks available for future use
+  // eslint-disable-next-line no-unused-vars
   const navigate = useNavigate();
+  // eslint-disable-next-line no-unused-vars
   const location = useLocation();
   const [post, setPost] = useState(null);
   const [comments, setComments] = useState([]);

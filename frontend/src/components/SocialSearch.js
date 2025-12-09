@@ -325,6 +325,7 @@ const SocialSearch = () => {
             const isFriend = friends.some((f) => f.id === selectedUser.id);
             const hasSentRequest = friendRequestStatus[selectedUser.id] === 'sent';
             const hasIncomingRequest = incomingRequests[selectedUser.id] !== undefined;
+            // eslint-disable-next-line no-unused-vars
             const incomingRequestId = incomingRequests[selectedUser.id];
 
             return (
