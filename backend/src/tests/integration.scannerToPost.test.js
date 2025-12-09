@@ -322,6 +322,7 @@ describe('Integration Test: Scanner Image Analysis to Social Post Creation Flow'
       locationName: 'Annenberg',
       mealDate: '2024-01-15',
       mealType: 'lunch',
+      rating: 4,
       matchedItems,
       nutritionTotals: {
         calories: 500,
@@ -432,6 +433,7 @@ describe('Integration Test: Scanner Image Analysis to Social Post Creation Flow'
       locationName: 'Annenberg',
       mealDate: '2024-01-15',
       mealType: 'lunch',
+      rating: 3,
       matchedItems,
       unmatchedDishes: mockGeminiResponse.unmatchedDishes,
       nutritionTotals: {
@@ -499,6 +501,7 @@ describe('Integration Test: Scanner Image Analysis to Social Post Creation Flow'
       locationName: 'Annenberg',
       mealDate: '2024-01-15',
       mealType: 'lunch',
+      rating: 5,
       matchedItems,
       nutritionTotals: {
         calories: 300,
@@ -520,7 +523,7 @@ describe('Integration Test: Scanner Image Analysis to Social Post Creation Flow'
     expect(mockRes.json).toHaveBeenCalled();
     const popularResponse = mockRes.json.mock.calls[1][0];
     expect(popularResponse.posts).toBeDefined();
-    expect(postService.getPopularPosts).toHaveBeenCalledWith(50);
+    expect(postService.getPopularPosts).toHaveBeenCalledWith(50, {});
 
     // Our post should be in popular posts (if it has upvotes or is recent)
     const popularPost = popularResponse.posts.find(p => p.id === postId);
@@ -572,6 +575,7 @@ describe('Integration Test: Scanner Image Analysis to Social Post Creation Flow'
       locationName: 'Annenberg',
       mealDate: '2024-01-15',
       mealType: 'lunch',
+      rating: 4,
       matchedItems,
       nutritionTotals: {
         calories: 300,

@@ -21,6 +21,14 @@ const createMealLog = async (req, res) => {
       });
     }
 
+    // Validate mealType
+    const validMealTypes = ['breakfast', 'lunch', 'dinner'];
+    if (!validMealTypes.includes(mealType.toLowerCase())) {
+      return res.status(400).json({
+        error: 'Invalid mealType. Must be one of: breakfast, lunch, dinner',
+      });
+    }
+
     const mealLogData = {
       mealDate,
       mealType,
