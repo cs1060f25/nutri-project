@@ -91,6 +91,13 @@ const MealLogs = () => {
     return isNaN(num) ? 0 : num;
   };
 
+  const formatDecimal = (value, digits = 1) => {
+    if (value === undefined || value === null || Number.isNaN(Number(value))) {
+      return (0).toFixed(digits);
+    }
+    return Number(value).toFixed(digits);
+  };
+
   const getTotalNutrition = (items, logTotals) => {
     const emptyTotals = {
       calories: 0,
@@ -350,11 +357,21 @@ const MealLogs = () => {
                               <span className="meal-item-portion">{item.servings} serving(s)</span>
                             )}
                           </div>
-                          <div className="meal-item-macros">
-                            <span>{Math.round(parseNutrient(item.calories))} cal</span>
-                            <span>Protein: {Math.round(parseNutrient(item.protein))}g</span>
-                            <span>Carbs: {Math.round(parseNutrient(item.totalCarbs || item.totalCarb || item.carbs))}g</span>
-                            <span>Fat: {Math.round(parseNutrient(item.totalFat || item.fat))}g</span>
+                          <div className="meal-item-nutrition">
+                            <div className="meal-item-macros">
+                              <span className="meal-item-calories">{Math.round(parseNutrient(item.calories))} cal</span>
+                              <span>Protein: {Math.round(parseNutrient(item.protein))}g</span>
+                              <span>Carbs: {Math.round(parseNutrient(item.totalCarbs || item.totalCarb || item.carbs))}g</span>
+                              <span>Fat: {Math.round(parseNutrient(item.totalFat || item.fat))}g</span>
+                            </div>
+                            <div className="meal-item-micros">
+                              <span>Sat Fat: {formatDecimal(parseNutrient(item.saturatedFat), 1)}g</span>
+                              <span>Trans Fat: {formatDecimal(parseNutrient(item.transFat), 1)}g</span>
+                              <span>Cholesterol: {Math.round(parseNutrient(item.cholesterol))}mg</span>
+                              <span>Fiber: {formatDecimal(parseNutrient(item.dietaryFiber || item.fiber), 1)}g</span>
+                              <span>Sodium: {Math.round(parseNutrient(item.sodium))}mg</span>
+                              <span>Sugars: {formatDecimal(parseNutrient(item.sugars), 1)}g</span>
+                            </div>
                           </div>
                         </div>
                       ))}
