@@ -427,6 +427,20 @@ const MealPlanning = () => {
   useEffect(() => {
     const handleMealLogUpdated = async () => {
       if (selectedMealPlan && accessToken) {
+        // Also refresh progress if the meal plan is for today
+        const planDateStr = selectedMealPlan.date ? String(selectedMealPlan.date).split('T')[0] : '';
+        const todayStr = formatDate(new Date());
+        const isToday = planDateStr === todayStr;
+        
+        if (isToday) {
+          try {
+            const progress = await getTodayProgress(accessToken);
+            setDailyProgress(progress);
+          } catch (error) {
+            console.error('Error fetching daily progress:', error);
+          }
+        }
+        
         // Use retry logic with increasing delays to handle Vercel's slower Firestore writes
         const checkCompletion = async (retryCount = 0) => {
           try {
@@ -447,11 +461,16 @@ const MealPlanning = () => {
               const typeMatch = meal.mealType?.toLowerCase() === selectedMealPlan.mealType?.toLowerCase();
               
               // Also check if the meal log items match the meal plan items
-              const planItemNames = (selectedMealPlan.selectedItems || []).map(item => item.name?.toLowerCase() || '');
-              const mealItemNames = (meal.items || []).map(item => item.recipeName?.toLowerCase() || item.name?.toLowerCase() || '');
+              const planItemNames = (selectedMealPlan.selectedItems || []).map(item => item.name?.toLowerCase() || '').filter(name => name);
+              const mealItemNames = (meal.items || []).map(item => item.recipeName?.toLowerCase() || item.name?.toLowerCase() || '').filter(name => name);
+              
+              // If meal plan has no items, just check date and meal type
+              if (planItemNames.length === 0) {
+                return dateMatch && typeMatch;
+              }
               
               // Check if at least some items from the meal plan are in the meal log
-              const hasMatchingItems = planItemNames.length > 0 && planItemNames.some(planItem => 
+              const hasMatchingItems = planItemNames.some(planItem => 
                 mealItemNames.some(mealItem => 
                   mealItem.includes(planItem) || planItem.includes(mealItem)
                 )
@@ -461,6 +480,7 @@ const MealPlanning = () => {
               return dateMatch && typeMatch && hasMatchingItems;
             });
             
+            console.log('handleMealLogUpdated - completion check result:', isCompleted, 'retryCount:', retryCount);
             setIsMealPlanCompleted(isCompleted || false);
             
             // If not completed and we haven't retried too many times, retry

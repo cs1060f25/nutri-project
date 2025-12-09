@@ -184,17 +184,24 @@ const PostDetail = ({ postId, onClose }) => {
     return name.substring(0, 2).toUpperCase();
   };
 
-  const displayOptions = post?.displayOptions || {
-    image: true,
-    items: true,
-    location: true,
-    mealType: true,
-    rating: true,
-    review: true,
-    calories: true,
-    protein: true,
-    carbs: true,
-    fat: true,
+  const options = post?.displayOptions || {};
+  const displayOptions = {
+    image: options.image !== undefined ? options.image : (options.showImage !== undefined ? options.showImage : true),
+    items: options.items !== undefined ? options.items : (options.showItems !== undefined ? options.showItems : true),
+    location: options.location !== undefined ? options.location : (options.showLocation !== undefined ? options.showLocation : true),
+    mealType: options.mealType !== undefined ? options.mealType : true,
+    rating: options.rating !== undefined ? options.rating : true,
+    review: options.review !== undefined ? options.review : true,
+    calories: options.calories !== undefined ? options.calories : (options.nutrition?.showCalories !== undefined ? options.nutrition.showCalories : true),
+    protein: options.protein !== undefined ? options.protein : (options.nutrition?.showProtein !== undefined ? options.nutrition.showProtein : true),
+    carbs: options.carbs !== undefined ? options.carbs : (options.nutrition?.showCarbs !== undefined ? options.nutrition.showCarbs : true),
+    fat: options.fat !== undefined ? options.fat : (options.nutrition?.showFat !== undefined ? options.nutrition.showFat : true),
+    saturatedFat: options.saturatedFat !== undefined ? options.saturatedFat : true,
+    transFat: options.transFat !== undefined ? options.transFat : true,
+    cholesterol: options.cholesterol !== undefined ? options.cholesterol : true,
+    sodium: options.sodium !== undefined ? options.sodium : true,
+    dietaryFiber: options.dietaryFiber !== undefined ? options.dietaryFiber : true,
+    sugars: options.sugars !== undefined ? options.sugars : true,
   };
 
   // Ensure upvotes and downvotes are arrays
@@ -347,7 +354,7 @@ const PostDetail = ({ postId, onClose }) => {
           )}
 
           {/* Nutritional Totals */}
-          {post.totals && (displayOptions.calories || displayOptions.protein || displayOptions.carbs || displayOptions.fat) && (
+          {post.totals && (displayOptions.calories || displayOptions.protein || displayOptions.carbs || displayOptions.fat || displayOptions.saturatedFat || displayOptions.transFat || displayOptions.cholesterol || displayOptions.sodium || displayOptions.dietaryFiber || displayOptions.sugars) && (
             <div className="post-detail-section">
               <h3>Nutritional Totals</h3>
               <div className="post-totals-grid">
@@ -373,6 +380,42 @@ const PostDetail = ({ postId, onClose }) => {
                   <div className="post-total-item">
                     <div className="post-total-label">Fat</div>
                     <div className="post-total-value">{Math.round(parseFloat(String(post.totals.totalFat).replace(/[^0-9.]/g, '')) || 0)}g</div>
+                  </div>
+                )}
+                {displayOptions.saturatedFat && post.totals.saturatedFat !== undefined && (
+                  <div className="post-total-item">
+                    <div className="post-total-label">Saturated Fat</div>
+                    <div className="post-total-value">{Math.round(parseFloat(String(post.totals.saturatedFat).replace(/[^0-9.]/g, '')) || 0)}g</div>
+                  </div>
+                )}
+                {displayOptions.transFat && post.totals.transFat !== undefined && (
+                  <div className="post-total-item">
+                    <div className="post-total-label">Trans Fat</div>
+                    <div className="post-total-value">{Math.round(parseFloat(String(post.totals.transFat).replace(/[^0-9.]/g, '')) || 0)}g</div>
+                  </div>
+                )}
+                {displayOptions.cholesterol && post.totals.cholesterol !== undefined && (
+                  <div className="post-total-item">
+                    <div className="post-total-label">Cholesterol</div>
+                    <div className="post-total-value">{Math.round(parseFloat(String(post.totals.cholesterol).replace(/[^0-9.]/g, '')) || 0)}mg</div>
+                  </div>
+                )}
+                {displayOptions.sodium && post.totals.sodium !== undefined && (
+                  <div className="post-total-item">
+                    <div className="post-total-label">Sodium</div>
+                    <div className="post-total-value">{Math.round(parseFloat(String(post.totals.sodium).replace(/[^0-9.]/g, '')) || 0)}mg</div>
+                  </div>
+                )}
+                {displayOptions.dietaryFiber && post.totals.dietaryFiber !== undefined && (
+                  <div className="post-total-item">
+                    <div className="post-total-label">Dietary Fiber</div>
+                    <div className="post-total-value">{Math.round(parseFloat(String(post.totals.dietaryFiber).replace(/[^0-9.]/g, '')) || 0)}g</div>
+                  </div>
+                )}
+                {displayOptions.sugars && post.totals.sugars !== undefined && (
+                  <div className="post-total-item">
+                    <div className="post-total-label">Sugars</div>
+                    <div className="post-total-value">{Math.round(parseFloat(String(post.totals.sugars).replace(/[^0-9.]/g, '')) || 0)}g</div>
                   </div>
                 )}
               </div>

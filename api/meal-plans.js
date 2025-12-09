@@ -19,6 +19,101 @@ if (!admin.apps.length) {
 const getDb = () => admin.firestore();
 const MEAL_PLANS_COLLECTION = 'mealPlans';
 const SAVED_MEAL_PLANS_COLLECTION = 'savedMealPlans';
+const USERS_COLLECTION = 'users';
+const MEALS_SUBCOLLECTION = 'meals';
+
+/**
+ * Helper function to normalize item name for comparison
+ */
+const normalizeItemName = (name) => {
+  if (!name) return '';
+  return name.toLowerCase().trim().replace(/\s+/g, ' ');
+};
+
+/**
+ * Calculate actual usage count by counting meal logs that match the saved meal plan
+ */
+const calculateActualUsageCount = async (userId, savedPlan) => {
+  try {
+    const db = getDb();
+    
+    // Get all meal logs for the user (no limit for accurate count)
+    const mealsRef = db
+      .collection(USERS_COLLECTION)
+      .doc(userId)
+      .collection(MEALS_SUBCOLLECTION);
+    
+    const snapshot = await mealsRef.get();
+    
+    const mealLogs = [];
+    snapshot.forEach(doc => {
+      mealLogs.push({
+        id: doc.id,
+        ...doc.data(),
+      });
+    });
+    
+    if (!mealLogs || mealLogs.length === 0) {
+      return 0;
+    }
+    
+    // Get saved plan items
+    const savedPlanItems = savedPlan.selectedItems || [];
+    if (savedPlanItems.length === 0) {
+      return 0;
+    }
+    
+    // Create a set of saved plan item identifiers for quick lookup
+    const savedPlanItemIds = new Set(
+      savedPlanItems.map(item => {
+        const id = item.recipeId || item.id || item.Recipe_Number;
+        return id ? String(id) : normalizeItemName(item.name || item.recipeName);
+      })
+    );
+    
+    // Count meal logs that match
+    let count = 0;
+    for (const mealLog of mealLogs) {
+      const mealLogItems = mealLog.items || [];
+      
+      // Check if meal log has same number of items
+      if (mealLogItems.length !== savedPlanItems.length) {
+        continue;
+      }
+      
+      // Check if meal type and location match
+      if (savedPlan.mealType && mealLog.mealType && 
+          savedPlan.mealType.toLowerCase() !== mealLog.mealType.toLowerCase()) {
+        continue;
+      }
+      
+      if (savedPlan.locationId && mealLog.locationId && 
+          savedPlan.locationId !== mealLog.locationId) {
+        continue;
+      }
+      
+      // Check if all items match
+      const mealLogItemIds = new Set(
+        mealLogItems.map(item => {
+          const id = item.recipeId || item.id || item.Recipe_Number;
+          return id ? String(id) : normalizeItemName(item.recipeName || item.name);
+        })
+      );
+      
+      // Check if sets match (same items)
+      if (savedPlanItemIds.size === mealLogItemIds.size &&
+          [...savedPlanItemIds].every(id => mealLogItemIds.has(id))) {
+        count++;
+      }
+    }
+    
+    return count;
+  } catch (error) {
+    console.error('Error calculating actual usage count:', error);
+    // Return stored usageCount as fallback
+    return savedPlan.usageCount || 0;
+  }
+};
 
 // Verify Firebase ID token
 const verifyToken = async (authHeader) => {
@@ -242,14 +337,25 @@ const getSavedMealPlans = async (userId) => {
       updatedAt: doc.data().updatedAt?.toDate(),
     }));
 
+    // Calculate actual usage count for each plan
+    const plansWithUsageCount = await Promise.all(
+      plans.map(async (plan) => {
+        const actualUsageCount = await calculateActualUsageCount(userId, plan);
+        return {
+          ...plan,
+          usageCount: actualUsageCount, // Override stored usageCount with calculated value
+        };
+      })
+    );
+
     // Sort by createdAt in descending order (newest first)
-    plans.sort((a, b) => {
+    plansWithUsageCount.sort((a, b) => {
       const aTime = a.createdAt?.getTime() || 0;
       const bTime = b.createdAt?.getTime() || 0;
       return bTime - aTime;
     });
 
-    return plans;
+    return plansWithUsageCount;
   } catch (error) {
     console.error('Error in getSavedMealPlans:', error);
     throw error;
@@ -271,11 +377,19 @@ const getSavedMealPlanById = async (savedPlanId, userId) => {
     throw new Error('Unauthorized: You can only access your own saved meal plans');
   }
 
-  return {
+  const plan = {
     id: doc.id,
     ...data,
     createdAt: data.createdAt?.toDate(),
     updatedAt: data.updatedAt?.toDate(),
+  };
+
+  // Calculate actual usage count
+  const actualUsageCount = await calculateActualUsageCount(userId, plan);
+  
+  return {
+    ...plan,
+    usageCount: actualUsageCount, // Override stored usageCount with calculated value
   };
 };
 

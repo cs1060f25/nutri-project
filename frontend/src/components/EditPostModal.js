@@ -63,6 +63,12 @@ const EditPostModal = ({ isOpen, onClose, post, onPostUpdated, onPostDeleted }) 
   const [showProtein, setShowProtein] = useState(true);
   const [showCarbs, setShowCarbs] = useState(true);
   const [showFat, setShowFat] = useState(true);
+  const [showSaturatedFat, setShowSaturatedFat] = useState(true);
+  const [showTransFat, setShowTransFat] = useState(true);
+  const [showCholesterol, setShowCholesterol] = useState(true);
+  const [showSodium, setShowSodium] = useState(true);
+  const [showDietaryFiber, setShowDietaryFiber] = useState(true);
+  const [showSugars, setShowSugars] = useState(true);
 
   // Initialize form with post data and handle scroll locking
   useEffect(() => {
@@ -149,6 +155,12 @@ const EditPostModal = ({ isOpen, onClose, post, onPostUpdated, onPostDeleted }) 
       const proteinValue = options.protein !== undefined ? options.protein : (options.nutrition?.showProtein !== undefined ? options.nutrition.showProtein : true);
       const carbsValue = options.carbs !== undefined ? options.carbs : (options.nutrition?.showCarbs !== undefined ? options.nutrition.showCarbs : true);
       const fatValue = options.fat !== undefined ? options.fat : (options.nutrition?.showFat !== undefined ? options.nutrition.showFat : true);
+      const saturatedFatValue = options.saturatedFat !== undefined ? options.saturatedFat : true;
+      const transFatValue = options.transFat !== undefined ? options.transFat : true;
+      const cholesterolValue = options.cholesterol !== undefined ? options.cholesterol : true;
+      const sodiumValue = options.sodium !== undefined ? options.sodium : true;
+      const dietaryFiberValue = options.dietaryFiber !== undefined ? options.dietaryFiber : true;
+      const sugarsValue = options.sugars !== undefined ? options.sugars : true;
       
       setShowImage(imageValue);
       setShowItems(itemsValue);
@@ -160,6 +172,12 @@ const EditPostModal = ({ isOpen, onClose, post, onPostUpdated, onPostDeleted }) 
       setShowProtein(proteinValue);
       setShowCarbs(carbsValue);
       setShowFat(fatValue);
+      setShowSaturatedFat(saturatedFatValue);
+      setShowTransFat(transFatValue);
+      setShowCholesterol(cholesterolValue);
+      setShowSodium(sodiumValue);
+      setShowDietaryFiber(dietaryFiberValue);
+      setShowSugars(sugarsValue);
     }
   }, [isOpen, post]);
 
@@ -253,6 +271,12 @@ const EditPostModal = ({ isOpen, onClose, post, onPostUpdated, onPostDeleted }) 
           protein: showProtein,
           carbs: showCarbs,
           fat: showFat,
+          saturatedFat: showSaturatedFat,
+          transFat: showTransFat,
+          cholesterol: showCholesterol,
+          sodium: showSodium,
+          dietaryFiber: showDietaryFiber,
+          sugars: showSugars,
         },
       };
 
@@ -534,10 +558,46 @@ const EditPostModal = ({ isOpen, onClose, post, onPostUpdated, onPostDeleted }) 
                     <X size={14} className="chip-icon" />
                   </button>
                 )}
+                {showSaturatedFat && (
+                  <button type="button" className="chip chip-selected" onClick={() => setShowSaturatedFat(false)}>
+                    <span className="chip-text">Saturated Fat</span>
+                    <X size={14} className="chip-icon" />
+                  </button>
+                )}
+                {showTransFat && (
+                  <button type="button" className="chip chip-selected" onClick={() => setShowTransFat(false)}>
+                    <span className="chip-text">Trans Fat</span>
+                    <X size={14} className="chip-icon" />
+                  </button>
+                )}
+                {showCholesterol && (
+                  <button type="button" className="chip chip-selected" onClick={() => setShowCholesterol(false)}>
+                    <span className="chip-text">Cholesterol</span>
+                    <X size={14} className="chip-icon" />
+                  </button>
+                )}
+                {showSodium && (
+                  <button type="button" className="chip chip-selected" onClick={() => setShowSodium(false)}>
+                    <span className="chip-text">Sodium</span>
+                    <X size={14} className="chip-icon" />
+                  </button>
+                )}
+                {showDietaryFiber && (
+                  <button type="button" className="chip chip-selected" onClick={() => setShowDietaryFiber(false)}>
+                    <span className="chip-text">Dietary Fiber</span>
+                    <X size={14} className="chip-icon" />
+                  </button>
+                )}
+                {showSugars && (
+                  <button type="button" className="chip chip-selected" onClick={() => setShowSugars(false)}>
+                    <span className="chip-text">Sugars</span>
+                    <X size={14} className="chip-icon" />
+                  </button>
+                )}
               </div>
 
               {/* Available chips */}
-              {(!showImage || !showItems || !showLocation || !showMealType || !showRating || !showReview || !showCalories || !showProtein || !showCarbs || !showFat) && (
+              {(!showImage || !showItems || !showLocation || !showMealType || !showRating || !showReview || !showCalories || !showProtein || !showCarbs || !showFat || !showSaturatedFat || !showTransFat || !showCholesterol || !showSodium || !showDietaryFiber || !showSugars) && (
                 <div className="available-chips">
                   {!showImage && (
                     <button type="button" className="chip chip-available" onClick={() => setShowImage(true)}>
@@ -587,6 +647,36 @@ const EditPostModal = ({ isOpen, onClose, post, onPostUpdated, onPostDeleted }) 
                   {!showFat && (
                     <button type="button" className="chip chip-available" onClick={() => setShowFat(true)}>
                       <span className="chip-text">+ Fat</span>
+                    </button>
+                  )}
+                  {!showSaturatedFat && (
+                    <button type="button" className="chip chip-available" onClick={() => setShowSaturatedFat(true)}>
+                      <span className="chip-text">+ Saturated Fat</span>
+                    </button>
+                  )}
+                  {!showTransFat && (
+                    <button type="button" className="chip chip-available" onClick={() => setShowTransFat(true)}>
+                      <span className="chip-text">+ Trans Fat</span>
+                    </button>
+                  )}
+                  {!showCholesterol && (
+                    <button type="button" className="chip chip-available" onClick={() => setShowCholesterol(true)}>
+                      <span className="chip-text">+ Cholesterol</span>
+                    </button>
+                  )}
+                  {!showSodium && (
+                    <button type="button" className="chip chip-available" onClick={() => setShowSodium(true)}>
+                      <span className="chip-text">+ Sodium</span>
+                    </button>
+                  )}
+                  {!showDietaryFiber && (
+                    <button type="button" className="chip chip-available" onClick={() => setShowDietaryFiber(true)}>
+                      <span className="chip-text">+ Dietary Fiber</span>
+                    </button>
+                  )}
+                  {!showSugars && (
+                    <button type="button" className="chip chip-available" onClick={() => setShowSugars(true)}>
+                      <span className="chip-text">+ Sugars</span>
                     </button>
                   )}
                 </div>

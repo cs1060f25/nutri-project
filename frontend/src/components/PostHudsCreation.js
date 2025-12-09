@@ -42,6 +42,12 @@ const PostHudsCreation = () => {
   const [showProtein, setShowProtein] = useState(true);
   const [showCarbs, setShowCarbs] = useState(true);
   const [showFat, setShowFat] = useState(true);
+  const [showSaturatedFat, setShowSaturatedFat] = useState(true);
+  const [showTransFat, setShowTransFat] = useState(true);
+  const [showCholesterol, setShowCholesterol] = useState(true);
+  const [showSodium, setShowSodium] = useState(true);
+  const [showDietaryFiber, setShowDietaryFiber] = useState(true);
+  const [showSugars, setShowSugars] = useState(true);
 
   const fetchLogs = useCallback(async () => {
     if (!accessToken || !user) return;
@@ -126,6 +132,12 @@ const PostHudsCreation = () => {
         protein: showProtein,
         carbs: showCarbs,
         fat: showFat,
+        saturatedFat: showSaturatedFat,
+        transFat: showTransFat,
+        cholesterol: showCholesterol,
+        sodium: showSodium,
+        dietaryFiber: showDietaryFiber,
+        sugars: showSugars,
       };
       
       await createPost(selectedLog.id, accessToken, isPublic, displayOptions);
@@ -430,10 +442,46 @@ const PostHudsCreation = () => {
                 <X size={14} />
               </div>
             )}
+            {showSaturatedFat && (
+              <div className="post-display-chip selected" onClick={() => setShowSaturatedFat(false)}>
+                <span>Saturated Fat</span>
+                <X size={14} />
+              </div>
+            )}
+            {showTransFat && (
+              <div className="post-display-chip selected" onClick={() => setShowTransFat(false)}>
+                <span>Trans Fat</span>
+                <X size={14} />
+              </div>
+            )}
+            {showCholesterol && (
+              <div className="post-display-chip selected" onClick={() => setShowCholesterol(false)}>
+                <span>Cholesterol</span>
+                <X size={14} />
+              </div>
+            )}
+            {showSodium && (
+              <div className="post-display-chip selected" onClick={() => setShowSodium(false)}>
+                <span>Sodium</span>
+                <X size={14} />
+              </div>
+            )}
+            {showDietaryFiber && (
+              <div className="post-display-chip selected" onClick={() => setShowDietaryFiber(false)}>
+                <span>Dietary Fiber</span>
+                <X size={14} />
+              </div>
+            )}
+            {showSugars && (
+              <div className="post-display-chip selected" onClick={() => setShowSugars(false)}>
+                <span>Sugars</span>
+                <X size={14} />
+              </div>
+            )}
           </div>
 
           {/* Available items to add */}
-          {(!showImage || !showItems || !showLocation || !showMealType || !showRating || !showReview || !showCalories || !showProtein || !showCarbs || !showFat) && (
+          {(!showImage || !showItems || !showLocation || !showMealType || !showRating || !showReview || !showCalories || !showProtein || !showCarbs || !showFat || !showSaturatedFat || !showTransFat || !showCholesterol || !showSodium || !showDietaryFiber || !showSugars) && (
             <div className="post-display-chips-available">
               <span className="post-display-chips-label">Add to post:</span>
               <div className="post-display-chips-bank">
@@ -494,6 +542,42 @@ const PostHudsCreation = () => {
                 {!showFat && (
                   <div className="post-display-chip available" onClick={() => setShowFat(true)}>
                     <span>Fat</span>
+                    <span className="plus-icon">+</span>
+                  </div>
+                )}
+                {!showSaturatedFat && (
+                  <div className="post-display-chip available" onClick={() => setShowSaturatedFat(true)}>
+                    <span>Saturated Fat</span>
+                    <span className="plus-icon">+</span>
+                  </div>
+                )}
+                {!showTransFat && (
+                  <div className="post-display-chip available" onClick={() => setShowTransFat(true)}>
+                    <span>Trans Fat</span>
+                    <span className="plus-icon">+</span>
+                  </div>
+                )}
+                {!showCholesterol && (
+                  <div className="post-display-chip available" onClick={() => setShowCholesterol(true)}>
+                    <span>Cholesterol</span>
+                    <span className="plus-icon">+</span>
+                  </div>
+                )}
+                {!showSodium && (
+                  <div className="post-display-chip available" onClick={() => setShowSodium(true)}>
+                    <span>Sodium</span>
+                    <span className="plus-icon">+</span>
+                  </div>
+                )}
+                {!showDietaryFiber && (
+                  <div className="post-display-chip available" onClick={() => setShowDietaryFiber(true)}>
+                    <span>Dietary Fiber</span>
+                    <span className="plus-icon">+</span>
+                  </div>
+                )}
+                {!showSugars && (
+                  <div className="post-display-chip available" onClick={() => setShowSugars(true)}>
+                    <span>Sugars</span>
                     <span className="plus-icon">+</span>
                   </div>
                 )}

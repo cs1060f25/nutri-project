@@ -266,25 +266,37 @@ module.exports = async (req, res) => {
         .collection(MEALS_SUBCOLLECTION);
 
       let query = mealsRef;
+      const hasDateFilters = startDate || endDate;
 
+      // Apply date filters
       if (startDate) {
         query = query.where('mealDate', '>=', startDate);
       }
       if (endDate) {
         query = query.where('mealDate', '<=', endDate);
       }
-      if (mealType) {
+      
+      // Only filter by mealType in query if we don't have date filters (to avoid composite index)
+      if (mealType && !hasDateFilters) {
         query = query.where('mealType', '==', mealType);
       }
 
-      query = query.orderBy('timestamp', 'desc');
+      // Only order by timestamp if we don't have date range filters
+      // (date range + orderBy requires a composite index)
+      // If we have date filters, we'll sort in memory instead
+      if (!hasDateFilters) {
+        query = query.orderBy('timestamp', 'desc');
+      }
 
+      // Limit results (apply before sorting in memory if needed)
       const limitNum = limit ? parseInt(limit, 10) : 50;
-      query = query.limit(limitNum);
+      if (!hasDateFilters) {
+        query = query.limit(limitNum);
+      }
 
       const snapshot = await query.get();
       
-      const meals = [];
+      let meals = [];
       snapshot.forEach(doc => {
         meals.push({
           id: doc.id,
@@ -294,6 +306,27 @@ module.exports = async (req, res) => {
           updatedAt: doc.data().updatedAt?.toDate(),
         });
       });
+
+      // Filter by mealType in memory if we had date filters
+      if (hasDateFilters && mealType) {
+        meals = meals.filter(meal => 
+          meal.mealType?.toLowerCase() === mealType.toLowerCase()
+        );
+      }
+
+      // Sort in memory if we had date filters (to avoid index requirement)
+      if (hasDateFilters) {
+        meals.sort((a, b) => {
+          const aTime = a.timestamp?.getTime() || a.createdAt?.getTime() || 0;
+          const bTime = b.timestamp?.getTime() || b.createdAt?.getTime() || 0;
+          return bTime - aTime; // Descending (most recent first)
+        });
+        
+        // Apply limit after sorting
+        if (meals.length > limitNum) {
+          meals.splice(limitNum);
+        }
+      }
 
       return res.status(200).json({
         meals,
