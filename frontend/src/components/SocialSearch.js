@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Search as SearchIcon, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { searchUsers, searchLocations, sendFriendRequest, getFriends, followDiningHall, unfollowDiningHall, getFollowedDiningHalls, getFriendRequests, getPostsByUser, acceptFriendRequest } from '../services/socialService';
+import { searchUsers, searchLocations, sendFriendRequest, getFriends, followDiningHall, unfollowDiningHall, getFollowedDiningHalls, getFriendRequests, acceptFriendRequest } from '../services/socialService';
 import { getPostsByLocationName } from '../services/socialService';
 import PostCard from './PostCard';
 import PostDetail from './PostDetail';
