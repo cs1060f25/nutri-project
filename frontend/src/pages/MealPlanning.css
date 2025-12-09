@@ -238,7 +238,10 @@
   padding: 0.5rem;
   margin-bottom: 0;
   cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition: transform var(--transition-fast) var(--easing-standard),
+    box-shadow var(--transition-fast) var(--easing-standard),
+    border-color var(--transition-fast) var(--easing-standard),
+    background-color var(--transition-fast) var(--easing-standard);
   position: relative;
   flex-shrink: 1;
   flex-grow: 0;
@@ -257,8 +260,8 @@
 }
 
 .meal-plan-item:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-float);
 }
 
 .meal-plan-header {
@@ -1135,14 +1138,22 @@
   border: 1px solid var(--border-color);
   border-radius: 8px;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
   background: var(--card-bg);
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition: transform var(--transition-medium) var(--easing-standard),
+    box-shadow var(--transition-medium) var(--easing-standard),
+    border-color var(--transition-medium) var(--easing-standard);
+  cursor: pointer;
+  position: relative;
+  padding-bottom: 1rem;
   box-shadow: 0 2px 8px var(--shadow-color);
 }
 
 .saved-meal-plan-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px var(--shadow-hover-color);
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-float);
+  border-color: var(--border-color-hover);
 }
 
 .saved-meal-plan-image {
