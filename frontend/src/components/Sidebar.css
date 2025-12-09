@@ -7,6 +7,7 @@
   transition: width 0.3s ease, background-color 0.3s ease, color 0.3s ease;
   border-right: 1px solid var(--sidebar-border);
   position: relative;
+  z-index: 1000;
   cursor: default;
 }
 
