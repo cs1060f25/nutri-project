@@ -98,7 +98,16 @@ export const removeFriend = async (friendId, accessToken) => {
   return handleApiError(response, 'Failed to remove friend');
 };
 
-/**
+export const getNotifications = async (accessToken) => {
+  const response = await fetch(`${API_BASE}/api/social/notifications`, {
+    method: 'GET',
+    headers: getAuthHeaders(accessToken),
+  });
+
+  return handleApiError(response, 'Failed to get notifications');
+};
+
+/** 
  * Post functions
  */
 export const createPost = async (mealId, accessToken, isPublic = true, displayOptions = null) => {
@@ -265,4 +274,3 @@ export const getPopularPosts = async (limit = 50, accessToken, options = {}) => 
 
   return handleApiError(response, 'Failed to get popular posts');
 };
-

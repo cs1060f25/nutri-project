@@ -6,8 +6,8 @@
 
 .notification-bell-button {
   position: relative;
-  background: white;
-  border: 1px solid #e2e8f0;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
   border-radius: 999px;
   padding: 8px 12px;
   display: inline-flex;
@@ -19,7 +19,7 @@
 }
 
 .notification-bell-button:hover {
-  box-shadow: 0 10px 16px rgba(15, 23, 42, 0.08);
+  box-shadow: 0 10px 16px rgba(15, 23, 42, 0.12);
   transform: translateY(-1px);
 }
 
@@ -49,36 +49,53 @@
 .notification-panel {
   position: absolute;
   top: 46px;
-  right: 0;
+  left: 0; /* Anchor to the left edge so the panel opens to the right of the bell (not under the sidebar) */
   width: 320px;
   max-height: 360px;
   overflow-y: auto;
-  background: white;
-  border: 1px solid #e2e8f0;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
   border-radius: 12px;
-  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.12);
+  box-shadow: 0 12px 24px var(--shadow-color);
   z-index: 10;
 }
 
 .notification-panel-header {
   padding: 12px 14px 6px;
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .notification-panel-header h4 {
   margin: 0;
   font-size: 16px;
-  color: #0f172a;
+  color: var(--text-primary);
 }
 
 .notification-panel-subtitle {
   font-size: 12px;
-  color: #64748b;
+  color: var(--text-secondary);
+}
+
+.notification-mark-read {
+  margin-left: auto;
+  background: transparent;
+  border: none;
+  color: var(--primary-color);
+  font-size: 12px;
+  cursor: pointer;
+  padding: 4px 8px;
+}
+
+.notification-mark-read:hover {
+  text-decoration: underline;
 }
 
 .notification-empty {
   padding: 16px;
-  color: #64748b;
+  color: var(--text-secondary);
 }
 
 .notification-list {
@@ -93,17 +110,57 @@
 .notification-item {
   padding: 10px 12px;
   border-radius: 10px;
-  border: 1px solid #e2e8f0;
-  background: #f8fafc;
+  border: 1px solid var(--border-color);
+  background: var(--card-bg-alt);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.notification-item-read {
+  opacity: 0.9;
+  background: var(--card-hover-bg);
 }
 
 .notification-text {
   font-size: 14px;
-  color: #0f172a;
+  color: var(--text-primary);
+}
+
+.notification-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .notification-meta {
   margin-top: 4px;
   font-size: 12px;
-  color: #94a3b8;
+  color: var(--text-secondary);
+}
+
+.notification-item-action {
+  margin-left: auto;
+  background: transparent;
+  border: none;
+  color: var(--primary-color);
+  font-size: 12px;
+  cursor: pointer;
+  padding: 2px 6px;
+}
+
+.notification-item-action:hover {
+  text-decoration: underline;
+}
+
+.notification-section {
+  padding: 6px 0 10px;
+}
+
+.notification-section-title {
+  padding: 0 14px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary);
 }

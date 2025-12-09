@@ -14,6 +14,9 @@ router.get('/friends/requests', socialController.getFriendRequests);
 router.get('/friends', socialController.getFriends);
 router.delete('/friends/:friendId', socialController.removeFriend);
 
+// Notifications
+router.get('/notifications', socialController.getNotifications);
+
 // Post routes
 router.post('/posts', socialController.createPost);
 router.post('/posts/scan', socialController.createPostFromScan);
@@ -43,4 +46,3 @@ router.get('/search/users', socialController.searchUsers);
 router.get('/search/locations', socialController.searchLocations);
 
 module.exports = router;
-

@@ -40,3 +40,36 @@ export const getRangeProgress = async ({ start, end }, accessToken) => {
   return response.json();
 };
 
+/**
+ * Fetch AI-powered summary for a date range
+ */
+export const getAiSummary = async ({ start, end }, accessToken) => {
+  if (!start || !end) {
+    throw new Error('Start and end dates are required');
+  }
+
+  const url = new URL(`${API_BASE}/api/nutrition-progress/range/ai-summary`, window.location.origin);
+  url.searchParams.set('start', start);
+  url.searchParams.set('end', end);
+
+  const headers = {
+    'Content-Type': 'application/json',
+  };
+
+  if (accessToken) {
+    headers['Authorization'] = `Bearer ${accessToken}`;
+  }
+
+  const response = await fetch(url.toString(), {
+    method: 'GET',
+    headers,
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => null);
+    const message = error?.error?.message || error?.error || 'Failed to fetch AI summary';
+    throw new Error(message);
+  }
+
+  return response.json();
+};
