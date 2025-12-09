@@ -108,7 +108,7 @@ const ResetPassword = () => {
 
         <div className="auth-card">
           <div className="auth-header">
-            <h1 className="auth-logo">HUDS Nutrition Analyzer</h1>
+            <h1 className="auth-logo">Harvard Eats</h1>
             <h2 className="auth-title">Verifying Reset Token...</h2>
           </div>
           <div style={{ textAlign: 'center', padding: '20px' }}>
@@ -130,7 +130,7 @@ const ResetPassword = () => {
 
         <div className="auth-card">
           <div className="auth-header">
-            <h1 className="auth-logo">HUDS Nutrition Analyzer</h1>
+            <h1 className="auth-logo">Harvard Eats</h1>
             <h2 className="auth-title">Reset Password</h2>
           </div>
 
@@ -158,7 +158,7 @@ const ResetPassword = () => {
 
       <div className="auth-card">
         <div className="auth-header">
-          <h1 className="auth-logo">HUDS Nutrition Analyzer</h1>
+          <h1 className="auth-logo">Harvard Eats</h1>
           <h2 className="auth-title">Reset Password</h2>
           {email && (
             <p className="auth-subtitle" style={{ marginTop: '10px', color: '#64748b' }}>

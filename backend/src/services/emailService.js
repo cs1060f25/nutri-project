@@ -45,7 +45,7 @@ const sendPasswordResetEmail = async (to, resetToken, frontendUrl) => {
     const mailOptions = {
       from: process.env.SMTP_FROM || process.env.SMTP_USER,
       to: to,
-      subject: 'Reset Your Password - HUDS Nutrition Analyzer',
+      subject: 'Reset Your Password - Harvard Eats',
       html: `
         <!DOCTYPE html>
         <html>
@@ -106,10 +106,10 @@ const sendPasswordResetEmail = async (to, resetToken, frontendUrl) => {
         <body>
           <div class="container">
             <div class="header">
-              <div class="logo">HUDS Nutrition Analyzer</div>
+              <div class="logo">Harvard Eats</div>
             </div>
             <h2>Reset Your Password</h2>
-            <p>You requested to reset your password for your HUDS Nutrition Analyzer account.</p>
+            <p>You requested to reset your password for your Harvard Eats account.</p>
             <p>Click the button below to reset your password. This link will expire in 15 minutes.</p>
             <div style="text-align: center;">
               <a href="${resetLink}" class="button" style="color: #ffffff !important; text-decoration: none;">Reset Password</a>
@@ -118,7 +118,7 @@ const sendPasswordResetEmail = async (to, resetToken, frontendUrl) => {
             <p><a href="${resetLink}" class="link">${resetLink}</a></p>
             <p>If you didn't request a password reset, you can safely ignore this email.</p>
             <div class="footer">
-              <p>This email was sent by HUDS Nutrition Analyzer</p>
+              <p>This email was sent by Harvard Eats</p>
               <p>If you have any questions, please contact support.</p>
             </div>
           </div>
@@ -126,9 +126,9 @@ const sendPasswordResetEmail = async (to, resetToken, frontendUrl) => {
         </html>
       `,
       text: `
-        Reset Your Password - HUDS Nutrition Analyzer
+        Reset Your Password - Harvard Eats
         
-        You requested to reset your password for your HUDS Nutrition Analyzer account.
+        You requested to reset your password for your Harvard Eats account.
         
         Click the link below to reset your password (expires in 15 minutes):
         ${resetLink}

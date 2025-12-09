@@ -97,8 +97,8 @@ app.use('/api/leaderboard', leaderboardRoutes);
 // Home endpoint - returns app data
 app.get('/home', (req, res) => {
   const homeData = {
-    title: 'HUDS Nutrition Analyzer',
-    welcomeMessage: 'Welcome to the HUDS Nutrition Analyzer!',
+    title: 'Harvard Eats',
+    welcomeMessage: 'Welcome to Harvard Eats!',
     description: 'Track your dining hall consumption, create diet goals, and monitor your nutritional intake.',
     features: [
       'View HUDS menu nutritional facts',
