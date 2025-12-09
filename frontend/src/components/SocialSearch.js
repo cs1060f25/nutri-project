@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Search as SearchIcon, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { searchUsers, searchLocations, sendFriendRequest, getFriends, followDiningHall, unfollowDiningHall, getFollowedDiningHalls, getFriendRequests, acceptFriendRequest } from '../services/socialService';
+import { searchUsers, searchLocations, sendFriendRequest, getFriends, followDiningHall, unfollowDiningHall, getFollowedDiningHalls, getFriendRequests, acceptFriendRequest, getPostsByUser } from '../services/socialService';
 import { getPostsByLocationName } from '../services/socialService';
 import PostCard from './PostCard';
 import PostDetail from './PostDetail';
@@ -19,6 +19,8 @@ const SocialSearch = () => {
   const [locations, setLocations] = useState([]);
   const [locationPosts, setLocationPosts] = useState([]);
   const [selectedLocation, setSelectedLocation] = useState(null);
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [userPosts, setUserPosts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [friends, setFriends] = useState([]);
   const [friendRequestStatus, setFriendRequestStatus] = useState({});
@@ -155,8 +157,14 @@ const SocialSearch = () => {
   };
 
   const handleUserClick = async (user) => {
-    // Navigate to the profile route instead of showing inline
-    navigate(`/home/social/user/${user.id}`);
+    setSelectedUser(user);
+    try {
+      const data = await getPostsByUser(user.id, 50, accessToken);
+      setUserPosts(data.posts || []);
+    } catch (err) {
+      console.error('Error fetching user posts:', err);
+      alert('Failed to load user posts: ' + err.message);
+    }
   };
 
   const handleSendFriendRequest = async (userId) => {
@@ -261,77 +269,7 @@ const SocialSearch = () => {
     return name.substring(0, 2).toUpperCase();
   };
 
-  if (selectedLocation) {
-    return (
-      <div className="full-width-detail-page">
-        <button
-          className="profile-back-button"
-          onClick={() => {
-            setSelectedLocation(null);
-            setLocationPosts([]);
-          }}
-          style={{ marginBottom: '1.5rem' }}
-        >
-          <ArrowLeft size={20} />
-          Back to Search
-        </button>
-        <div className="profile-detail-header-card">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div>
-              <h2>{selectedLocation.locationName}</h2>
-              <p style={{ color: '#666', marginTop: '0.5rem', marginBottom: 0 }}>
-                {selectedLocation.postCount} {selectedLocation.postCount === 1 ? 'creation' : 'creations'}
-              </p>
-            </div>
-            <div onClick={(e) => e.stopPropagation()}>
-              {(() => {
-                const key = `${selectedLocation.locationId}|${selectedLocation.locationName}`;
-                const isFollowing = followingStatus[key] === 'following' || 
-                                  followedDiningHalls.some(
-                                    hall => hall.locationId === selectedLocation.locationId && 
-                                            hall.locationName === selectedLocation.locationName
-                                  );
-                return isFollowing ? (
-                  <button
-                    className="btn btn-secondary"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleUnfollowDiningHall(selectedLocation.locationId, selectedLocation.locationName, e);
-                    }}
-                  >
-                    Unfollow
-                  </button>
-                ) : (
-                  <button
-                    className="btn btn-primary"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleFollowDiningHall(selectedLocation.locationId, selectedLocation.locationName, e);
-                    }}
-                  >
-                    Follow
-                  </button>
-                );
-              })()}
-            </div>
-          </div>
-        </div>
-        {locationPosts.length === 0 ? (
-          <div className="empty-state">
-            <div className="empty-state-icon">📭</div>
-            <div className="empty-state-title">No creations yet</div>
-            <div className="empty-state-message">
-              Be the first to share a meal from this location!
-            </div>
-          </div>
-        ) : (
-          locationPosts.map((post) => (
-            <PostCard key={post.id} post={post} />
-          ))
-        )}
-      </div>
-    );
-  }
+  // Don't return early - show search UI and selected user/location detail together
 
 
   return (
@@ -343,6 +281,10 @@ const SocialSearch = () => {
             onClick={() => {
               setSearchType('users');
               setUsers([]);
+              setSelectedLocation(null);
+              setLocationPosts([]);
+              setSelectedUser(null);
+              setUserPosts([]);
             }}
           >
             Users
@@ -352,6 +294,10 @@ const SocialSearch = () => {
             onClick={() => {
               setSearchType('locations');
               setLocations([]);
+              setSelectedLocation(null);
+              setLocationPosts([]);
+              setSelectedUser(null);
+              setUserPosts([]);
             }}
           >
             Dining Halls 
@@ -372,6 +318,168 @@ const SocialSearch = () => {
           </button>
         </div>
       </div>
+
+      {selectedUser && (
+        <div style={{ marginTop: '2rem' }}>
+          {(() => {
+            const isFriend = friends.some((f) => f.id === selectedUser.id);
+            const hasSentRequest = friendRequestStatus[selectedUser.id] === 'sent';
+            const hasIncomingRequest = incomingRequests[selectedUser.id] !== undefined;
+            const incomingRequestId = incomingRequests[selectedUser.id];
+
+            return (
+              <>
+                <button
+                  className="profile-back-button"
+                  onClick={() => {
+                    setSelectedUser(null);
+                    setUserPosts([]);
+                  }}
+                  style={{ marginBottom: '1.5rem' }}
+                >
+                  <ArrowLeft size={20} />
+                  Back to Search Results
+                </button>
+                <div className="profile-detail-header-card">
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <h2>{selectedUser.name}</h2>
+                      <p style={{ color: '#666', marginTop: '0.5rem' }}>
+                        {selectedUser.email} {selectedUser.residence && `• ${selectedUser.residence}`}
+                      </p>
+                    </div>
+                    <div onClick={(e) => e.stopPropagation()}>
+                      {isFriend ? (
+                        <button
+                          className="btn btn-secondary"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            // Navigate to their profile page for unfriend option
+                            navigate(`/home/social/user/${selectedUser.id}`);
+                          }}
+                        >
+                          View Profile
+                        </button>
+                      ) : hasIncomingRequest ? (
+                        <button
+                          className="btn btn-primary"
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            await handleAcceptFriendRequest(selectedUser.id);
+                            // Refresh friends list
+                            const friendsData = await getFriends(accessToken);
+                            setFriends(friendsData.friends || []);
+                          }}
+                        >
+                          Accept Request
+                        </button>
+                      ) : hasSentRequest ? (
+                        <span style={{ color: '#666', padding: '0.5rem 1rem' }}>Friend Request Sent</span>
+                      ) : (
+                        <button
+                          className="btn btn-primary"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleSendFriendRequest(selectedUser.id);
+                          }}
+                        >
+                          Add Friend
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <p style={{ color: '#666', marginBottom: '1.5rem' }}>
+                  {userPosts.length} {userPosts.length === 1 ? 'creation' : 'creations'}
+                </p>
+                {userPosts.length === 0 ? (
+                  <div className="empty-state">
+                    <div className="empty-state-icon">📭</div>
+                    <div className="empty-state-title">No creations yet</div>
+                    <div className="empty-state-message">
+                      This user hasn't shared any meals yet.
+                    </div>
+                  </div>
+                ) : (
+                  userPosts.map((post) => (
+                    <PostCard key={post.id} post={post} />
+                  ))
+                )}
+              </>
+            );
+          })()}
+        </div>
+      )}
+
+      {selectedLocation && (
+        <div style={{ marginTop: '2rem' }}>
+          <button
+            className="profile-back-button"
+            onClick={() => {
+              setSelectedLocation(null);
+              setLocationPosts([]);
+            }}
+            style={{ marginBottom: '1.5rem' }}
+          >
+            <ArrowLeft size={20} />
+            Back to Search Results
+          </button>
+          <div className="profile-detail-header-card">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <h2>{selectedLocation.locationName}</h2>
+                <p style={{ color: '#666', marginTop: '0.5rem', marginBottom: 0 }}>
+                  {selectedLocation.postCount} {selectedLocation.postCount === 1 ? 'creation' : 'creations'}
+                </p>
+              </div>
+              <div onClick={(e) => e.stopPropagation()}>
+                {(() => {
+                  const key = `${selectedLocation.locationId}|${selectedLocation.locationName}`;
+                  const isFollowing = followingStatus[key] === 'following' || 
+                                    followedDiningHalls.some(
+                                      hall => hall.locationId === selectedLocation.locationId && 
+                                              hall.locationName === selectedLocation.locationName
+                                    );
+                  return isFollowing ? (
+                    <button
+                      className="btn btn-secondary"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleUnfollowDiningHall(selectedLocation.locationId, selectedLocation.locationName, e);
+                      }}
+                    >
+                      Unfollow
+                    </button>
+                  ) : (
+                    <button
+                      className="btn btn-primary"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleFollowDiningHall(selectedLocation.locationId, selectedLocation.locationName, e);
+                      }}
+                    >
+                      Follow
+                    </button>
+                  );
+                })()}
+              </div>
+            </div>
+          </div>
+          {locationPosts.length === 0 ? (
+            <div className="empty-state">
+              <div className="empty-state-icon">📭</div>
+              <div className="empty-state-title">No creations yet</div>
+              <div className="empty-state-message">
+                Be the first to share a meal from this location!
+              </div>
+            </div>
+          ) : (
+            locationPosts.map((post) => (
+              <PostCard key={post.id} post={post} />
+            ))
+          )}
+        </div>
+      )}
 
       {searchType === 'users' && users.length > 0 && (
         <div className="search-results">

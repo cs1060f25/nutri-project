@@ -47,6 +47,18 @@ function App() {
 function MainLayout() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
+  // Update body class when sidebar state changes
+  React.useEffect(() => {
+    if (isSidebarCollapsed) {
+      document.body.classList.add('sidebar-collapsed');
+    } else {
+      document.body.classList.remove('sidebar-collapsed');
+    }
+    return () => {
+      document.body.classList.remove('sidebar-collapsed');
+    };
+  }, [isSidebarCollapsed]);
+
   return (
     <div className={`app ${isSidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
       <Sidebar 

@@ -4,7 +4,7 @@
   gap: 24px;
   padding: 24px;
   color: var(--text-primary);
-  background: linear-gradient(135deg, var(--bg-gradient-start), var(--bg-gradient-mid));
+  background: var(--bg-gradient-start);
   transition: background 0.3s ease;
 }
 

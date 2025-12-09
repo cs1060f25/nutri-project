@@ -21,10 +21,11 @@
   scroll-behavior: auto;
   /* Ensure overlay is always relative to viewport */
   transform: translateZ(0);
+  transition: left 0.3s ease;
 }
 
-/* When sidebar is collapsed */
-.sidebar-collapsed .post-detail-modal-overlay {
+/* When sidebar is collapsed - check body class (set by App.js) */
+body.sidebar-collapsed .post-detail-modal-overlay {
   left: 70px;
 }
 
@@ -137,7 +138,7 @@
   padding: 0;
   text-align: left;
   font: inherit;
-  cursor: pointer;
+  cursor: default;
 }
 
 .post-user-name.clickable {
@@ -266,6 +267,43 @@
 .post-item-nutrition {
   color: #6b7280;
   font-size: 0.9rem;
+}
+
+.meal-item-macros {
+  display: flex;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+  flex-wrap: wrap;
+}
+
+.meal-item-macros .nutrition-chip {
+  flex: 0 0 auto;
+  width: auto;
+}
+
+.meal-item-macros span,
+.meal-item-macros .nutrition-chip {
+  background: var(--border-color);
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+  border: 1px solid var(--border-color-alt);
+  white-space: nowrap;
+  transition: all 0.3s ease;
+  display: inline-block;
+}
+
+.nutrition-chip {
+  background: #f0f4f8;
+  color: #475569;
+  padding: 0.25rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.7rem;
+  font-weight: 500;
+  white-space: nowrap;
+  border: none;
+  display: inline-block;
 }
 
 .post-totals-grid {

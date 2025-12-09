@@ -880,7 +880,7 @@ const SocialProfile = () => {
                   style={{ marginBottom: '1.5rem' }}
                 >
                   <ArrowLeft size={20} />
-                  Back to Friends
+                  Back to All Friends
                 </button>
                 <div className="profile-detail-header-card">
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -992,7 +992,7 @@ const SocialProfile = () => {
                 style={{ marginBottom: '1.5rem' }}
               >
                 <ArrowLeft size={20} />
-                Back to Dining Halls
+                Back to All Dining Halls
               </button>
               <div className="profile-detail-header-card">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

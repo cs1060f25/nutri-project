@@ -326,6 +326,7 @@ const PostCard = ({ post, showDelete = false, onPostUpdated, onPostDeleted, show
         {(!post.image || !displayOptions.image) && (
           <div className="post-meal-section">
             <h3 className="post-section-header">Meal</h3>
+            <p style={{ fontStyle: 'italic', color: '#6b7280', marginTop: '0.5rem' }}>No image provided</p>
           </div>
         )}
 
@@ -453,8 +454,10 @@ const PostCard = ({ post, showDelete = false, onPostUpdated, onPostDeleted, show
               return (
               <div key={index} className="post-item">
                 <div className="post-item-name">{item.recipeName}</div>
-                <div className="post-item-details">
-                    {nutritionDetails.join(' • ')}
+                <div className="meal-item-macros">
+                    {nutritionDetails.map((detail, detailIndex) => (
+                      <span key={detailIndex} className="nutrition-chip">{detail}</span>
+                    ))}
                   </div>
                 </div>
               );

@@ -236,21 +236,9 @@ const PostDetail = ({ postId, onClose }) => {
               <div className="post-detail-user-header">
                 <div className="post-avatar">{getInitials(post.userName)}</div>
                 <div>
-                  <button
-                    type="button"
-                    className="post-user-name clickable"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (post.userId) {
-                        navigate(`/home/social/user/${post.userId}`, {
-                          state: { fromModal: true, postId, returnPath: location.pathname }
-                        });
-                        onClose();
-                      }
-                    }}
-                  >
+                  <div className="post-user-name">
                     {post.userName}
-                  </button>
+                  </div>
                   <div className="post-meta">
                     <span className="post-meta-chip">Posted on {formatDate(post.createdAt || post.timestamp)}</span>
                     {post.loggedDate && (
@@ -278,13 +266,15 @@ const PostDetail = ({ postId, onClose }) => {
           {/* Meal Section */}
           <div className="post-detail-section">
             <h3>Meal</h3>
-            {post.image && displayOptions.image && (
+            {post.image && displayOptions.image ? (
               <div className="post-detail-image">
                 <img 
                   src={post.image.startsWith('http') ? post.image : (post.image.startsWith('data:') ? post.image : `data:image/jpeg;base64,${post.image}`)} 
                   alt="Meal" 
                 />
               </div>
+            ) : (
+              <p style={{ fontStyle: 'italic', color: '#6b7280', marginTop: '0.5rem' }}>No image provided</p>
             )}
           </div>
 
@@ -321,31 +311,96 @@ const PostDetail = ({ postId, onClose }) => {
               <h3>Food Items</h3>
               <div className="post-items">
                 {post.items.map((item, index) => {
-                  const nutritionParts = [];
+                  // Build nutrition details array
+                  const nutritionDetails = [];
                   
-                  if (displayOptions.calories && item.calories !== undefined) {
-                    nutritionParts.push(`${Math.round(Number(item.calories) || 0)} cal`);
+                  // Quantity removed - don't show quantity multiplier
+                  if (item.servingSize) {
+                    nutritionDetails.push(item.servingSize);
                   }
-                  if (displayOptions.protein && item.protein !== undefined) {
-                    nutritionParts.push(`${Math.round(Number(item.protein) || 0)}g protein`);
+                  if (displayOptions.calories && item.calories !== undefined && item.calories !== null) {
+                    nutritionDetails.push(`${Math.round(Number(item.calories) || 0)} cal`);
                   }
-                  if (displayOptions.carbs && (item.carbs !== undefined || item.totalCarbs !== undefined || item.totalCarb !== undefined)) {
-                    const carbs = item.carbs !== undefined ? item.carbs : (item.totalCarbs !== undefined ? item.totalCarbs : item.totalCarb);
-                    nutritionParts.push(`${Math.round(Number(carbs) || 0)}g carbs`);
+                  if (displayOptions.protein && item.protein !== undefined && item.protein !== null) {
+                    nutritionDetails.push(`${Math.round(Number(item.protein) || 0)}g protein`);
                   }
-                  if (displayOptions.fat && (item.fat !== undefined || item.totalFat !== undefined)) {
-                    const fat = item.fat !== undefined ? item.fat : item.totalFat;
-                    nutritionParts.push(`${Math.round(Number(fat) || 0)}g fat`);
+                  if (displayOptions.carbs) {
+                    if (item.carbs !== undefined && item.carbs !== null) {
+                      nutritionDetails.push(`${Math.round(Number(item.carbs) || 0)}g carbs`);
+                    } else if (item.totalCarbs !== undefined && item.totalCarbs !== null) {
+                      // Handle both carbs and totalCarbs for backward compatibility
+                      const carbValue = typeof item.totalCarbs === 'string' 
+                        ? parseFloat(item.totalCarbs.replace(/[^0-9.]/g, '')) 
+                        : Number(item.totalCarbs) || 0;
+                      nutritionDetails.push(`${Math.round(carbValue)}g carbs`);
+                    } else if (item.totalCarb !== undefined && item.totalCarb !== null) {
+                      // Handle legacy totalCarb key
+                      const carbValue = typeof item.totalCarb === 'string' 
+                        ? parseFloat(item.totalCarb.replace(/[^0-9.]/g, '')) 
+                        : Number(item.totalCarb) || 0;
+                      nutritionDetails.push(`${Math.round(carbValue)}g carbs`);
+                    }
+                  }
+                  if (displayOptions.fat) {
+                    if (item.fat !== undefined && item.fat !== null) {
+                      nutritionDetails.push(`${Math.round(Number(item.fat) || 0)}g fat`);
+                    } else if (item.totalFat !== undefined && item.totalFat !== null) {
+                      // Handle both fat and totalFat for backward compatibility
+                      const fatValue = typeof item.totalFat === 'string' 
+                        ? parseFloat(item.totalFat.replace(/[^0-9.]/g, '')) 
+                        : Number(item.totalFat) || 0;
+                      nutritionDetails.push(`${Math.round(fatValue)}g fat`);
+                    }
+                  }
+                  if (displayOptions.fat && item.saturatedFat !== undefined && item.saturatedFat !== null && item.saturatedFat !== '0g' && item.saturatedFat !== 0) {
+                    const satFatValue = typeof item.saturatedFat === 'string' 
+                      ? parseFloat(item.saturatedFat.replace(/[^0-9.]/g, '')) 
+                      : Number(item.saturatedFat) || 0;
+                    if (satFatValue > 0) {
+                      nutritionDetails.push(`${Math.round(satFatValue)}g sat fat`);
+                    }
+                  }
+                  if (item.cholesterol !== undefined && item.cholesterol !== null && item.cholesterol !== '0mg' && item.cholesterol !== 0) {
+                    const cholValue = typeof item.cholesterol === 'string' 
+                      ? parseFloat(item.cholesterol.replace(/[^0-9.]/g, '')) 
+                      : Number(item.cholesterol) || 0;
+                    if (cholValue > 0) {
+                      nutritionDetails.push(`${Math.round(cholValue)}mg cholesterol`);
+                    }
+                  }
+                  if (item.sodium !== undefined && item.sodium !== null && item.sodium !== '0mg' && item.sodium !== 0) {
+                    const sodiumValue = typeof item.sodium === 'string' 
+                      ? parseFloat(item.sodium.replace(/[^0-9.]/g, '')) 
+                      : Number(item.sodium) || 0;
+                    if (sodiumValue > 0) {
+                      nutritionDetails.push(`${Math.round(sodiumValue)}mg sodium`);
+                    }
+                  }
+                  if (item.dietaryFiber !== undefined && item.dietaryFiber !== null && item.dietaryFiber !== '0g' && item.dietaryFiber !== 0) {
+                    const fiberValue = typeof item.dietaryFiber === 'string' 
+                      ? parseFloat(item.dietaryFiber.replace(/[^0-9.]/g, '')) 
+                      : Number(item.dietaryFiber) || 0;
+                    if (fiberValue > 0) {
+                      nutritionDetails.push(`${Math.round(fiberValue)}g fiber`);
+                    }
+                  }
+                  if (item.sugars !== undefined && item.sugars !== null && item.sugars !== '0g' && item.sugars !== 0) {
+                    const sugarsValue = typeof item.sugars === 'string' 
+                      ? parseFloat(item.sugars.replace(/[^0-9.]/g, '')) 
+                      : Number(item.sugars) || 0;
+                    if (sugarsValue > 0) {
+                      nutritionDetails.push(`${Math.round(sugarsValue)}g sugars`);
+                    }
                   }
 
                   return (
                     <div key={index} className="post-item">
                       <div className="post-item-name">{item.recipeName}</div>
-                      {nutritionParts.length > 0 && (
-                        <div className="post-item-nutrition">
-                          {nutritionParts.join(' • ')}
-                        </div>
-                      )}
+                      <div className="meal-item-macros">
+                        {nutritionDetails.map((detail, detailIndex) => (
+                          <span key={detailIndex} className="nutrition-chip">{detail}</span>
+                        ))}
+                      </div>
                     </div>
                   );
                 })}
