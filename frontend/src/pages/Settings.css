@@ -4,12 +4,14 @@
   padding: 24px;
   max-width: 1100px;
   margin: 0 auto;
+  color: var(--text-primary);
 }
 
 .settings-title {
   font-size: 28px;
   font-weight: 600;
   margin-bottom: 24px;
+  color: var(--text-primary);
 }
 
 .settings-grid {
@@ -19,28 +21,36 @@
 }
 
 .settings-section {
-  background-color: var(--card-bg, #121212);
-  border-radius: 8px;
-  padding: 16px 20px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  background-color: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 20px 24px;
+  box-shadow: 0 2px 8px var(--shadow-color);
+  transition: box-shadow var(--transition-fast) var(--easing-standard),
+    border-color var(--transition-fast) var(--easing-standard);
+}
+
+.settings-section:hover {
+  box-shadow: 0 4px 12px var(--shadow-hover-color);
 }
 
 .settings-section-title {
   font-size: 18px;
   font-weight: 600;
-  margin-bottom: 12px;
+  margin-bottom: 16px;
+  color: var(--text-primary);
 }
 
 .settings-form {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
 }
 
 .settings-field-group {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
 }
 
 .settings-field-group-inline {
@@ -52,45 +62,76 @@
 .settings-label {
   font-size: 14px;
   font-weight: 500;
+  color: var(--text-secondary);
 }
 
 .settings-label-inline {
   font-size: 14px;
+  color: var(--text-secondary);
 }
 
 .settings-input,
 .settings-textarea {
-  border-radius: 4px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  padding: 8px 10px;
-  background-color: transparent;
-  color: inherit;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  padding: 10px 12px;
+  background-color: var(--input-bg);
+  color: var(--text-primary);
   font-size: 14px;
+  transition: border-color var(--transition-fast) var(--easing-standard),
+    box-shadow var(--transition-fast) var(--easing-standard);
+}
+
+.settings-input:focus,
+.settings-textarea:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px var(--selection-bg);
+}
+
+.settings-input:disabled {
+  background-color: var(--card-bg-alt);
+  color: var(--text-muted);
+  cursor: not-allowed;
+}
+
+.settings-input::placeholder,
+.settings-textarea::placeholder {
+  color: var(--text-muted);
 }
 
 .settings-textarea {
-  min-height: 64px;
+  min-height: 72px;
   resize: vertical;
 }
 
 .settings-field-help {
   font-size: 12px;
-  opacity: 0.8;
+  color: var(--text-muted);
 }
 
 .settings-button {
-  padding: 8px 12px;
-  border-radius: 4px;
+  padding: 10px 16px;
+  border-radius: 8px;
   border: none;
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
   align-self: flex-start;
+  transition: background-color var(--transition-fast) var(--easing-standard),
+    transform var(--transition-fast) var(--easing-standard),
+    box-shadow var(--transition-fast) var(--easing-standard);
 }
 
 .settings-button.primary {
-  background-color: #3b82f6;
+  background-color: var(--primary-color);
   color: #ffffff;
+}
+
+.settings-button.primary:hover:not(:disabled) {
+  background-color: var(--primary-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px var(--shadow-hover-color);
 }
 
 .settings-button.danger {
@@ -98,19 +139,32 @@
   color: #ffffff;
 }
 
+.settings-button.danger:hover:not(:disabled) {
+  background-color: #b91c1c;
+  transform: translateY(-1px);
+}
+
 .settings-button:disabled {
-  opacity: 0.7;
-  cursor: default;
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .settings-error {
-  color: #f97373;
+  color: #ef4444;
   font-size: 13px;
+  padding: 8px 12px;
+  background-color: rgba(239, 68, 68, 0.1);
+  border-radius: 6px;
+  border: 1px solid rgba(239, 68, 68, 0.2);
 }
 
 .settings-success {
-  color: #4ade80;
+  color: var(--primary-color);
   font-size: 13px;
+  padding: 8px 12px;
+  background-color: rgba(82, 183, 136, 0.1);
+  border-radius: 6px;
+  border: 1px solid rgba(82, 183, 136, 0.2);
 }
 
 .settings-security-grid {
@@ -120,25 +174,36 @@
 }
 
 .settings-security-card {
-  border-radius: 6px;
-  padding: 12px 14px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 16px 18px;
+  background-color: var(--card-bg-alt);
+  border: 1px solid var(--border-color);
 }
 
 .settings-security-card.danger {
-  border-color: rgba(220, 38, 38, 0.6);
+  border-color: rgba(220, 38, 38, 0.4);
   background-color: rgba(220, 38, 38, 0.05);
 }
 
 .settings-security-title {
   font-size: 16px;
   font-weight: 600;
-  margin-bottom: 8px;
+  margin-bottom: 12px;
+  color: var(--text-primary);
 }
 
 .settings-danger-text {
   font-size: 13px;
-  margin-bottom: 8px;
+  margin-bottom: 12px;
+  color: var(--text-secondary);
+}
+
+/* Checkbox styling */
+.settings-field-group-inline input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--primary-color);
+  cursor: pointer;
 }
 
 @media (min-width: 800px) {

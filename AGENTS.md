@@ -1,6 +1,6 @@
-# HUDS Nutrition Analyzer – Agent Briefing
+# Harvard Eats – Agent Briefing
 
-This document gives software agents and collaborators the operational context for the HUDS Nutrition Analyzer project. Use it to understand the system boundaries, priorities, and guardrails before making autonomous changes.
+This document gives software agents and collaborators the operational context for the Harvard Eats project. Use it to understand the system boundaries, priorities, and guardrails before making autonomous changes.
 
 ## Mission & Current Focus
 - Deliver a dining analytics platform for Harvard University Dining Services (HUDS) students to log meals, review nutrition plans, and sync data between local development servers and production serverless endpoints.
@@ -11,13 +11,11 @@ This document gives software agents and collaborators the operational context fo
 - **Frontend (`frontend/`)**: React application that authenticates with Firebase, consumes HUDS APIs through local Express or Vercel endpoints, and renders nutrition dashboards and logging flows.
 - **Backend for Local Dev (`backend/src/`)**: Express server that mirrors the serverless handlers, handles middleware authentication, and exposes REST endpoints for meal logging, HUDS data, profiles, and nutrition plans.
 - **Serverless Production (`api/`)**: Vercel-compatible functions sharing business logic intent with Express controllers; this code ships to production.
-- **Machine Learning Service (`ml-service/`)**: FastAPI microservice prototype (Python) for advanced inference and contract tests, currently optional but kept in sync for future smart recommendations.
 - **Documentation (`docs/`)**: API specifications and Firestore schema references that double as source-of-truth contracts.
 
 ## Operating Modes
 - **Local Development**: Run `npm run dev` from project root to launch both backend and frontend with live reload.
 - **Production / Preview**: Vercel builds and deploys the `api/` serverless functions and the React static bundle. Ensure backend changes are mirrored in both environments.
-- **ML Service**: Start independently when working on inference endpoints; not currently auto-started by root scripts.
 
 ## Collaboration Protocols
 - Keep Express controllers/services and their serverless counterparts behaviorally identical. When updating one, update the other within the same change set.
@@ -33,7 +31,6 @@ This document gives software agents and collaborators the operational context fo
 - **Frontend React tests**: `cd frontend && npm test -- --watch=false` (append `-- --coverage` for coverage reports). Ensure Jest DOM environment passes for UI changes.
 - **Frontend linting / static analysis**: `cd frontend && npx eslint ./src --max-warnings=0`. If ESLint is not yet configured globally, add rule updates instead of skipping them.
 - **Root formatting and type checks**: None enforced today; if you introduce Prettier or TypeScript, document the commands here.
-- **ML service test suite**: `cd ml-service && pip install -r requirements.txt && pytest`. Run when touching FastAPI routes or contract files.
 - **When to update tests**: Update or add tests whenever you change public APIs, data contracts, critical workflows (meal logging, nutrition plans, auth), or introduce new regressions to catch edge cases. Keep fixtures realistic with HUDS data formats.
 - **Do not edit existing tests** unless the user explicitly requests changes or they fail due to intentional behavior updates that you are implementing with stakeholder approval.
 - **Documentation of results**: Record command outputs (pass/fail) in your PR description or task notes; include environment details when relevant.
@@ -41,7 +38,6 @@ This document gives software agents and collaborators the operational context fo
 ## Observability & Debugging
 - Monitor Express logs (stdout) during `npm run dev` sessions; they capture request metadata and error stacks.
 - Use browser DevTools Network tab to inspect API calls. Response payloads should match schema definitions in `docs/firestore-schema.md`.
-- For ML service debugging, enable FastAPI logging and ensure the OpenAPI contract in `ml-service/docs` remains up to date.
 
 ## Deployment Notes
 - Vercel uses the root `vercel.json` and automatically builds `api/` + `frontend/`. Run `vercel --prod` locally to preview deployments when necessary.

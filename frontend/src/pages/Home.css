@@ -59,6 +59,7 @@
 
 .progress-card-wrapper {
   min-width: 0;
+  overflow: hidden;
 }
 
 /* ===== Menu Results Section ===== */

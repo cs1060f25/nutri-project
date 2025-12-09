@@ -42,8 +42,10 @@ const FoodScanner = () => {
   const handleFileSelect = (e) => {
     const file = e.target.files[0];
     if (file) {
-      if (!file.type.startsWith('image/')) {
-        setError('Please select a valid image file (JPG or PNG)');
+      // HEIC files may have type 'image/heic' or empty string, so check extension too
+      const isValidImage = file.type.startsWith('image/') || file.name.toLowerCase().endsWith('.heic');
+      if (!isValidImage) {
+        setError('Please select a valid image file (JPG, PNG, or HEIC)');
         return;
       }
       
@@ -157,12 +159,12 @@ const FoodScanner = () => {
                 <label htmlFor="file-upload" className="scanner-dropzone">
                   <Upload className="scanner-dropzone-icon" />
                   <p className="scanner-dropzone-title">Drop image or browse files</p>
-                  <p className="scanner-dropzone-subtitle">Supports JPG/PNG up to 20MB</p>
+                  <p className="scanner-dropzone-subtitle">Supports JPG/PNG/HEIC up to 20MB</p>
                 </label>
                 <input
                   id="file-upload"
                   type="file"
-                  accept=".jpg,.jpeg,.png"
+                  accept=".jpg,.jpeg,.png,.heic"
                   onChange={handleFileSelect}
                   className="scanner-hidden-input"
                 />
@@ -295,17 +297,33 @@ const FoodScanner = () => {
                             {item.portionDescription || `${item.estimatedServings ?? 1} HUDS serving${(item.estimatedServings ?? 1) === 1 ? '' : 's'}`}
                           </p>
                         </div>
-                        <div className="scanner-dish-macros">
-                          {[
-                            `${formatNumber(item.calories)} cal`,
-                            `Protein ${formatNumber(item.protein)}g`,
-                            `Carbs ${formatNumber(item.carbs)}g`,
-                            `Fat ${formatNumber(item.fat)}g`
-                          ].map((detail, idx) => (
-                            <span key={`${item.recipeId}-${detail}`} className={`scanner-dish-macro ${idx === 0 ? 'is-calories' : ''}`}>
-                              {detail}
-                            </span>
-                          ))}
+                        <div className="scanner-dish-nutrition">
+                          <div className="scanner-dish-macros">
+                            {[
+                              `${formatNumber(item.calories)} cal`,
+                              `Protein ${formatNumber(item.protein)}g`,
+                              `Carbs ${formatNumber(item.carbs)}g`,
+                              `Fat ${formatNumber(item.fat)}g`
+                            ].map((detail, idx) => (
+                              <span key={`${item.recipeId}-${detail}`} className={`scanner-dish-macro ${idx === 0 ? 'is-calories' : ''}`}>
+                                {detail}
+                              </span>
+                            ))}
+                          </div>
+                          <div className="scanner-dish-micros">
+                            {[
+                              { label: 'Sat Fat', value: formatMeasurement(item.saturatedFat, 'g') },
+                              { label: 'Trans Fat', value: formatMeasurement(item.transFat, 'g') },
+                              { label: 'Cholesterol', value: formatMeasurement(item.cholesterol, 'mg', 0) },
+                              { label: 'Fiber', value: formatMeasurement(item.fiber, 'g') },
+                              { label: 'Sodium', value: formatMeasurement(item.sodium, 'mg', 0) },
+                              { label: 'Sugars', value: formatMeasurement(item.sugars, 'g') }
+                            ].map((micro) => (
+                              <span key={`${item.recipeId}-${micro.label}`} className="scanner-dish-micro">
+                                {micro.label}: {micro.value}
+                              </span>
+                            ))}
+                          </div>
                         </div>
                       </div>
                     ))}
