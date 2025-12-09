@@ -626,9 +626,17 @@ const MealPlanning = () => {
                           category: category.categoryName,
                           mealType: mealName,
                           calories: parseNutritionValue(recipe.Calories),
+                          caloriesFromFat: parseNutritionValue(recipe.Calories_From_Fat),
                           totalFat: parseNutritionValue(recipe.Total_Fat),
+                          saturatedFat: parseNutritionValue(recipe.Sat_Fat),
+                          transFat: parseNutritionValue(recipe.Trans_Fat),
+                          cholesterol: parseNutritionValue(recipe.Cholesterol),
+                          sodium: parseNutritionValue(recipe.Sodium),
+                          totalCarbs: parseNutritionValue(recipe.Total_Carb),
+                          dietaryFiber: parseNutritionValue(recipe.Dietary_Fiber),
+                          sugars: parseNutritionValue(recipe.Sugars),
                           protein: parseNutritionValue(recipe.Protein),
-                          totalCarbs: parseNutritionValue(recipe.Total_Carbohydrate),
+                          allergens: recipe.Allergens ? String(recipe.Allergens).trim() : '',
                         });
                       });
                     }
@@ -658,9 +666,17 @@ const MealPlanning = () => {
                           category: category.categoryName,
                           mealType: mealName,
                           calories: parseNutritionValue(recipe.Calories),
+                          caloriesFromFat: parseNutritionValue(recipe.Calories_From_Fat),
                           totalFat: parseNutritionValue(recipe.Total_Fat),
+                          saturatedFat: parseNutritionValue(recipe.Sat_Fat),
+                          transFat: parseNutritionValue(recipe.Trans_Fat),
+                          cholesterol: parseNutritionValue(recipe.Cholesterol),
+                          sodium: parseNutritionValue(recipe.Sodium),
+                          totalCarbs: parseNutritionValue(recipe.Total_Carb),
+                          dietaryFiber: parseNutritionValue(recipe.Dietary_Fiber),
+                          sugars: parseNutritionValue(recipe.Sugars),
                           protein: parseNutritionValue(recipe.Protein),
-                          totalCarbs: parseNutritionValue(recipe.Total_Carbohydrate),
+                          allergens: recipe.Allergens ? String(recipe.Allergens).trim() : '',
                         });
                       });
                     }
@@ -806,7 +822,7 @@ const MealPlanning = () => {
         }, token));
       } else {
         // Create new meal plan
-        // Clean item names (remove "Vgn") before saving, but keep original for vegan detection
+        // Clean item names (remove "Vgn") before saving, but keep vegan flag
         const cleanedItems = selectedItems.map(item => {
           const { cleanedName, isVegan } = cleanItemName(item.name);
           return {
@@ -2270,43 +2286,43 @@ const MealPlanning = () => {
               }}>×</button>
             </div>
 
-            <div className="modal-body">
-              <div className="">
-                <div className="form-group">
-                  <label>Meal Type</label>
-                  <CustomSelect
-                    value={selectedMealType}
-                    onChange={handleMealTypeChange}
-                    options={[
-                      { value: '', label: 'Select meal type' },
-                      { value: 'breakfast', label: 'Breakfast' },
-                      { value: 'lunch', label: 'Lunch' },
-                      { value: 'dinner', label: 'Dinner' }
-                    ]}
-                    placeholder="Select meal type"
-                    className="form-input-wrapper"
-                  />
-                </div>
+            <div className="modal-content">
+              <div className="meal-plan-selects-container">
+              <div className="form-group">
+                <label>Meal Type</label>
+                <CustomSelect
+                  value={selectedMealType}
+                  onChange={handleMealTypeChange}
+                  options={[
+                    { value: '', label: 'Select meal type' },
+                    { value: 'breakfast', label: 'Breakfast' },
+                    { value: 'lunch', label: 'Lunch' },
+                    { value: 'dinner', label: 'Dinner' }
+                  ]}
+                  placeholder="Select meal type"
+                  className="form-input-wrapper"
+                />
+              </div>
 
-                <div className="form-group">
-                  <label>Dining Hall</label>
-                  <CustomSelect
-                    value={selectedLocationId}
-                    onChange={handleLocationChange}
-                    options={locations.length > 0 
-                      ? [
-                          { value: '', label: 'Select dining hall' },
-                          ...locations.map((loc, index) => ({
-                            value: loc.location_number,
-                            label: loc.location_name
-                          }))
-                        ]
-                      : [{ value: '', label: 'Loading dining halls...' }]
-                    }
-                    placeholder="Select dining hall"
-                    disabled={locations.length === 0}
-                    className="form-input-wrapper"
-                  />
+              <div className="form-group">
+                <label>Dining Hall</label>
+                <CustomSelect
+                  value={selectedLocationId}
+                  onChange={handleLocationChange}
+                  options={locations.length > 0 
+                    ? [
+                        { value: '', label: 'Select dining hall' },
+                        ...locations.map((loc, index) => ({
+                          value: loc.location_number,
+                          label: loc.location_name
+                        }))
+                      ]
+                    : [{ value: '', label: 'Loading dining halls...' }]
+                  }
+                  placeholder="Select dining hall"
+                  disabled={locations.length === 0}
+                  className="form-input-wrapper"
+                />
                 </div>
               </div>
 
@@ -2358,12 +2374,36 @@ const MealPlanning = () => {
                                   <div className="menu-item-name-container">
                                     <div className="menu-item-name">{capitalizeFoodName(cleanedName)}</div>
                                   </div>
-                                  {isVegan && (
-                                    <div className="vegan-badge" title="Vegan">Vegan</div>
-                                  )}
                                   <div className="menu-item-details">
-                                    <span>{item.calories} cal</span>
-                                    {item.protein && <span>{item.protein}g protein</span>}
+                                    <div className="nutrition-primary">
+                                      <span className="nutrition-chip">{item.calories} cal</span>
+                                      {item.protein > 0 && <span className="nutrition-chip">{item.protein}g protein</span>}
+                                      {item.totalCarbs > 0 && <span className="nutrition-chip">{item.totalCarbs}g carbs</span>}
+                                      {item.totalFat > 0 && <span className="nutrition-chip">{item.totalFat}g total fat</span>}
+                                    </div>
+                                    {(item.caloriesFromFat > 0 || item.saturatedFat > 0 || item.transFat > 0 || 
+                                      item.cholesterol > 0 || item.sodium > 0 || item.dietaryFiber > 0 || 
+                                      item.sugars > 0) && (
+                                      <div className="nutrition-secondary">
+                                        {item.caloriesFromFat > 0 && <span className="nutrition-chip">{item.caloriesFromFat} cal from fat</span>}
+                                        {item.saturatedFat > 0 && <span className="nutrition-chip">{item.saturatedFat}g saturated fat</span>}
+                                        {item.transFat > 0 && <span className="nutrition-chip">{item.transFat}g trans fat</span>}
+                                        {item.cholesterol > 0 && <span className="nutrition-chip">{item.cholesterol}mg cholesterol</span>}
+                                        {item.sodium > 0 && <span className="nutrition-chip">{item.sodium}mg sodium</span>}
+                                        {item.dietaryFiber > 0 && <span className="nutrition-chip">{item.dietaryFiber}g fiber</span>}
+                                        {item.sugars > 0 && <span className="nutrition-chip">{item.sugars}g sugars</span>}
+                                      </div>
+                                    )}
+                                    {item.allergens && item.allergens.length > 0 && (
+                                      <div className="allergens-text" title={`Allergens: ${item.allergens}`}>
+                                        ⚠ Allergens: {item.allergens.replace(/,\s*$/, '')}
+                                      </div>
+                                    )}
+                                    <div className="dietary-badges">
+                                      {isVegan && (
+                                        <div className="vegan-badge" title="Vegan">Vegan</div>
+                                      )}
+                                    </div>
                                   </div>
                                 </div>
                               );
