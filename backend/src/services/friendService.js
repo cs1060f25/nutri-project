@@ -7,8 +7,25 @@ const { admin } = require('../config/firebase');
 const USERS_COLLECTION = 'users';
 const FRIEND_REQUESTS_COLLECTION = 'friendRequests';
 const FRIENDS_COLLECTION = 'friends';
+const NOTIFICATIONS_COLLECTION = 'notifications';
 
 const getDb = () => admin.firestore();
+
+const createNotification = async (data) => {
+  const db = getDb();
+  const ref = await db.collection(NOTIFICATIONS_COLLECTION).add({
+    ...data,
+    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    read: false,
+  });
+  const doc = await ref.get();
+  const docData = doc.data();
+  return {
+    id: doc.id,
+    ...docData,
+    createdAt: docData.createdAt?.toDate(),
+  };
+};
 
 /**
  * Send a friend request from one user to another
@@ -143,6 +160,15 @@ const acceptFriendRequest = async (requestId, userId) => {
   };
 
   await db.collection(FRIENDS_COLLECTION).add(friendship);
+
+  // Notify the requester that their request was accepted
+  await createNotification({
+    type: 'friend_request_accepted',
+    toUserId: requestData.fromUserId,
+    fromUserId: requestData.toUserId,
+    fromUserName: requestData.toUserName,
+    requestId,
+  });
 
   // Get updated request
   const updatedRequestDoc = await requestRef.get();
@@ -368,6 +394,29 @@ const areFriends = async (userId1, userId2) => {
   return false;
 };
 
+const getNotifications = async (userId, limit = 50) => {
+  const db = getDb();
+  const snapshot = await db
+    .collection(NOTIFICATIONS_COLLECTION)
+    .where('toUserId', '==', userId)
+    .orderBy('createdAt', 'desc')
+    .limit(limit)
+    .get();
+
+  const notifications = [];
+  snapshot.forEach((doc) => {
+    const data = doc.data();
+    notifications.push({
+      id: doc.id,
+      ...data,
+      createdAt: data.createdAt?.toDate(),
+      read: data.read ?? false,
+    });
+  });
+
+  return notifications;
+};
+
 module.exports = {
   sendFriendRequest,
   acceptFriendRequest,
@@ -376,5 +425,5 @@ module.exports = {
   getFriends,
   removeFriend,
   areFriends,
+  getNotifications,
 };
-

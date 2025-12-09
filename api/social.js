@@ -18,6 +18,7 @@ const getDb = () => admin.firestore();
 const USERS_COLLECTION = 'users';
 const FRIEND_REQUESTS_COLLECTION = 'friendRequests';
 const FRIENDS_COLLECTION = 'friends';
+const NOTIFICATIONS_COLLECTION = 'notifications';
 const POSTS_COLLECTION = 'posts';
 const MEALS_SUBCOLLECTION = 'meals';
 const DINING_HALL_FOLLOWS_COLLECTION = 'diningHallFollows';
@@ -289,6 +290,17 @@ const acceptFriendRequest = async (requestId, userId) => {
     createdAt: admin.firestore.FieldValue.serverTimestamp(),
   });
 
+  // Notify the requester that their request was accepted
+  await db.collection(NOTIFICATIONS_COLLECTION).add({
+    type: 'friend_request_accepted',
+    toUserId: requestData.fromUserId,
+    fromUserId: requestData.toUserId,
+    fromUserName: requestData.toUserName,
+    requestId,
+    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    read: false,
+  });
+
   const updatedRequestDoc = await requestRef.get();
   const updatedRequestData = updatedRequestDoc.data();
 
@@ -382,6 +394,29 @@ const getFriendRequests = async (userId, type = 'all') => {
   });
 
   return requests.sort((a, b) => b.createdAt - a.createdAt);
+};
+
+const getNotifications = async (userId, limit = 50) => {
+  const db = getDb();
+  const snapshot = await db
+    .collection(NOTIFICATIONS_COLLECTION)
+    .where('toUserId', '==', userId)
+    .orderBy('createdAt', 'desc')
+    .limit(limit)
+    .get();
+
+  const notifications = [];
+  snapshot.forEach((doc) => {
+    const data = doc.data();
+    notifications.push({
+      id: doc.id,
+      ...data,
+      createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : (data.createdAt ? new Date(data.createdAt) : new Date()),
+      read: data.read ?? false,
+    });
+  });
+
+  return notifications;
 };
 
 const getFriends = async (userId) => {
@@ -1678,6 +1713,11 @@ module.exports = async (req, res) => {
       return res.status(200).json(result);
     }
 
+    if (req.method === 'GET' && path === '/notifications') {
+      const notifications = await getNotifications(userId);
+      return res.status(200).json({ notifications });
+    }
+
     // Post routes
     if (req.method === 'POST' && path === '/posts') {
       const { mealId } = req.body;
@@ -2230,4 +2270,3 @@ module.exports = async (req, res) => {
     return res.status(400).json(createErrorResponse('ERROR', error.message || 'Failed to process request.'));
   }
 };
-
