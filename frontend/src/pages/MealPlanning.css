@@ -271,7 +271,7 @@
 .meal-plan-location {
   font-size: 0.75rem;
   font-weight: 600;
-  color: #1a5f3f;
+  color: var(--text-primary);
   overflow: hidden;
   word-wrap: break-word;
   word-break: break-word;

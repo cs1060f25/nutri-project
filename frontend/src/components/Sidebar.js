@@ -137,7 +137,7 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
       onClick={() => isCollapsed && onToggle()}
     >
       <div className="sidebar-header">
-        <h2 className="sidebar-title">HUDS Nutrition</h2>
+        <h2 className="sidebar-title">Harvard Eats</h2>
         <button 
           className="collapse-button" 
           onClick={(e) => {
