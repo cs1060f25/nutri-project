@@ -375,9 +375,14 @@ const MealLogger = ({ isOpen, onClose, onSave }) => {
 
   const updateQuantity = (recipeId, newQuantity) => {
     const qty = parseFloat(newQuantity) || 0;
-    setSelectedItems(selectedItems.map(item =>
-      item.recipeId === recipeId ? { ...item, quantity: qty } : item
-    ));
+    if (qty <= 0) {
+      // Remove item if quantity is 0 or less
+      setSelectedItems(selectedItems.filter(item => item.recipeId !== recipeId));
+    } else {
+      setSelectedItems(selectedItems.map(item =>
+        item.recipeId === recipeId ? { ...item, quantity: qty } : item
+      ));
+    }
   };
 
   const calculateTotals = () => {
@@ -444,6 +449,15 @@ const MealLogger = ({ isOpen, onClose, onSave }) => {
       const parsed = parseLocationId(selectedLocation);
       const locationNumber = parsed ? parsed.location_number : selectedLocation;
       
+      // Filter out any items with invalid quantities (safety check)
+      const validItems = selectedItems.filter(item => item.quantity > 0);
+      
+      if (validItems.length === 0) {
+        setError('Please select at least one item with a valid quantity');
+        setLoading(false);
+        return;
+      }
+      
       await onSave({
         mealDate: today,
         mealType,
@@ -451,7 +465,7 @@ const MealLogger = ({ isOpen, onClose, onSave }) => {
         timestamp,
         locationId: locationNumber,
         locationName: selectedLocationName,
-        items: selectedItems,
+        items: validItems,
       });
       
       // Reset form
