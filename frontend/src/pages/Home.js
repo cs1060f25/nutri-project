@@ -439,6 +439,9 @@ const Home = () => {
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3000);
       
+      // Dispatch event to notify other components (Insights, MealPlanning) to refresh
+      window.dispatchEvent(new CustomEvent('mealLogUpdated'));
+      
       // Refresh nutrition progress after saving a meal
       try {
         const progress = await getTodayProgress(accessToken);

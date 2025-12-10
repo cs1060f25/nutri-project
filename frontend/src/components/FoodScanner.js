@@ -336,7 +336,10 @@ const FoodScanner = () => {
                 {results.unmatchedDishes && results.unmatchedDishes.length > 0 && (
                   <div className="scanner-unmatched">
                     <p className="scanner-unmatched-label">Still unsure</p>
-                    <p>Could not match: {results.unmatchedDishes.join(', ')}. Try clarifying those items or add them manually.</p>
+                    <p>
+                      We couldn't reliably match {results.unmatchedDishes.length === 1 ? 'an item' : 'some items'} on your plate. 
+                      Try logging {results.unmatchedDishes.length === 1 ? 'it' : 'them'} manually or scan again with better lighting.
+                    </p>
                   </div>
                 )}
               </div>
