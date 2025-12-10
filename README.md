@@ -1,6 +1,6 @@
-# HUDS Nutrition Analyzer
+# Harvard Eats
 
-Track your dining hall consumption and diet goals with Harvard University Dining Services (HUDS) data.
+A comprehensive dining analytics platform for Harvard students to track meals, view HUDS menus, scan food with AI, get personalized nutrition insights, and connect with the Harvard dining community.
 
 ## 🚀 Quick Start - Development
 
@@ -37,7 +37,7 @@ npm run dev:frontend
 npm run install-all
 
 # Set up environment variables
-# 1. Create backend/.env (see below)
+# 1. Create backend/.env (copy from backend/.env.example)
 # 2. Create frontend/.env (if needed)
 
 # Run development servers
@@ -58,6 +58,9 @@ FIREBASE_WEB_API_KEY=your-web-api-key
 # HUDS API
 HUDS_API_KEY=your-huds-api-key
 HUDS_API_BASE_URL=https://go.prod.apis.huit.harvard.edu/ats/dining/v3
+
+# Gemini AI (for food scanning)
+GEMINI_API_KEY=your-gemini-api-key
 
 # Server
 PORT=3000
@@ -162,87 +165,94 @@ nutri-project/
 
 ## 🎯 Features
 
-### Current Features
-- ✅ User authentication (Firebase Auth)
-- ✅ View HUDS menus with nutritional information
-- ✅ Quick add meals from any date
-- ✅ Dynamic meal types based on availability
-- ✅ Track meals in user-scoped Firestore subcollection
-- ✅ Create and manage nutrition plans
-- ✅ Automatic nutritional calculations
+### Core Features
+- ✅ **User Authentication** - Firebase Auth with email/password and password reset
+- ✅ **HUDS Menu Browser** - View real-time menus from all Harvard dining halls with full nutritional info
+- ✅ **AI Food Scanner** - Snap a photo of your plate and get automatic nutrition estimates using Gemini AI
+- ✅ **Manual Meal Logging** - Quick-add meals from today's HUDS menu with quantity adjustments
+- ✅ **Nutrition Plans** - Create personalized daily macro/calorie goals and track progress
+- ✅ **Daily Progress Rings** - Visual dashboard showing progress toward nutrition targets
+- ✅ **Insights & Analytics** - AI-powered summaries, charts, and trends over custom date ranges
+- ✅ **Meal History** - View, edit, rate, and review all logged meals
+- ✅ **Meal Planning** - Plan future meals and get AI suggestions based on your goals
+- ✅ **Social Feed** - Share meals with the Harvard community, see what others are eating
+- ✅ **Settings** - Manage profile, dietary preferences, and account settings
 
 ### Quick Add Meal Flow
-1. Click the "+" floating button
+1. Click the "+" floating button on the Home page
 2. Select time, dining hall, and meal type
 3. Click "Next" to load today's menu
-4. Browse and select food items
-5. Adjust quantities
-6. Save to Firestore (`users/{userId}/meals`)
+4. Search/browse and select food items
+5. Adjust serving quantities
+6. Save to your meal history
 
-**Important**: The HUDS API only provides current/future menu data, not historical data. You can only log meals from **today's menu**. Use the time picker to backlog meals from earlier today.
+### AI Food Scanner Flow
+1. Navigate to Food Scanner page
+2. Upload or take a photo of your meal
+3. AI identifies dishes and estimates portions from HUDS menu
+4. Review matched items and nutrition totals
+5. Save the scan as a meal log
+
+**Note**: The HUDS API only provides current menu data. You can only log meals from **today's menu**.
 
 ## 🧪 Testing
 
-### Check if Meals are Saved
+### Run All Tests
 
 ```bash
+# Backend tests (unit + integration)
+cd backend && npm test
+
+# Frontend tests
+cd frontend && npm test -- --watchAll=false
+
+# Specific backend test suites
 cd backend
-node scripts/viewFirestoreData.js
-```
-
-This shows all users and their data, including the `meals` subcollection.
-
-### Run Backend Tests
-
-```bash
-cd backend
-npm test
+npm run test:huds      # HUDS API tests
+npm run test:auth      # Auth tests
+npm run test:api       # API integration tests
+npm run test:syntax    # Quick syntax check
 ```
 
 ### Manual API Testing
 
 ```bash
-# Get locations
+# Get dining locations
 curl http://localhost:3000/api/huds/locations
 
-# Get events for a date
-curl "http://localhost:3000/api/huds/events?date=2025-11-03&locationId=05"
+# Get today's menu for a location
+curl "http://localhost:3000/api/huds/menu/today?locationId=05"
 
-# Get menu for a date
-curl "http://localhost:3000/api/huds/menu/date?date=2025-11-03"
+# Get menu for a specific date
+curl "http://localhost:3000/api/huds/menu/date?date=2025-12-09"
 ```
 
 ## 🐛 Debugging
 
-### Frontend Not Loading
-```bash
-# Check if frontend is running
-lsof -i :3001
+### Common Issues
 
-# Restart if needed
-cd frontend && npm start
+**Frontend Not Loading**
+```bash
+lsof -i :3001              # Check if port is in use
+cd frontend && npm start   # Restart frontend
 ```
 
-### Backend Not Responding
+**Backend Not Responding**
 ```bash
-# Check if backend is running
-lsof -i :3000
-
-# Check logs
-cd backend && npm run dev
+lsof -i :3000              # Check if port is in use
+cd backend && npm run dev  # Restart with logs
 ```
 
-### API Calls Failing
+**API Calls Failing**
 1. Open Browser DevTools → Network tab
-2. Check API responses
+2. Check API response status and body
 3. Check backend terminal for error logs
-4. Verify environment variables are set
+4. Verify `.env` variables are set correctly
 
-### Meal Types Stuck Loading
-1. Open Browser Console
-2. Look for console.log messages about fetching meal types
-3. Check if HUDS API key is valid
-4. Verify date format is YYYY-MM-DD
+**Food Scanner Not Working**
+1. Ensure `GEMINI_API_KEY` is set in backend `.env`
+2. Check backend logs for Gemini API errors
+3. Try a clearer photo with better lighting
 
 ## 🚢 Deployment
 
@@ -265,6 +275,7 @@ Add these in your Vercel project settings:
 - `FIREBASE_WEB_API_KEY`
 - `HUDS_API_KEY`
 - `HUDS_API_BASE_URL`
+- `GEMINI_API_KEY`
 
 ## 📚 Documentation
 
@@ -301,12 +312,12 @@ npm start              # Production mode (both)
 ## 💡 Tips
 
 - Use `npm run dev` from root - it runs everything
-- Backend logs show all API requests
-- Frontend proxy handles CORS automatically
-- Both architectures work identically for the user
-- Serverless functions auto-scale in production
-- Express server is easier to debug locally
+- Backend logs show all API requests in the terminal
+- Frontend proxy handles CORS automatically in development
+- The AI food scanner works best with clear, well-lit photos
+- Nutrition progress updates automatically after logging meals
+- All 12 Harvard houses share the same menu (except Quincy)
 
 ---
 
-Need help? Check the [Backend README](backend/README.md) or open an issue!
+**Harvard Eats** - Built for CS1060 Fall 2025
