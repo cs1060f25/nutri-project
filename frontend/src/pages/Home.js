@@ -577,11 +577,17 @@ const Home = () => {
                   };
                 }
                 
-                // Add recipes, avoiding duplicates by recipe ID
+                // Add recipes, avoiding duplicates by recipe name (not just ID)
+                // This prevents the same dish from appearing multiple times with different IDs
                 if (category.recipes) {
                   category.recipes.forEach(recipe => {
                     const existingRecipes = aggregatedMeals[mealKey].categories[catKey].recipes;
-                    if (!existingRecipes.some(r => r.ID === recipe.ID)) {
+                    const recipeName = (recipe.Recipe_Print_As_Name || recipe.Recipe_Name || '').toLowerCase();
+                    const isDuplicate = existingRecipes.some(r => {
+                      const existingName = (r.Recipe_Print_As_Name || r.Recipe_Name || '').toLowerCase();
+                      return existingName === recipeName;
+                    });
+                    if (!isDuplicate) {
                       existingRecipes.push(recipe);
                     }
                   });
@@ -644,10 +650,19 @@ const Home = () => {
                 return name.includes(query);
               }) || [];
               
-              if (matchingRecipes.length > 0) {
+              // Deduplicate recipes by name within each category (keep first occurrence)
+              const seenNames = new Set();
+              const uniqueRecipes = matchingRecipes.filter(recipe => {
+                const name = (recipe.Recipe_Print_As_Name || recipe.Recipe_Name || '').toLowerCase();
+                if (seenNames.has(name)) return false;
+                seenNames.add(name);
+                return true;
+              });
+              
+              if (uniqueRecipes.length > 0) {
                 filteredCategories[catKey] = {
                   ...category,
-                  recipes: matchingRecipes
+                  recipes: uniqueRecipes
                 };
               }
             });

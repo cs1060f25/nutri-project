@@ -37,11 +37,17 @@ const normalizeHouseName = (houseName) => {
   return trimmed;
 };
 
+// Helper to get local date in YYYY-MM-DD format (avoids UTC timezone issues)
+const getLocalDateString = () => {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+};
+
 const CreatePostModal = ({ isOpen, onClose, onSuccess, scanData, imageUrl, imageFile, initialData }) => {
   const { accessToken, refreshAccessToken } = useAuth();
   const [diningHalls, setDiningHalls] = useState([]);
   const [selectedLocation, setSelectedLocation] = useState({ locationId: '', locationName: '' });
-  const [mealDate, setMealDate] = useState(initialData?.mealDate || new Date().toISOString().split('T')[0]); // Default to today or initialData
+  const [mealDate, setMealDate] = useState(initialData?.mealDate || getLocalDateString()); // Default to today or initialData
   const [mealType, setMealType] = useState(initialData?.mealType || '');
   const [rating, setRating] = useState(0);
   const [hoveredRating, setHoveredRating] = useState(0);
@@ -146,7 +152,7 @@ const CreatePostModal = ({ isOpen, onClose, onSuccess, scanData, imageUrl, image
     } else {
       // Reset form when modal closes
       setSelectedLocation({ locationId: '', locationName: '' });
-      setMealDate(initialData?.mealDate || new Date().toISOString().split('T')[0]);
+      setMealDate(initialData?.mealDate || getLocalDateString());
       setMealType(initialData?.mealType ? (initialData.mealType.charAt(0).toUpperCase() + initialData.mealType.slice(1)) : '');
       setRating(0);
       setReview('');

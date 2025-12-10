@@ -24,6 +24,12 @@ const ALL_HOUSES = [
   'Quincy House'
 ];
 
+// Helper to get local date in YYYY-MM-DD format (avoids UTC timezone issues)
+const getLocalDateString = () => {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+};
+
 // Helper to ensure house names have "House" suffix
 const normalizeHouseName = (houseName) => {
   const trimmed = houseName.trim();
@@ -121,7 +127,7 @@ const EditPostModal = ({ isOpen, onClose, post, onPostUpdated, onPostDeleted }) 
       if (post.mealDate) {
         setMealDate(post.mealDate);
       } else {
-        setMealDate(new Date().toISOString().split('T')[0]);
+        setMealDate(getLocalDateString());
       }
       
       setMealType(post.mealType || '');
