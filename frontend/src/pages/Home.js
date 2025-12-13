@@ -203,6 +203,8 @@ const Home = () => {
         
         if (!selectedLocationObj) {
           setMenuData([]);
+          setError('Location not found. Please select a different dining hall.');
+          setLoading(false);
           return;
         }
 
@@ -298,6 +300,7 @@ const Home = () => {
         
         if (!selectedLocationObj) {
           setSuggestionMenuData([]);
+          setSuggestionMenuLoading(false);
           return;
         }
 
@@ -609,22 +612,62 @@ const Home = () => {
       
       return [];
     } else {
-      // For non-shared houses, use the existing logic
-      return menuData.map(location => {
-        const filteredMeals = {};
+      // For non-shared houses, aggregate and deduplicate recipes
+      const aggregatedMeals = {};
+      
+      menuData.forEach(location => {
         if (location.meals) {
-          Object.entries(location.meals).forEach(([key, meal]) => {
+          Object.values(location.meals).forEach(meal => {
             const normalizedMealName = normalizeMealName(meal.mealName);
-            if (normalizedMealName === normalizedSelected) {
-              filteredMeals[key] = meal;
+            if (normalizedMealName === normalizedSelected && meal.categories) {
+              const mealKey = meal.mealNumber;
+              
+              // Initialize meal if not exists
+              if (!aggregatedMeals[mealKey]) {
+                aggregatedMeals[mealKey] = {
+                  mealNumber: meal.mealNumber,
+                  mealName: meal.mealName,
+                  categories: {}
+                };
+              }
+              
+              // Aggregate categories and recipes
+              Object.values(meal.categories).forEach(category => {
+                const catKey = category.categoryNumber;
+                
+                if (!aggregatedMeals[mealKey].categories[catKey]) {
+                  aggregatedMeals[mealKey].categories[catKey] = {
+                    categoryNumber: category.categoryNumber,
+                    categoryName: category.categoryName,
+                    recipes: []
+                  };
+                }
+                
+                // Add recipes, avoiding duplicates by recipe ID
+                if (category.recipes) {
+                  category.recipes.forEach(recipe => {
+                    const existingRecipes = aggregatedMeals[mealKey].categories[catKey].recipes;
+                    if (!existingRecipes.some(r => r.ID === recipe.ID)) {
+                      existingRecipes.push(recipe);
+                    }
+                  });
+                }
+              });
             }
           });
         }
-        return {
-          ...location,
-          meals: filteredMeals
-        };
-      }).filter(location => Object.keys(location.meals).length > 0);
+      });
+      
+      // Return as a single location with the selected location's name
+      if (Object.keys(aggregatedMeals).length > 0) {
+        return [{
+          locationNumber: selectedLocationObj.location_number,
+          locationName: selectedLocationObj.location_name,
+          meals: aggregatedMeals
+        }];
+      }
+      
+      return [];
     }
   };
 
